@@ -1766,14 +1766,19 @@ function createPageDOM(page, pageIndex, position, heightClass) {
   wrapper.dataset.pageIndex = pageIndex;
 
   wrapper.onclick = (e) => {
-    if (appMode === 'edit' && !e.target.closest('.canvas-element') && !e.target.closest('.quiz-option-btn') && !e.target.closest('.inline-editable-text') && !e.target.closest('.template-image-container')) {
+    if (appMode === 'edit' && !e.target.closest('.canvas-element') && !e.target.closest('#inlineTransformGizmo') && !e.target.closest('.quiz-option-btn') && !e.target.closest('.inline-editable-text') && !e.target.closest('.template-image-container')) {
       if (selectedEditIndex !== pageIndex) {
         selectPageForEdit(pageIndex);
       } else {
-        // Eleman seçimini kaldır
+        // Eleman ve şablon içi seçimi kaldır
         selectedElementId = null;
+        activeInlineElement = null;
+        activeInlineFieldKey = null;
+        activeInlineType = null;
+        document.querySelectorAll('.inline-selected').forEach(n => n.classList.remove('inline-selected'));
         hideFloatingRichTextBar();
         renderAllElementsForCurrentPage();
+        renderRightEditorPanel();
       }
     }
   };
@@ -1866,8 +1871,8 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       elDom.innerHTML = `
         <img src="${escapeHtml(el.url)}" class="w-full h-full pointer-events-none" style="object-fit:${fitMode}; border-radius:${radiusPx}; ${clipStyle}" alt="">
         ${isEditable ? `
-          <label class="img-change-badge" style="border-radius:${radiusPx};" title="Görseli Değiştir">
-            <i class="ph ph-camera text-xl"></i>
+          <label class="img-change-badge" onclick="event.stopPropagation()" title="Görseli Değiştir">
+            <i class="ph ph-camera text-sm"></i>
             <span>Değiştir</span>
             <input type="file" accept="image/*" onchange="uploadCanvasElementImage(event, '${el.id}')" class="hidden">
           </label>
@@ -1887,12 +1892,11 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       `;
     }
 
-    // 3. METİN KUTUSU / RENKLİ ÇERÇEVE / SORU KUTUSU (Görsel 2 & 3: Harf/Satır/Paragraf Aralığı, Sütun, Kaydırma, Kontur, Gölge)
+    // 3. METİN KUTUSU / RENKLİ ÇERÇEVE / SORU KUTUSU (Boyutlandırma, Taşıma ve Döndürme Kulakçıkları Görünür)
     if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
-      elDom.className += ' canvas-text-element p-3 border leading-relaxed';
+      elDom.className += ' canvas-text-element border leading-relaxed';
       elDom.style.borderRadius = radiusPx;
-      elDom.style.overflowY = el.scrollable ? 'auto' : 'hidden';
-      elDom.style.overflowX = 'hidden';
+      elDom.style.overflow = 'visible';
 
       if (el.bgColor && el.bgColor.startsWith('linear-gradient')) {
         elDom.style.background = el.bgColor;
@@ -1911,31 +1915,40 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       elDom.style.textAlign = el.textAlign || 'left';
       elDom.style.letterSpacing = el.letterSpacing ? `${el.letterSpacing}px` : 'normal';
       elDom.style.lineHeight = el.lineHeight || '1.35';
+
+      const innerDiv = document.createElement('div');
+      innerDiv.className = 'canvas-text-inner w-full h-full p-3 outline-none';
+      innerDiv.style.borderRadius = radiusPx;
+      innerDiv.style.overflowY = el.scrollable ? 'auto' : 'hidden';
+      innerDiv.style.overflowX = 'hidden';
       if (el.columns && Number(el.columns) > 1) {
-        elDom.style.columnCount = String(el.columns);
-        elDom.style.columnGap = '14px';
+        innerDiv.style.columnCount = String(el.columns);
+        innerDiv.style.columnGap = '14px';
       } else {
-        elDom.style.columnCount = '1';
+        innerDiv.style.columnCount = '1';
       }
-      elDom.innerHTML = el.content || 'Yazınızı buraya yazın...';
+      innerDiv.innerHTML = el.content || 'Yazınızı buraya yazın...';
 
       if (isEditable) {
-        elDom.contentEditable = "true";
-        elDom.onfocus = () => {
+        innerDiv.contentEditable = "true";
+        innerDiv.onfocus = () => {
           activeInlineElement = null;
           activeInlineFieldKey = null;
+          activeInlineType = null;
+          selectCanvasElement(el.id, false);
           showFloatingRichTextBar(elDom, el);
           renderRightEditorPanel();
         };
-        elDom.oninput = () => {
-          el.content = elDom.innerHTML;
+        innerDiv.oninput = () => {
+          el.content = innerDiv.innerHTML;
           debouncedSave();
         };
-        elDom.onblur = () => {
-          el.content = elDom.innerHTML;
+        innerDiv.onblur = () => {
+          el.content = innerDiv.innerHTML;
           saveAllChangesToServer();
         };
       }
+      elDom.appendChild(innerDiv);
     }
 
     // 4. TABLO WIDGET'I (Görsel 1 & 7: Product Information / Sewing Techniques Tablosu)
@@ -2071,15 +2084,19 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
     // Seçim ve Taşıma Olayları (Düzenleme Modunda)
     if (isEditable) {
       elDom.onmousedown = (ev) => {
-        if (ev.target.closest('.resize-handle') || ev.target.closest('.rotate-handle') || ev.target.closest('.img-change-badge') || ev.target.tagName === 'AUDIO' || ev.target.tagName === 'VIDEO') return;
+        if (ev.target.closest('.resize-handle') || ev.target.closest('.rotate-handle') || ev.target.closest('.move-handle') || ev.target.closest('.img-change-badge') || ev.target.tagName === 'AUDIO' || ev.target.tagName === 'VIDEO') return;
         ev.stopPropagation();
+
+        activeInlineElement = null;
+        activeInlineFieldKey = null;
+        activeInlineType = null;
 
         if (el.type === 'text' || el.type === 'card' || el.type === 'qbox' || el.type === 'table') {
           selectCanvasElement(el.id, false);
           showFloatingRichTextBar(elDom, el);
           renderRightEditorPanel();
           const rect = elDom.getBoundingClientRect();
-          const borderThreshold = 12;
+          const borderThreshold = 14;
           const isNearEdge = (
             ev.clientX - rect.left < borderThreshold ||
             rect.right - ev.clientX < borderThreshold ||
@@ -2097,8 +2114,9 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
         startDraggingElement(ev, el, pageWrapper);
       };
 
-      // Seçiliyse 8 Boyutlandırma Kulakçığı ve Sol-Alt Döndürme İkonu Ekle (Görsel 2 & 5)
+      // Seçiliyse 8 Boyutlandırma Kulakçığı, Taşıma Kulakçığı ve Döndürme İkonu Ekle
       if (isSelected) {
+        elDom.appendChild(createMoveHandleDOM(el, pageWrapper));
         elDom.appendChild(createHandleDOM('handle-nw', 'nw'));
         elDom.appendChild(createHandleDOM('handle-ne', 'ne'));
         elDom.appendChild(createHandleDOM('handle-se', 'se'));
@@ -2114,6 +2132,24 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
 
     layer.appendChild(elDom);
   });
+
+  // Şablon içi bir görsel veya metin kutusu seçiliyse onun etrafına da 8 Boyutlandırma + Taşıma + Döndürme Gizmosu çiz
+  if (isEditable && activeInlineFieldKey) {
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+  }
+}
+
+function createMoveHandleDOM(el, pageWrapper) {
+  const mh = document.createElement('div');
+  mh.className = 'move-handle';
+  mh.innerHTML = '<i class="ph ph-arrows-out-cardinal"></i><span>Taşı</span>';
+  mh.title = 'Konumunu değiştirmek için sürükleyin';
+  mh.onmousedown = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    startDraggingElement(e, el, pageWrapper);
+  };
+  return mh;
 }
 
 function createHandleDOM(className, handleType) {
@@ -2131,7 +2167,7 @@ function createRotateHandleDOM(el, pageWrapper) {
   const rh = document.createElement('div');
   rh.className = 'rotate-handle';
   rh.innerHTML = '<i class="ph ph-arrows-clockwise"></i>';
-  rh.title = 'Döndürmek için sürükleyin';
+  rh.title = 'Açısını döndürmek için sürükleyin';
   rh.onmousedown = (e) => {
     e.stopPropagation();
     startRotatingElement(e, el, pageWrapper);
@@ -2144,6 +2180,14 @@ function createRotateHandleDOM(el, pageWrapper) {
 // ==========================================
 function selectCanvasElement(id, reRender = true) {
   selectedElementId = id;
+  if (id) {
+    activeInlineElement = null;
+    activeInlineFieldKey = null;
+    activeInlineType = null;
+    document.querySelectorAll('.inline-selected').forEach(n => n.classList.remove('inline-selected'));
+    const oldGizmo = document.getElementById('inlineTransformGizmo');
+    if (oldGizmo) oldGizmo.remove();
+  }
   if (reRender) {
     renderAllElementsForCurrentPage();
   } else {
@@ -2154,6 +2198,8 @@ function selectCanvasElement(id, reRender = true) {
       if (elNode.dataset.elementId === id) {
         elNode.classList.add('element-selected');
         if (!elNode.querySelector('.resize-handle')) {
+          const elData = (magazineData.pages[selectedEditIndex].elements || []).find(e => e.id === id);
+          if (elData) elNode.appendChild(createMoveHandleDOM(elData, pageDom));
           elNode.appendChild(createHandleDOM('handle-nw', 'nw'));
           elNode.appendChild(createHandleDOM('handle-ne', 'ne'));
           elNode.appendChild(createHandleDOM('handle-se', 'se'));
@@ -2162,12 +2208,11 @@ function selectCanvasElement(id, reRender = true) {
           elNode.appendChild(createHandleDOM('handle-s', 's'));
           elNode.appendChild(createHandleDOM('handle-e', 'e'));
           elNode.appendChild(createHandleDOM('handle-w', 'w'));
-          const elData = (magazineData.pages[selectedEditIndex].elements || []).find(e => e.id === id);
           if (elData) elNode.appendChild(createRotateHandleDOM(elData, pageDom));
         }
       } else {
         elNode.classList.remove('element-selected');
-        elNode.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
+        elNode.querySelectorAll('.resize-handle, .rotate-handle, .move-handle').forEach(h => h.remove());
       }
     });
   }
@@ -2316,9 +2361,352 @@ function startRotatingElement(e, el, pageWrapper) {
   window.addEventListener('mouseup', onMouseUp);
 }
 
-// Zengin Tipografi, Yüzen Beyaz Araç Çubuğu & Renkli Çerçeve Kontrolleri (FAZ 2 & FAZ 3)
+// Zengin Tipografi, Şablon İçi Görsel/Metin Taşıma-Boyutlandırma-Döndürme Motoru
 let activeInlineElement = null;
 let activeInlineFieldKey = null;
+let activeInlineType = null; // 'text' | 'image'
+
+function ensureFieldStyles(page, key) {
+  if (!page.fieldStyles) page.fieldStyles = {};
+  if (!page.fieldStyles[key]) page.fieldStyles[key] = {};
+  return page.fieldStyles[key];
+}
+
+function applyInlineTransformToDOM(domEl, fs) {
+  if (!domEl || !fs) return;
+  const tx = Number(fs.tx) || 0;
+  const ty = Number(fs.ty) || 0;
+  const rot = Number(fs.rotate) || 0;
+
+  if (tx !== 0 || ty !== 0 || rot !== 0) {
+    domEl.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
+    domEl.style.position = 'relative';
+    domEl.style.zIndex = '32';
+    if (domEl.parentElement && getComputedStyle(domEl.parentElement).overflow === 'hidden') {
+      domEl.parentElement.style.overflow = 'visible';
+    }
+  } else {
+    domEl.style.transform = '';
+  }
+
+  if (fs.width) {
+    domEl.style.setProperty('width', `${fs.width}px`, 'important');
+    domEl.style.setProperty('max-width', 'none', 'important');
+  }
+  if (fs.height) {
+    domEl.style.setProperty('height', `${fs.height}px`, 'important');
+    domEl.style.setProperty('max-height', 'none', 'important');
+  }
+  if (fs.borderRadius !== undefined) {
+    domEl.style.borderRadius = `${fs.borderRadius}px`;
+    const innerImg = domEl.querySelector('img');
+    if (innerImg) innerImg.style.borderRadius = `${fs.borderRadius}px`;
+  }
+  if (fs.opacity !== undefined) {
+    domEl.style.opacity = String(Number(fs.opacity) / 100);
+  }
+  if (fs.hasShadow !== undefined) {
+    domEl.style.filter = fs.hasShadow ? 'drop-shadow(0 12px 20px rgba(15, 23, 42, 0.35))' : '';
+  }
+  const innerImg = domEl.querySelector('img');
+  if (innerImg) {
+    if (fs.objectFit) innerImg.style.objectFit = fs.objectFit;
+    if (fs.mask) innerImg.style.clipPath = fs.mask !== 'none' ? getClipPathForMask(fs.mask) : 'none';
+  }
+}
+
+function renderInlineTransformGizmo(page, pageIndex, pageWrapper) {
+  if (!pageWrapper) {
+    pageWrapper = document.querySelector(`.magazine-page[data-page-index="${pageIndex}"]`);
+  }
+  if (!pageWrapper) return;
+  const layer = pageWrapper.querySelector(`#elemLayer_${pageIndex}`);
+  if (!layer) return;
+
+  const oldGizmo = layer.querySelector('#inlineTransformGizmo');
+  if (oldGizmo) oldGizmo.remove();
+
+  if (!activeInlineFieldKey) return;
+  let domEl = activeInlineElement;
+  if (!domEl || !pageWrapper.contains(domEl)) {
+    domEl = pageWrapper.querySelector(`[data-field-key="${activeInlineFieldKey}"]`);
+    activeInlineElement = domEl;
+  }
+  if (!domEl) return;
+
+  const fs = ensureFieldStyles(page, activeInlineFieldKey);
+  const pageRect = pageWrapper.getBoundingClientRect();
+  const elRect = domEl.getBoundingClientRect();
+
+  const w = domEl.offsetWidth || elRect.width || 120;
+  const h = domEl.offsetHeight || elRect.height || 50;
+  const centerX = (elRect.left + elRect.width / 2) - pageRect.left;
+  const centerY = (elRect.top + elRect.height / 2) - pageRect.top;
+  const leftPx = centerX - w / 2;
+  const topPx = centerY - h / 2;
+
+  const gizmo = document.createElement('div');
+  gizmo.id = 'inlineTransformGizmo';
+  gizmo.className = 'pointer-events-none';
+  gizmo.style.position = 'absolute';
+  gizmo.style.left = `${leftPx}px`;
+  gizmo.style.top = `${topPx}px`;
+  gizmo.style.width = `${w}px`;
+  gizmo.style.height = `${h}px`;
+  gizmo.style.transform = `rotate(${fs.rotate || 0}deg)`;
+  gizmo.style.outline = '2px solid #2563eb';
+  gizmo.style.boxShadow = '0 0 0 2px rgba(37, 99, 235, 0.22)';
+  gizmo.style.borderRadius = domEl.style.borderRadius || '6px';
+  gizmo.style.zIndex = '60';
+
+  // 1. Taşıma Kulakçığı (✢ Taşı)
+  const mh = document.createElement('div');
+  mh.className = 'move-handle pointer-events-auto';
+  mh.innerHTML = '<i class="ph ph-arrows-out-cardinal"></i><span>Taşı</span>';
+  mh.title = 'Konumunu (Pozisyonunu) değiştirmek için sürükleyin';
+  mh.onmousedown = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    startDraggingInlineItem(e, pageIndex, activeInlineFieldKey, domEl, pageWrapper);
+  };
+  gizmo.appendChild(mh);
+
+  // 2. 8 Noktalı Boyutlandırma Kulakçıkları (Ebat Değiştirme)
+  ['nw', 'ne', 'se', 'sw', 'n', 's', 'e', 'w'].forEach(dir => {
+    const rh = document.createElement('div');
+    rh.className = `resize-handle handle-${dir} pointer-events-auto`;
+    rh.title = 'Ebatını (Genişlik / Yükseklik) değiştirmek için sürükleyin';
+    rh.onmousedown = (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      startResizingInlineItem(e, dir, pageIndex, activeInlineFieldKey, domEl, pageWrapper);
+    };
+    gizmo.appendChild(rh);
+  });
+
+  // 3. Döndürme Kulakçığı (↻ Açı Değiştirme)
+  const rotH = document.createElement('div');
+  rotH.className = 'rotate-handle pointer-events-auto';
+  rotH.innerHTML = '<i class="ph ph-arrows-clockwise"></i>';
+  rotH.title = 'Açısını döndürmek için sürükleyin';
+  rotH.onmousedown = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    startRotatingInlineItem(e, pageIndex, activeInlineFieldKey, domEl, pageWrapper);
+  };
+  gizmo.appendChild(rotH);
+
+  layer.appendChild(gizmo);
+}
+
+function startDraggingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
+  const page = magazineData.pages[pageIndex];
+  if (!page) return;
+  const fs = ensureFieldStyles(page, key);
+
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const initTx = Number(fs.tx) || 0;
+  const initTy = Number(fs.ty) || 0;
+
+  function onMove(ev) {
+    const scaleFactor = (canvasZoomPercent || 100) / 100;
+    const dx = (ev.clientX - startX) / scaleFactor;
+    const dy = (ev.clientY - startY) / scaleFactor;
+    fs.tx = Math.round(initTx + dx);
+    fs.ty = Math.round(initTy + dy);
+    applyInlineTransformToDOM(domEl, fs);
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+    syncInlineInspectorLiveInputs(fs, domEl);
+  }
+
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    renderRightEditorPanel();
+    saveAllChangesToServer();
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function startResizingInlineItem(e, handle, pageIndex, key, domEl, pageWrapper) {
+  const page = magazineData.pages[pageIndex];
+  if (!page) return;
+  const fs = ensureFieldStyles(page, key);
+
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const initW = Number(fs.width) || domEl.offsetWidth || 160;
+  const initH = Number(fs.height) || domEl.offsetHeight || 80;
+  const initTx = Number(fs.tx) || 0;
+  const initTy = Number(fs.ty) || 0;
+
+  function onMove(ev) {
+    const scaleFactor = (canvasZoomPercent || 100) / 100;
+    const dx = (ev.clientX - startX) / scaleFactor;
+    const dy = (ev.clientY - startY) / scaleFactor;
+
+    let newW = initW;
+    let newH = initH;
+    let newTx = initTx;
+    let newTy = initTy;
+
+    if (handle.includes('e')) newW = Math.max(36, initW + dx);
+    if (handle.includes('s')) newH = Math.max(24, initH + dy);
+    if (handle.includes('w')) {
+      newW = Math.max(36, initW - dx);
+      newTx = initTx + (initW - newW);
+    }
+    if (handle.includes('n')) {
+      newH = Math.max(24, initH - dy);
+      newTy = initTy + (initH - newH);
+    }
+
+    fs.width = Math.round(newW);
+    fs.height = Math.round(newH);
+    fs.tx = Math.round(newTx);
+    fs.ty = Math.round(newTy);
+
+    applyInlineTransformToDOM(domEl, fs);
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+    syncInlineInspectorLiveInputs(fs, domEl);
+  }
+
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    renderRightEditorPanel();
+    saveAllChangesToServer();
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function startRotatingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
+  const page = magazineData.pages[pageIndex];
+  if (!page) return;
+  const fs = ensureFieldStyles(page, key);
+
+  const rect = domEl.getBoundingClientRect();
+  const centerX = rect.left + rect.width / 2;
+  const centerY = rect.top + rect.height / 2;
+
+  function onMove(ev) {
+    const rad = Math.atan2(ev.clientY - centerY, ev.clientX - centerX);
+    let deg = Math.round(rad * (180 / Math.PI)) - 90;
+    if (deg < 0) deg += 360;
+    if (Math.abs(deg % 45) < 4) deg = Math.round(deg / 45) * 45;
+    fs.rotate = deg;
+    applyInlineTransformToDOM(domEl, fs);
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+    syncInlineInspectorLiveInputs(fs, domEl);
+  }
+
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+    renderRightEditorPanel();
+    saveAllChangesToServer();
+  }
+
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
+function syncInlineInspectorLiveInputs(fs, domEl) {
+  const inpX = document.getElementById('inlineInpX');
+  const inpY = document.getElementById('inlineInpY');
+  const inpW = document.getElementById('inlineInpW');
+  const inpH = document.getElementById('inlineInpH');
+  const inpRot = document.getElementById('inlineInpRotate');
+  const lblRot = document.getElementById('inlineLblRotate');
+  if (inpX) inpX.value = Math.round(fs.tx || 0);
+  if (inpY) inpY.value = Math.round(fs.ty || 0);
+  if (inpW) inpW.value = Math.round(fs.width || domEl?.offsetWidth || 100);
+  if (inpH) inpH.value = Math.round(fs.height || domEl?.offsetHeight || 50);
+  if (inpRot) inpRot.value = Math.round(fs.rotate || 0);
+  if (lblRot) lblRot.textContent = `${Math.round(fs.rotate || 0)}°`;
+}
+
+function updateInlineFieldTransform(prop, val) {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !activeInlineFieldKey) return;
+  const fs = ensureFieldStyles(page, activeInlineFieldKey);
+  fs[prop] = val;
+
+  const pageWrapper = document.querySelector(`.magazine-page[data-page-index="${selectedEditIndex}"]`);
+  if (!activeInlineElement && pageWrapper) {
+    activeInlineElement = pageWrapper.querySelector(`[data-field-key="${activeInlineFieldKey}"]`);
+  }
+  if (activeInlineElement) {
+    applyInlineTransformToDOM(activeInlineElement, fs);
+    renderInlineTransformGizmo(page, selectedEditIndex, pageWrapper);
+  }
+  const lblRot = document.getElementById('inlineLblRotate');
+  if (prop === 'rotate' && lblRot) lblRot.textContent = `${val}°`;
+  const lblRad = document.getElementById('inlineLblRadius');
+  if (prop === 'borderRadius' && lblRad) lblRad.textContent = `${val}px`;
+  const lblOp = document.getElementById('inlineLblOpacity');
+  if (prop === 'opacity' && lblOp) lblOp.textContent = `${val}%`;
+  debouncedSave();
+}
+
+function resetInlineFieldTransform() {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !activeInlineFieldKey) return;
+  const fs = ensureFieldStyles(page, activeInlineFieldKey);
+  delete fs.tx;
+  delete fs.ty;
+  delete fs.width;
+  delete fs.height;
+  delete fs.rotate;
+  renderMagazineViewport();
+  setTimeout(() => {
+    const pageWrapper = document.querySelector(`.magazine-page[data-page-index="${selectedEditIndex}"]`);
+    if (pageWrapper) {
+      activeInlineElement = pageWrapper.querySelector(`[data-field-key="${activeInlineFieldKey}"]`);
+      renderInlineTransformGizmo(page, selectedEditIndex, pageWrapper);
+    }
+    renderRightEditorPanel();
+  }, 20);
+  saveAllChangesToServer();
+  showToast("↺ Öğenin ebat, konum ve açısı sıfırlandı.");
+}
+
+function handleInlineImageMouseDown(event, pageIndex, key, domEl) {
+  if (event.target.closest('.img-change-badge')) return;
+  event.stopPropagation();
+
+  if (selectedEditIndex !== pageIndex) {
+    selectPageForEdit(pageIndex);
+  }
+
+  activeInlineElement = domEl;
+  activeInlineFieldKey = key;
+  activeInlineType = 'image';
+  selectedElementId = null;
+
+  document.querySelectorAll('.inline-selected').forEach(n => n.classList.remove('inline-selected'));
+  domEl.classList.add('inline-selected');
+
+  const badge = document.getElementById('activeSelectionBadge');
+  if (badge) {
+    badge.textContent = `Görsel: ${key}`;
+    badge.className = "text-[10px] text-sky-400 font-mono font-bold mr-1";
+  }
+
+  const page = magazineData.pages[pageIndex];
+  const pageWrapper = domEl.closest('.magazine-page');
+  renderAllElementsForCurrentPage();
+  renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+  renderRightEditorPanel();
+
+  // Doğrudan görsel üzerinden sürükleyerek taşıma başlat
+  startDraggingInlineItem(event, pageIndex, key, domEl, pageWrapper);
+}
 
 function showFloatingRichTextBar(elDom, el) {
   const badge = document.getElementById('activeSelectionBadge');
@@ -2339,7 +2727,6 @@ function showFloatingRichTextBar(elDom, el) {
     if (bgEl) bgEl.value = el.bgColor || 'transparent';
   }
 
-  // Tuval üzerinde yüzen araç çubuğu kapatıldı (tüm araçlar sağ yan panele taşındı)
   const floatBar = document.getElementById('floatingContextToolbar');
   if (floatBar) floatBar.classList.add('hidden');
 }
@@ -2352,11 +2739,15 @@ function hideFloatingRichTextBar() {
 function handleInlineTextFocus(pageIndex, key, domEl) {
   activeInlineElement = domEl;
   activeInlineFieldKey = key;
+  activeInlineType = 'text';
   selectedElementId = null;
+
+  document.querySelectorAll('.inline-selected').forEach(n => n.classList.remove('inline-selected'));
+  domEl.classList.add('inline-selected');
 
   const badge = document.getElementById('activeSelectionBadge');
   if (badge) {
-    badge.textContent = `Seçili: ${key}`;
+    badge.textContent = `Metin: ${key}`;
     badge.className = "text-[10px] text-amber-400 font-mono font-bold mr-1";
   }
 
@@ -2373,9 +2764,12 @@ function handleInlineTextFocus(pageIndex, key, domEl) {
   if (colEl && fs.color && fs.color.startsWith('#')) colEl.value = fs.color;
   if (bgEl) bgEl.value = fs.bgColor || 'transparent';
 
-  // Tuval üzerinde yüzen çubuk yerine sağ yan paneldeki hızlı araçlar kullanılır
   const floatBar = document.getElementById('floatingContextToolbar');
   if (floatBar) floatBar.classList.add('hidden');
+
+  const pageWrapper = domEl.closest('.magazine-page');
+  renderAllElementsForCurrentPage();
+  renderInlineTransformGizmo(page, pageIndex, pageWrapper);
   renderRightEditorPanel();
 }
 
@@ -3212,7 +3606,7 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
   const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(page));
   const safeText = escapeHtml(text || '');
 
-  // Kullanıcı tarafından şablon metnine uygulanmış özel tipografi ve çerçeve stillerini oku
+  // Kullanıcı tarafından şablon metnine uygulanmış özel tipografi, çerçeve ve boyut/konum/açı stillerini oku
   const fs = page?.fieldStyles?.[key] || {};
   let customStyle = style ? `${style};` : '';
   if (fs.fontSize) customStyle += ` font-size:${fs.fontSize}px !important;`;
@@ -3222,15 +3616,27 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
   if (fs.fontWeight) customStyle += ` font-weight:${fs.fontWeight} !important;`;
   if (fs.fontStyle) customStyle += ` font-style:${fs.fontStyle} !important;`;
   if (fs.textDecoration) customStyle += ` text-decoration:${fs.textDecoration} !important;`;
+  if (fs.letterSpacing !== undefined) customStyle += ` letter-spacing:${fs.letterSpacing}px !important;`;
+  if (fs.lineHeight !== undefined) customStyle += ` line-height:${fs.lineHeight} !important;`;
   if (fs.bgColor && fs.bgColor !== 'transparent') {
     if (fs.bgColor.startsWith('linear-gradient')) {
-      customStyle += ` background:${fs.bgColor} !important; padding:8px 12px !important; border-radius:12px !important; box-shadow:0 4px 12px rgba(0,0,0,0.12) !important;`;
+      customStyle += ` background:${fs.bgColor} !important; padding:8px 12px !important; border-radius:${fs.borderRadius !== undefined ? fs.borderRadius : 12}px !important; box-shadow:0 4px 12px rgba(0,0,0,0.12) !important;`;
     } else {
-      customStyle += ` background-color:${fs.bgColor} !important; padding:6px 10px !important; border-radius:10px !important;`;
+      customStyle += ` background-color:${fs.bgColor} !important; padding:6px 10px !important; border-radius:${fs.borderRadius !== undefined ? fs.borderRadius : 10}px !important;`;
     }
+  } else if (fs.borderRadius !== undefined) {
+    customStyle += ` border-radius:${fs.borderRadius}px !important;`;
   }
+  if (fs.width) customStyle += ` width:${fs.width}px !important; max-width:none !important; display:block !important;`;
+  if (fs.height) customStyle += ` height:${fs.height}px !important; max-height:none !important; display:block !important;`;
+  if (fs.tx || fs.ty || fs.rotate) {
+    customStyle += ` transform:translate(${Number(fs.tx)||0}px, ${Number(fs.ty)||0}px) rotate(${Number(fs.rotate)||0}deg) !important; position:relative !important; z-index:32 !important; display:block !important;`;
+  }
+  if (fs.opacity !== undefined) customStyle += ` opacity:${Number(fs.opacity)/100} !important;`;
+  if (fs.hasShadow) customStyle += ` filter:drop-shadow(0 12px 20px rgba(15, 23, 42, 0.32)) !important;`;
 
   const styleAttr = customStyle.trim() ? `style="${customStyle.trim()}"` : '';
+  const isSelectedClass = (isEditable && activeInlineFieldKey === key) ? 'inline-selected' : '';
 
   if (!isEditable) {
     return `<${tag} class="${className}" ${styleAttr}>${safeText}</${tag}>`;
@@ -3238,11 +3644,12 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
 
   return `
     <${tag} 
-      class="${className} inline-editable-text" 
+      class="${className} inline-editable-text ${isSelectedClass}" 
       ${styleAttr}
       contenteditable="true" 
       data-field-key="${key}"
-      title="Tıklayarak metni ve üst araç çubuğundan yazı karakterini/çerçevesini düzenleyin"
+      data-field-type="text"
+      title="Tıklayarak metni, ebatını, konumunu ve açısını düzenleyin"
       onfocus="handleInlineTextFocus(${pageIndex}, '${key}', this)"
       onclick="handleInlineTextFocus(${pageIndex}, '${key}', this)"
       onblur="handleInlineTextChange(${pageIndex}, '${key}', this)"
@@ -3251,23 +3658,52 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
 }
 
 function makeInlineImage(pageIndex, key, currentUrl, fallbackUrl, imgClass = '', containerClass = '', alt = '') {
-  const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(magazineData.pages[pageIndex]));
+  const page = magazineData?.pages?.[pageIndex];
+  const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(page));
   const safeUrl = escapeHtml(currentUrl || fallbackUrl);
   const safeFallback = escapeHtml(fallbackUrl);
 
+  const fs = page?.fieldStyles?.[key] || {};
+  let contStyle = '';
+  let imgStyle = '';
+  if (fs.width) contStyle += `width:${fs.width}px !important; max-width:none !important; `;
+  if (fs.height) contStyle += `height:${fs.height}px !important; max-height:none !important; `;
+  if (fs.tx || fs.ty || fs.rotate) {
+    contStyle += `transform:translate(${Number(fs.tx)||0}px, ${Number(fs.ty)||0}px) rotate(${Number(fs.rotate)||0}deg); position:relative; z-index:32; `;
+  }
+  if (fs.borderRadius !== undefined) {
+    contStyle += `border-radius:${fs.borderRadius}px; `;
+    imgStyle += `border-radius:${fs.borderRadius}px; `;
+  }
+  if (fs.opacity !== undefined) contStyle += `opacity:${Number(fs.opacity)/100}; `;
+  if (fs.hasShadow) contStyle += `filter:drop-shadow(0 12px 20px rgba(15, 23, 42, 0.35)); `;
+  if (fs.objectFit) imgStyle += `object-fit:${fs.objectFit}; `;
+  if (fs.mask && fs.mask !== 'none') imgStyle += `clip-path:${getClipPathForMask(fs.mask)}; `;
+
+  const contStyleAttr = contStyle ? `style="${contStyle.trim()}"` : '';
+  const imgStyleAttr = imgStyle ? `style="${imgStyle.trim()}"` : '';
+  const isSelectedClass = (isEditable && activeInlineFieldKey === key) ? 'inline-selected' : '';
+
   if (!isEditable) {
     return `
-      <div class="${containerClass}">
-        <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass}" alt="${alt}">
+      <div class="${containerClass}" ${contStyleAttr}>
+        <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass}" ${imgStyleAttr} alt="${alt}">
       </div>
     `;
   }
 
   return `
-    <div class="template-image-container ${containerClass}">
-      <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass}" alt="${alt}">
-      <label class="img-change-badge" title="Fotoğrafı Değiştir">
-        <i class="ph ph-camera text-xl mb-0.5"></i>
+    <div 
+      class="template-image-container ${containerClass} ${isSelectedClass}" 
+      ${contStyleAttr}
+      data-field-key="${key}"
+      data-field-type="image"
+      title="Sürükleyerek taşıyın, köşelerinden boyutlandırın, döndürün veya sağ üstten fotoğrafı değiştirin"
+      onmousedown="handleInlineImageMouseDown(event, ${pageIndex}, '${key}', this)"
+    >
+      <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass} pointer-events-none" ${imgStyleAttr} alt="${alt}">
+      <label class="img-change-badge" onclick="event.stopPropagation()" title="Yeni Fotoğraf Yükle / Değiştir">
+        <i class="ph ph-camera text-sm"></i>
         <span>Görseli Değiştir</span>
         <input type="file" accept="image/*" onchange="uploadTemplateImageInline(event, ${pageIndex}, '${key}')" class="hidden">
       </label>
@@ -4175,7 +4611,174 @@ function renderRightEditorPanel() {
 function renderContextSettingsInspector(page, isEditable, targetDom) {
   const el = selectedElementId ? (page.elements || []).find(x => x.id === selectedElementId) : null;
 
-  // DURUM 1: HİÇBİR SERBEST ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (Görsel 1 Birebir)
+  // DURUM 0: ŞABLON İÇİ BİR GÖRSEL VEYA METİN KUTUSU SEÇİLİYSE (Ebat, Pozisyon, Açı & Görsel/Metin Stili)
+  if (!el && activeInlineFieldKey) {
+    const fs = ensureFieldStyles(page, activeInlineFieldKey);
+    const curW = Math.round(fs.width || activeInlineElement?.offsetWidth || 200);
+    const curH = Math.round(fs.height || activeInlineElement?.offsetHeight || 120);
+    const curX = Math.round(fs.tx || 0);
+    const curY = Math.round(fs.ty || 0);
+    const curRot = Math.round(fs.rotate || 0);
+
+    const inlinePosBox = `
+      <div class="bg-slate-900 p-3 rounded-2xl border border-blue-500/40 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i class="ph ${activeInlineType === 'image' ? 'ph-image text-sky-400' : 'ph-textbox text-amber-400'}"></i>
+            <span>Ebat, Pozisyon & Açı</span>
+          </span>
+          <button onclick="resetInlineFieldTransform()" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-[10px] font-bold text-slate-300 hover:text-rose-300 transition" title="Varsayılan Konum ve Boyuta Sıfırla">
+            ↺ Sıfırla
+          </button>
+        </div>
+
+        <!-- Pozisyon (X, Y) & Ebat (G, Y) Kutuları -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yatay Pozisyon (Sol/Sağ Kaydırma)">
+            <span class="text-slate-400 font-semibold">Konum X</span>
+            <input id="inlineInpX" type="number" value="${curX}" oninput="updateInlineFieldTransform('tx', Number(this.value))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Dikey Pozisyon (Yukarı/Aşağı Kaydırma)">
+            <span class="text-slate-400 font-semibold">Konum Y</span>
+            <input id="inlineInpY" type="number" value="${curY}" oninput="updateInlineFieldTransform('ty', Number(this.value))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Genişlik (Piksel)">
+            <span class="text-slate-400 font-semibold">Ebat G</span>
+            <input id="inlineInpW" type="number" value="${curW}" oninput="updateInlineFieldTransform('width', Math.max(30, Number(this.value)))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yükseklik (Piksel)">
+            <span class="text-slate-400 font-semibold">Ebat Y</span>
+            <input id="inlineInpH" type="number" value="${curH}" oninput="updateInlineFieldTransform('height', Math.max(20, Number(this.value)))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          </div>
+        </div>
+
+        <!-- Dönme Açısı (0° - 360°) Slider & Hızlı Açı Butonları -->
+        <div class="pt-1 border-t border-slate-800 space-y-1.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300 font-semibold">Dönme (Açı)</span>
+            <span id="inlineLblRotate" class="font-mono font-bold text-blue-400">${curRot}°</span>
+          </div>
+          <input id="inlineInpRotate" type="range" min="-180" max="180" value="${curRot > 180 ? curRot - 360 : curRot}" oninput="updateInlineFieldTransform('rotate', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          <div class="grid grid-cols-5 gap-1 pt-0.5">
+            <button onclick="updateInlineFieldTransform('rotate', -15); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-15°</button>
+            <button onclick="updateInlineFieldTransform('rotate', -5); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-5°</button>
+            <button onclick="updateInlineFieldTransform('rotate', 0); renderRightEditorPanel();" class="py-1 rounded bg-blue-600/20 hover:bg-blue-600 text-[10px] text-blue-300 hover:text-white font-bold">0°</button>
+            <button onclick="updateInlineFieldTransform('rotate', 5); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+5°</button>
+            <button onclick="updateInlineFieldTransform('rotate', 15); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+15°</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (activeInlineType === 'image') {
+      targetDom.innerHTML = inlinePosBox + `
+        <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
+          <span class="font-bold text-white block">Görsel İşlemleri</span>
+          <label class="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center justify-center gap-2 cursor-pointer shadow transition">
+            <i class="ph ph-camera text-base"></i> Görseli Değiştir / Yükle
+            <input type="file" accept="image/*" onchange="uploadTemplateImageInline(event, ${selectedEditIndex}, '${activeInlineFieldKey}')" class="hidden">
+          </label>
+          <button onclick="updateInlineFieldTransform('objectFit', '${fs.objectFit === 'contain' ? 'cover' : 'contain'}'); renderRightEditorPanel();" class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 font-semibold text-slate-200 flex items-center justify-center gap-2 transition">
+            <i class="ph ph-crop"></i> Sığdırma Modu (${fs.objectFit === 'contain' ? 'Tam Sığdır' : 'Kutuyu Doldur'})
+          </button>
+        </div>
+
+        <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3 text-xs">
+          <div class="space-y-1">
+            <div class="flex justify-between text-slate-300">
+              <span>Köşe Yuvarlatma (Yarıçap)</span>
+              <span id="inlineLblRadius" class="font-mono text-white">${fs.borderRadius !== undefined ? fs.borderRadius : 12}px</span>
+            </div>
+            <input type="range" min="0" max="120" value="${fs.borderRadius !== undefined ? fs.borderRadius : 12}" oninput="updateInlineFieldTransform('borderRadius', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300">Katman Maskesi</span>
+            <select onchange="updateInlineFieldTransform('mask', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-white">
+              <option value="none" ${(!fs.mask || fs.mask === 'none') ? 'selected' : ''}>Yok (Normal)</option>
+              <option value="circle" ${fs.mask === 'circle' ? 'selected' : ''}>⬤ Daire Maske</option>
+              <option value="ellipse" ${fs.mask === 'ellipse' ? 'selected' : ''}>⬭ Elips Maske</option>
+              <option value="triangle" ${fs.mask === 'triangle' ? 'selected' : ''}>▲ Üçgen Maske</option>
+              <option value="diamond" ${fs.mask === 'diamond' ? 'selected' : ''}>◆ Elmas Maske</option>
+              <option value="hexagon" ${fs.mask === 'hexagon' ? 'selected' : ''}>⬡ Altıgen Maske</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-slate-300">
+              <span>Saydamlık (Opacity)</span>
+              <span id="inlineLblOpacity" class="font-mono text-white">${fs.opacity !== undefined ? fs.opacity : 100}%</span>
+            </div>
+            <input type="range" min="10" max="100" value="${fs.opacity !== undefined ? fs.opacity : 100}" oninput="updateInlineFieldTransform('opacity', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <span class="text-slate-200">Gölge (Drop Shadow)</span>
+            <label class="studio-switch">
+              <input type="checkbox" ${fs.hasShadow ? 'checked' : ''} onchange="updateInlineFieldTransform('hasShadow', this.checked)">
+              <span class="studio-switch-slider"></span>
+            </label>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // Şablon içi METİN KUTUSU seçiliyse:
+    targetDom.innerHTML = inlinePosBox + `
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
+        <span class="font-bold text-white block">Metin Kutusu Tipografisi</span>
+        <select onchange="applyTextStyle('fontFamily', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+          <option value="Inter" ${fs.fontFamily === 'Inter' ? 'selected' : ''}>Inter-Regular</option>
+          <option value="'Playfair Display', serif" ${fs.fontFamily?.includes('Playfair') ? 'selected' : ''}>Playfair Display</option>
+          <option value="'Cinzel', serif" ${fs.fontFamily?.includes('Cinzel') ? 'selected' : ''}>Cinzel Decorative</option>
+          <option value="'Merriweather', serif" ${fs.fontFamily?.includes('Merriweather') ? 'selected' : ''}>Merriweather Serif</option>
+          <option value="'Plus Jakarta Sans', sans-serif" ${fs.fontFamily?.includes('Jakarta') ? 'selected' : ''}>Plus Jakarta Sans</option>
+          <option value="'Caveat', cursive" ${fs.fontFamily?.includes('Caveat') ? 'selected' : ''}>Caveat Handwriting</option>
+          <option value="monospace" ${fs.fontFamily === 'monospace' ? 'selected' : ''}>Monospace Code</option>
+        </select>
+
+        <div class="flex items-center gap-2">
+          <input type="color" value="${(fs.color && fs.color.startsWith('#')) ? fs.color : '#0f172a'}" onchange="applyTextStyle('color', this.value)" class="w-9 h-8 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0">
+          <input type="number" value="${fs.fontSize || 16}" oninput="applyTextStyle('fontSize', Number(this.value))" class="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono text-center">
+          <button onclick="applyTextStyle('fontSize', Math.max(8, (Number(fs.fontSize)||16) - 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">−</button>
+          <button onclick="applyTextStyle('fontSize', Math.min(96, (Number(fs.fontSize)||16) + 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">+</button>
+        </div>
+
+        <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
+          <button onclick="applyTextStyle('textAlign', 'left')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-left"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'center')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-center"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'right')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-right"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'justify')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-justify"></i></button>
+        </div>
+
+        <div class="space-y-1.5 pt-1 border-t border-slate-800">
+          <span class="text-slate-300 font-semibold block">Arka Plan & Renkli Çerçeve</span>
+          <select onchange="applyTextStyle('bgColor', this.value)" class="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-semibold">
+            <option value="transparent" ${(!fs.bgColor || fs.bgColor === 'transparent') ? 'selected' : ''}>Şeffaf (Çerçevesiz)</option>
+            <option value="linear-gradient(135deg, #d97706, #1e1b4b)">🟠 Ayın Konuğu Degrade</option>
+            <option value="linear-gradient(135deg, #4f46e5, #1e1b4b)">🟣 İndigo-Gece Degrade</option>
+            <option value="linear-gradient(135deg, #059669, #064e3b)">🟢 Zümrüt Degrade</option>
+            <option value="linear-gradient(135deg, #e11d48, #4c0519)">🔴 Yakut-Bordo Degrade</option>
+            <option value="#ffffff">⬜ Beyaz Kart</option>
+            <option value="#f8fafc">⚪ Gri Soru Kutusu</option>
+            <option value="#0f172a">⬛ Koyu Lacivert Kutu</option>
+          </select>
+        </div>
+
+        <div class="space-y-1 pt-1">
+          <div class="flex justify-between text-slate-300">
+            <span>Köşe Yuvarlatma (Yarıçap)</span>
+            <span id="inlineLblRadius" class="font-mono text-white">${fs.borderRadius !== undefined ? fs.borderRadius : 8}px</span>
+          </div>
+          <input type="range" min="0" max="60" value="${fs.borderRadius !== undefined ? fs.borderRadius : 8}" oninput="updateInlineFieldTransform('borderRadius', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // DURUM 1: HİÇBİR ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (Görsel 1 Birebir)
   if (!el) {
     targetDom.innerHTML = `
       <!-- Sayfa Boyutu (Görsel 1: G 794, Y 1123) -->
@@ -4240,14 +4843,14 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
     return;
   }
 
-  // ORTAK ÜST KISIM: BOYUT & KONUM (Hizalama İkonları + X, Y, G, Y Kutuları - Görsel 2 & 5)
+  // ORTAK ÜST KISIM: BOYUT, KONUM & AÇI (Hizalama İkonları + X, Y, G, Y Kutuları + Dönme Açısı)
   const posBoxHtml = `
-    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+    <div class="bg-slate-900 p-3 rounded-2xl border border-blue-500/40 space-y-2.5">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-white">Boyut & Konum</span>
+        <span class="text-xs font-bold text-white">Ebat, Pozisyon & Açı</span>
         <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">${escapeHtml(el.type)}</span>
       </div>
-      <!-- 8'li Hizalama Barı (Görsel 2 & 5) -->
+      <!-- 6'lı Hizalama Barı -->
       <div class="grid grid-cols-6 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
         <button onclick="alignSelectedElement('left')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Sola Hizala"><i class="ph ph-align-left text-sm"></i></button>
         <button onclick="alignSelectedElement('center-x')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Yatay Ortala"><i class="ph ph-align-center-horizontal text-sm"></i></button>
@@ -4256,23 +4859,38 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
         <button onclick="alignSelectedElement('center-y')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Dikey Ortala"><i class="ph ph-align-center-vertical text-sm"></i></button>
         <button onclick="alignSelectedElement('bottom')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Alta Hizala"><i class="ph ph-align-bottom text-sm"></i></button>
       </div>
-      <!-- X, Y, G, Y Koordinat Kutuları (Görsel 2 & 5) -->
+      <!-- X, Y (Pozisyon) ve G, Y (Ebat) Kutuları -->
       <div class="grid grid-cols-2 gap-2 text-xs">
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
-          <span class="text-slate-400 font-semibold">X</span>
-          <input type="number" value="${Math.round(el.x || 0)}" oninput="updateSelectedElementNumeric('x', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yatay Pozisyon (%)">
+          <span class="text-slate-400 font-semibold">Konum X</span>
+          <input type="number" value="${Math.round(el.x || 0)}" oninput="updateSelectedElementNumeric('x', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
         </div>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
-          <span class="text-slate-400 font-semibold">Y</span>
-          <input type="number" value="${Math.round(el.y || 0)}" oninput="updateSelectedElementNumeric('y', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Dikey Pozisyon (%)">
+          <span class="text-slate-400 font-semibold">Konum Y</span>
+          <input type="number" value="${Math.round(el.y || 0)}" oninput="updateSelectedElementNumeric('y', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
         </div>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
-          <span class="text-slate-400 font-semibold">G</span>
-          <input type="number" value="${Math.round(el.width || 30)}" oninput="updateSelectedElementNumeric('width', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Genişlik (%)">
+          <span class="text-slate-400 font-semibold">Ebat G</span>
+          <input type="number" value="${Math.round(el.width || 30)}" oninput="updateSelectedElementNumeric('width', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
         </div>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
-          <span class="text-slate-400 font-semibold">Y</span>
-          <input type="number" value="${Math.round(el.height || 20)}" oninput="updateSelectedElementNumeric('height', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yükseklik (%)">
+          <span class="text-slate-400 font-semibold">Ebat Y</span>
+          <input type="number" value="${Math.round(el.height || 20)}" oninput="updateSelectedElementNumeric('height', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
+        </div>
+      </div>
+      <!-- Dönme Açısı (0° - 360°) -->
+      <div class="pt-1 border-t border-slate-800 space-y-1.5 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-300 font-semibold">Dönme (Açı)</span>
+          <span class="font-mono font-bold text-blue-400">${el.rotate || 0}°</span>
+        </div>
+        <input type="range" min="0" max="360" value="${el.rotate || 0}" oninput="updateSelectedElementStyleLive('rotate', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+        <div class="grid grid-cols-5 gap-1 pt-0.5">
+          <button onclick="updateSelectedElementStyleLive('rotate', 345); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-15°</button>
+          <button onclick="updateSelectedElementStyleLive('rotate', 355); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-5°</button>
+          <button onclick="updateSelectedElementStyleLive('rotate', 0); renderRightEditorPanel();" class="py-1 rounded bg-blue-600/20 hover:bg-blue-600 text-[10px] text-blue-300 hover:text-white font-bold">0°</button>
+          <button onclick="updateSelectedElementStyleLive('rotate', 5); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+5°</button>
+          <button onclick="updateSelectedElementStyleLive('rotate', 15); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+15°</button>
         </div>
       </div>
     </div>
@@ -5763,6 +6381,9 @@ window.toggleTopToolbarCollapse = toggleTopToolbarCollapse;
 window.toggleZenCanvasMode = toggleZenCanvasMode;
 window.cycleTextAlign = cycleTextAlign;
 window.cycleTextCase = cycleTextCase;
+window.handleInlineImageMouseDown = handleInlineImageMouseDown;
+window.updateInlineFieldTransform = updateInlineFieldTransform;
+window.resetInlineFieldTransform = resetInlineFieldTransform;
 
 
 
