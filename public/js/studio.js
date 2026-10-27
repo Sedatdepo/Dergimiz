@@ -402,11 +402,11 @@ function createPageDOM(page, pageIndex, position, heightClass) {
   const isSelected = (appMode === 'edit' && pageIndex === selectedEditIndex);
   const ring = isSelected ? 'ring-4 ring-indigo-500 z-10' : 'hover:ring-2 hover:ring-indigo-400/50';
 
-  wrapper.className = `magazine-page ${posClass} ${heightClass} bg-white text-slate-900 flex flex-col justify-between select-none animate-curl relative ${appMode === 'edit' ? ring + ' cursor-pointer' : ''}`;
+  wrapper.className = `magazine-page ${posClass} ${heightClass} bg-white text-slate-900 flex flex-col justify-between animate-curl relative ${appMode === 'edit' ? ring + ' cursor-pointer' : ''}`;
   wrapper.dataset.pageIndex = pageIndex;
 
   wrapper.onclick = (e) => {
-    if (appMode === 'edit' && !e.target.closest('.canvas-element') && !e.target.closest('.quiz-option-btn')) {
+    if (appMode === 'edit' && !e.target.closest('.canvas-element') && !e.target.closest('.quiz-option-btn') && !e.target.closest('.inline-editable-text') && !e.target.closest('.template-image-container')) {
       if (selectedEditIndex !== pageIndex) {
         selectPageForEdit(pageIndex);
       } else {
@@ -480,13 +480,22 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
 
     // Resim Elemanı
     if (el.type === 'image') {
+      elDom.className += ' canvas-media-element group relative';
       elDom.innerHTML = `
         <img src="${escapeHtml(el.url)}" class="w-full h-full object-cover rounded-xl shadow-md pointer-events-none" alt="">
+        ${isEditable ? `
+          <label class="img-change-badge" title="Görseli Değiştir">
+            <i class="ph ph-camera text-xl"></i>
+            <span>Değiştir</span>
+            <input type="file" accept="image/*" onchange="uploadCanvasElementImage(event, '${el.id}')" class="hidden">
+          </label>
+        ` : ''}
       `;
     }
 
     // Video Elemanı (MP4)
     if (el.type === 'video') {
+      elDom.className += ' canvas-media-element';
       elDom.innerHTML = `
         <div class="magazine-video-container">
           <video controls preload="metadata" poster="${escapeHtml(el.poster || '')}">
@@ -498,25 +507,25 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
 
     // Metin Kutusu Elemanı
     if (el.type === 'text') {
-      elDom.style.backgroundColor = el.bgColor || 'transparent';
-      elDom.style.borderColor = el.borderColor || 'transparent';
-      elDom.style.fontSize = `${el.fontSize || 13}px`;
+      elDom.className += ' canvas-text-element p-2.5 rounded-xl border leading-relaxed overflow-hidden';
+      elDom.style.backgroundColor = el.bgColor || '#ffffff';
+      elDom.style.borderColor = el.borderColor || '#cbd5e1';
+      elDom.style.fontSize = `${el.fontSize || 14}px`;
       elDom.style.fontFamily = el.fontFamily || 'Inter';
       elDom.style.color = el.color || '#0f172a';
       elDom.style.textAlign = el.textAlign || 'left';
-      elDom.className += ' p-2.5 rounded-xl border leading-relaxed overflow-hidden';
       elDom.innerHTML = el.content || 'Yazınızı buraya yazın...';
 
       if (isEditable) {
-        // Çift Tıklama ile Yerinde Canlı Yazma (Inline WYSIWYG)
-        elDom.ondblclick = (ev) => {
-          ev.stopPropagation();
-          elDom.contentEditable = "true";
-          elDom.focus();
+        elDom.contentEditable = "true";
+        elDom.onfocus = () => {
           showFloatingRichTextBar(elDom, el);
         };
+        elDom.oninput = () => {
+          el.content = elDom.innerHTML;
+          debouncedSave();
+        };
         elDom.onblur = () => {
-          elDom.contentEditable = "false";
           el.content = elDom.innerHTML;
           saveAllChangesToServer();
         };
@@ -526,9 +535,27 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
     // Seçim ve Taşıma Olayları (Sadece Düzenleme Modunda)
     if (isEditable) {
       elDom.onmousedown = (ev) => {
-        if (ev.target.closest('.resize-handle') || ev.target.closest('.rotate-handle')) return;
-        if (elDom.contentEditable === "true") return;
+        if (ev.target.closest('.resize-handle') || ev.target.closest('.rotate-handle') || ev.target.closest('.img-change-badge')) return;
         ev.stopPropagation();
+
+        if (el.type === 'text') {
+          selectCanvasElement(el.id, false);
+          showFloatingRichTextBar(elDom, el);
+          // Kenara yakın tutulduysa sürüklemeyi başlat
+          const rect = elDom.getBoundingClientRect();
+          const borderThreshold = 8;
+          const isNearEdge = (
+            ev.clientX - rect.left < borderThreshold ||
+            rect.right - ev.clientX < borderThreshold ||
+            ev.clientY - rect.top < borderThreshold ||
+            rect.bottom - ev.clientY < borderThreshold
+          );
+          if (isNearEdge) {
+            startDraggingElement(ev, el, pageWrapper);
+          }
+          return;
+        }
+
         selectCanvasElement(el.id);
         startDraggingElement(ev, el, pageWrapper);
       };
@@ -582,9 +609,35 @@ function createRotateHandleDOM(el, pageWrapper) {
 // ==========================================
 // 5. SERBEST ELEMAN SÜRÜKLEME, BOYUTLANDIRMA, DÖNDÜRME
 // ==========================================
-function selectCanvasElement(id) {
+function selectCanvasElement(id, reRender = true) {
   selectedElementId = id;
-  renderAllElementsForCurrentPage();
+  if (reRender) {
+    renderAllElementsForCurrentPage();
+  } else {
+    const pageDom = document.querySelector(`.magazine-page[data-page-index="${selectedEditIndex}"]`);
+    if (!pageDom) return;
+    const elements = pageDom.querySelectorAll('.canvas-element');
+    elements.forEach(elNode => {
+      if (elNode.dataset.elementId === id) {
+        elNode.classList.add('element-selected');
+        if (!elNode.querySelector('.resize-handle')) {
+          elNode.appendChild(createHandleDOM('handle-nw', 'nw'));
+          elNode.appendChild(createHandleDOM('handle-ne', 'ne'));
+          elNode.appendChild(createHandleDOM('handle-se', 'se'));
+          elNode.appendChild(createHandleDOM('handle-sw', 'sw'));
+          elNode.appendChild(createHandleDOM('handle-n', 'n'));
+          elNode.appendChild(createHandleDOM('handle-s', 's'));
+          elNode.appendChild(createHandleDOM('handle-e', 'e'));
+          elNode.appendChild(createHandleDOM('handle-w', 'w'));
+          const elData = (magazineData.pages[selectedEditIndex].elements || []).find(e => e.id === id);
+          if (elData) elNode.appendChild(createRotateHandleDOM(elData, pageDom));
+        }
+      } else {
+        elNode.classList.remove('element-selected');
+        elNode.querySelectorAll('.resize-handle, .rotate-handle').forEach(h => h.remove());
+      }
+    });
+  }
 }
 
 function renderAllElementsForCurrentPage() {
@@ -923,8 +976,147 @@ function initGlobalCanvasEvents() {
 }
 
 // ==========================================
-// 6. ŞABLON RENDERLARI (K1, K2, K3, K4, Video vb.)
+// 6. ŞABLON İÇİ DOĞRUDAN DÜZENLEME & RENDERLAR
 // ==========================================
+let saveTimeout = null;
+function debouncedSave() {
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    saveAllChangesToServer();
+  }, 600);
+}
+
+function handleInlineTextChange(pageIndex, key, domEl) {
+  const page = magazineData.pages[pageIndex];
+  if (!page) return;
+  page[key] = domEl.innerText;
+  
+  // Sağ paneldeki ilgili alanı güncelle
+  const formEl = document.querySelector(`#editorFormContainer input[oninput*="'${key}'"], #editorFormContainer textarea[oninput*="'${key}'"]`);
+  if (formEl) {
+    formEl.value = page[key];
+  }
+  debouncedSave();
+}
+
+async function uploadTemplateImageInline(event, pageIndex, key) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  showToast("Görsel yükleniyor...");
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      magazineData.pages[pageIndex][key] = data.url;
+      renderMagazineViewport();
+      renderRightEditorPanel();
+      saveAllChangesToServer();
+      showToast("Fotoğraf başarıyla güncellendi!");
+      return;
+    }
+  } catch (err) {
+    console.warn("Upload hatası:", err);
+  }
+
+  // Fallback: FileReader
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    magazineData.pages[pageIndex][key] = e.target.result;
+    renderMagazineViewport();
+    renderRightEditorPanel();
+    saveAllChangesToServer();
+    showToast("Fotoğraf güncellendi!");
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadCanvasElementImage(event, elementId) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !page.elements) return;
+  const el = page.elements.find(e => e.id === elementId);
+  if (!el) return;
+
+  showToast("Görsel yükleniyor...");
+  const formData = new FormData();
+  formData.append('image', file);
+
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (data.success) {
+      el.url = data.url;
+      renderAllElementsForCurrentPage();
+      saveAllChangesToServer();
+      showToast("Görsel güncellendi!");
+      return;
+    }
+  } catch (err) {
+    console.warn("Upload hatası:", err);
+  }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    el.url = e.target.result;
+    renderAllElementsForCurrentPage();
+    saveAllChangesToServer();
+    showToast("Görsel güncellendi!");
+  };
+  reader.readAsDataURL(file);
+}
+
+function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', style = '') {
+  const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(magazineData.pages[pageIndex]));
+  const safeText = escapeHtml(text || '');
+  const styleAttr = style ? `style="${style}"` : '';
+
+  if (!isEditable) {
+    return `<${tag} class="${className}" ${styleAttr}>${safeText}</${tag}>`;
+  }
+
+  return `
+    <${tag} 
+      class="${className} inline-editable-text" 
+      ${styleAttr}
+      contenteditable="true" 
+      data-field-key="${key}"
+      title="Tıklayarak doğrudan metni düzenleyin"
+      onblur="handleInlineTextChange(${pageIndex}, '${key}', this)"
+    >${safeText}</${tag}>
+  `;
+}
+
+function makeInlineImage(pageIndex, key, currentUrl, fallbackUrl, imgClass = '', containerClass = '', alt = '') {
+  const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(magazineData.pages[pageIndex]));
+  const safeUrl = escapeHtml(currentUrl || fallbackUrl);
+  const safeFallback = escapeHtml(fallbackUrl);
+
+  if (!isEditable) {
+    return `
+      <div class="${containerClass}">
+        <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass}" alt="${alt}">
+      </div>
+    `;
+  }
+
+  return `
+    <div class="template-image-container ${containerClass}">
+      <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass}" alt="${alt}">
+      <label class="img-change-badge" title="Fotoğrafı Değiştir">
+        <i class="ph ph-camera text-xl mb-0.5"></i>
+        <span>Görseli Değiştir</span>
+        <input type="file" accept="image/*" onchange="uploadTemplateImageInline(event, ${pageIndex}, '${key}')" class="hidden">
+      </label>
+    </div>
+  `;
+}
+
 function renderTemplateHTML(page, pageIndex) {
   const accent = page.accentColor || '#4f46e5';
 
@@ -933,14 +1125,14 @@ function renderTemplateHTML(page, pageIndex) {
     const highlights = (page.highlights || '').split('\n').filter(Boolean);
     return `
       <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950">
-        <img src="${escapeHtml(page.coverImage)}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Dergi+Kapagi'" class="absolute inset-0 w-full h-full object-cover opacity-65 scale-105 pointer-events-none" alt="Kapak">
+        <div class="absolute inset-0 w-full h-full">
+          ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://placehold.co/800x1100/1e1b4b/ffffff?text=Dergi+Kapagi', 'w-full h-full object-cover opacity-65 scale-105', 'w-full h-full', 'Kapak')}
+        </div>
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/70 pointer-events-none"></div>
         
         <div class="relative z-10 text-center border-b border-white/25 pb-3">
-          <div class="text-[10px] tracking-[0.25em] uppercase font-semibold text-indigo-300 mb-1">${escapeHtml(page.issueTag || '')}</div>
-          <h1 class="font-display font-extrabold text-4xl sm:text-5xl tracking-tighter uppercase text-white drop-shadow-lg">
-            ${escapeHtml(page.magazineName || 'DERGİ')}
-          </h1>
+          ${makeInlineEditable(pageIndex, 'issueTag', page.issueTag || 'SAYI #1 • EKİM 2026', 'div', 'text-[10px] tracking-[0.25em] uppercase font-semibold text-indigo-300 mb-1')}
+          ${makeInlineEditable(pageIndex, 'magazineName', page.magazineName || 'DERGİ', 'h1', 'font-display font-extrabold text-4xl sm:text-5xl tracking-tighter uppercase text-white drop-shadow-lg')}
           <div class="text-[11px] font-medium text-slate-300 tracking-widest uppercase mt-0.5">${escapeHtml(magazineData.schoolName)}</div>
         </div>
 
@@ -948,12 +1140,8 @@ function renderTemplateHTML(page, pageIndex) {
           <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow" style="background-color: ${accent}">
             AYIN DOSYASI
           </span>
-          <h2 class="font-serif font-bold text-2xl sm:text-3xl leading-tight text-white drop-shadow">
-            ${escapeHtml(page.mainHeadline || '')}
-          </h2>
-          <p class="text-xs sm:text-sm text-slate-200 line-clamp-3 font-light leading-relaxed">
-            ${escapeHtml(page.subHeadline || '')}
-          </p>
+          ${makeInlineEditable(pageIndex, 'mainHeadline', page.mainHeadline || 'Manşet Başlığı', 'h2', 'font-serif font-bold text-2xl sm:text-3xl leading-tight text-white drop-shadow')}
+          ${makeInlineEditable(pageIndex, 'subHeadline', page.subHeadline || 'Alt manşet açıklaması...', 'p', 'text-xs sm:text-sm text-slate-200 line-clamp-3 font-light leading-relaxed')}
         </div>
 
         <div class="relative z-10 pt-3 border-t border-white/20 grid grid-cols-1 gap-1.5">
@@ -977,21 +1165,19 @@ function renderTemplateHTML(page, pageIndex) {
         <div class="p-6 sm:p-8 flex flex-col h-full justify-between overflow-y-auto bg-stone-50 border-r border-stone-200">
           <div class="text-center border-b border-red-900/20 pb-3">
             <span class="text-[10px] tracking-[0.25em] font-bold uppercase text-red-800 block mb-1">CUMHURİYET VE GELECEK</span>
-            <h2 class="font-serif font-bold text-xl sm:text-2xl text-slate-900 tracking-wide">${escapeHtml(page.headerText || 'TÜRK GENÇLİĞİNE HİTABE')}</h2>
+            ${makeInlineEditable(pageIndex, 'headerText', page.headerText || 'TÜRK GENÇLİĞİNE HİTABE', 'h2', 'font-serif font-bold text-xl sm:text-2xl text-slate-900 tracking-wide')}
           </div>
 
           <div class="my-auto py-3 flex flex-col items-center text-center space-y-3">
             <div class="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl overflow-hidden shadow-lg border-2 border-amber-600/40 p-1 bg-white">
-              <img src="${escapeHtml(page.image)}" onerror="this.src='https://placehold.co/400x400/991b1b/ffffff?text=Ataturk'" class="w-full h-full object-cover rounded-xl" alt="Atatürk">
+              ${makeInlineImage(pageIndex, 'image', page.image, 'https://placehold.co/400x400/991b1b/ffffff?text=Ataturk', 'w-full h-full object-cover rounded-xl', 'w-full h-full', 'Atatürk')}
             </div>
-            <p class="font-serif italic text-xs sm:text-[13px] text-slate-800 leading-relaxed px-4 max-w-md">
-              "${escapeHtml(page.subText || 'Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti\'ni, ilelebet muhafaza ve müdafaa etmektir.')}"
-            </p>
-            <div class="text-xs font-bold text-red-950 uppercase tracking-wider font-display">— ${escapeHtml(page.author || 'Gazi Mustafa Kemal Atatürk')}</div>
+            ${makeInlineEditable(pageIndex, 'subText', page.subText || 'Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti\'ni, ilelebet muhafaza ve müdafaa etmektir.', 'p', 'font-serif italic text-xs sm:text-[13px] text-slate-800 leading-relaxed px-4 max-w-md')}
+            ${makeInlineEditable(pageIndex, 'author', page.author || 'Gazi Mustafa Kemal Atatürk', 'div', 'text-xs font-bold text-red-950 uppercase tracking-wider font-display')}
           </div>
 
           <div class="p-3 rounded-2xl bg-red-950 text-amber-200 text-center font-serif text-xs italic shadow-md">
-            "${escapeHtml(page.quote || 'Bütün ümidim gençliktedir.')}"
+            ${makeInlineEditable(pageIndex, 'quote', page.quote || 'Bütün ümidim gençliktedir.', 'div', 'text-amber-200')}
           </div>
         </div>
       `;
@@ -1002,33 +1188,33 @@ function renderTemplateHTML(page, pageIndex) {
         <div class="p-6 sm:p-8 flex flex-col h-full justify-between overflow-y-auto bg-slate-50">
           <div>
             <span class="text-[10px] font-bold tracking-widest uppercase text-indigo-600 block mb-1">SUNUŞ / BAŞYAZI</span>
-            <h2 class="font-serif font-bold text-2xl text-slate-900 mb-3">${escapeHtml(page.headerText || 'Sunuş')}</h2>
+            ${makeInlineEditable(pageIndex, 'headerText', page.headerText || 'Sunuş', 'h2', 'font-serif font-bold text-2xl text-slate-900 mb-3')}
             <div class="flex items-center gap-3.5 mb-4 p-2.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-              <img src="${escapeHtml(page.image)}" onerror="this.src='https://placehold.co/200x200/e2e8f0/475569?text=Mudur'" class="w-16 h-16 rounded-xl object-cover shrink-0" alt="Yazar">
+              <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0">
+                ${makeInlineImage(pageIndex, 'image', page.image, 'https://placehold.co/200x200/e2e8f0/475569?text=Mudur', 'w-full h-full object-cover', 'w-full h-full', 'Yazar')}
+              </div>
               <div>
-                <div class="font-bold text-sm text-slate-900">${escapeHtml(page.author || 'Okul Müdürü')}</div>
-                <div class="text-[11px] text-slate-500 font-medium">Ufuk Anadolu Lisesi</div>
+                ${makeInlineEditable(pageIndex, 'author', page.author || 'Okul Müdürü', 'div', 'font-bold text-sm text-slate-900')}
+                <div class="text-[11px] text-slate-500 font-medium">${escapeHtml(magazineData.schoolName)}</div>
               </div>
             </div>
-            <p class="text-xs text-slate-700 leading-relaxed whitespace-pre-line text-justify">
-              ${escapeHtml(page.subText || '')}
-            </p>
+            ${makeInlineEditable(pageIndex, 'subText', page.subText, 'p', 'text-xs text-slate-700 leading-relaxed whitespace-pre-line text-justify')}
           </div>
-          <div class="text-right pt-3 border-t border-slate-200 font-handwriting text-lg text-slate-800">
-            ${escapeHtml(page.author || 'Okul Yönetimi')}
-          </div>
+          ${makeInlineEditable(pageIndex, 'author', page.author || 'Okul Yönetimi', 'div', 'text-right pt-3 border-t border-slate-200 font-handwriting text-lg text-slate-800')}
         </div>
       `;
     }
 
     return `
       <div class="relative w-full h-full flex flex-col justify-end p-8 text-white overflow-hidden bg-slate-950">
-        <img src="${escapeHtml(page.image)}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Sanat'" class="absolute inset-0 w-full h-full object-cover opacity-80" alt="Vizyon">
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+        <div class="absolute inset-0 w-full h-full">
+          ${makeInlineImage(pageIndex, 'image', page.image, 'https://placehold.co/800x1100/1e1b4b/ffffff?text=Sanat', 'w-full h-full object-cover opacity-80', 'w-full h-full', 'Vizyon')}
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none"></div>
         <div class="relative z-10 space-y-2">
           <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-300">VİZYONUMUZ</span>
-          <h2 class="font-serif italic font-bold text-2xl leading-snug">${escapeHtml(page.headerText || '')}</h2>
-          <p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(page.subText || '')}</p>
+          ${makeInlineEditable(pageIndex, 'headerText', page.headerText, 'h2', 'font-serif italic font-bold text-2xl leading-snug')}
+          ${makeInlineEditable(pageIndex, 'subText', page.subText, 'p', 'text-xs text-slate-300 leading-relaxed')}
         </div>
       </div>
     `;
@@ -1043,28 +1229,29 @@ function renderTemplateHTML(page, pageIndex) {
             <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30">
               VİDEO KÖŞESİ
             </span>
-            <span class="text-[11px] text-slate-400 font-medium">${escapeHtml(page.author || '')}</span>
+            ${makeInlineEditable(pageIndex, 'author', page.author, 'span', 'text-[11px] text-slate-400 font-medium')}
           </div>
 
-          <h2 class="font-serif font-bold text-xl md:text-2xl text-white leading-snug mb-1">
-            ${escapeHtml(page.title || '')}
-          </h2>
-          <p class="text-xs text-slate-300 mb-3">${escapeHtml(page.subTitle || '')}</p>
+          ${makeInlineEditable(pageIndex, 'title', page.title, 'h2', 'font-serif font-bold text-xl md:text-2xl text-white leading-snug mb-1')}
+          ${makeInlineEditable(pageIndex, 'subTitle', page.subTitle, 'p', 'text-xs text-slate-300 mb-3')}
 
-          <div class="relative rounded-2xl overflow-hidden mb-3 bg-black border border-slate-800 shadow-2xl aspect-video">
+          <div class="relative rounded-2xl overflow-hidden mb-3 bg-black border border-slate-800 shadow-2xl aspect-video group">
             <video controls preload="metadata" poster="${escapeHtml(page.videoPoster || '')}" class="w-full h-full object-cover">
               <source src="${escapeHtml(page.videoUrl || '')}" type="video/mp4">
             </video>
+            ${(appMode === 'edit' && pageIndex === selectedEditIndex) ? `
+              <label class="absolute top-2 right-2 px-2.5 py-1.5 rounded-xl bg-amber-600/90 hover:bg-amber-500 text-white text-[11px] font-bold cursor-pointer shadow-lg flex items-center gap-1.5 transition opacity-90 hover:opacity-100" title="Videoyu Değiştir">
+                <i class="ph ph-video-camera text-sm"></i>
+                <span>Videoyu Değiştir (MP4)</span>
+                <input type="file" accept="video/mp4,video/*" onchange="uploadPageVideo(event)" class="hidden">
+              </label>
+            ` : ''}
           </div>
 
-          ${page.caption ? `<div class="text-[11px] text-slate-400 italic mb-2">${escapeHtml(page.caption)}</div>` : ''}
+          ${makeInlineEditable(pageIndex, 'caption', page.caption, 'div', 'text-[11px] text-slate-400 italic mb-2')}
         </div>
 
-        ${page.notes ? `
-          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 leading-relaxed">
-            ${escapeHtml(page.notes)}
-          </div>
-        ` : ''}
+        ${makeInlineEditable(pageIndex, 'notes', page.notes, 'div', 'p-3 rounded-xl bg-slate-900 border border-slate-800 text-[11px] text-slate-300 leading-relaxed')}
       </div>
     `;
   }
@@ -1076,26 +1263,24 @@ function renderTemplateHTML(page, pageIndex) {
         <div>
           <div class="border-b border-slate-800 pb-2.5 mb-3">
             <span class="text-[10px] font-bold tracking-widest uppercase text-indigo-400 block mb-0.5">RESMİ YAYIN KÜNYESİ</span>
-            <h2 class="font-serif font-bold text-lg text-white">${escapeHtml(page.boardTitle || 'UFUK E-DERGİ YAYIN KURULU')}</h2>
+            ${makeInlineEditable(pageIndex, 'boardTitle', page.boardTitle || 'UFUK E-DERGİ YAYIN KURULU', 'h2', 'font-serif font-bold text-lg text-white')}
           </div>
 
           <div class="space-y-2 text-xs text-slate-300 leading-relaxed bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800 mb-4">
-            <div><strong>İmtiyaz Sahibi:</strong> ${escapeHtml(page.publisher || '')}</div>
-            <div><strong>Genel Yayın Yönetmeni:</strong> ${escapeHtml(page.editorInChief || '')}</div>
-            <div><strong>Yayın Danışmanı:</strong> ${escapeHtml(page.advisor || '')}</div>
-            <div><strong>Yazı İşleri & Mizanpaj:</strong> ${escapeHtml(page.editorialTeam || '')}</div>
-            <div class="pt-1 text-[11px] text-slate-400 border-t border-slate-800/80">${escapeHtml(page.contactInfo || '')}</div>
+            <div><strong>İmtiyaz Sahibi:</strong> ${makeInlineEditable(pageIndex, 'publisher', page.publisher, 'span', 'text-white')}</div>
+            <div><strong>Genel Yayın Yönetmeni:</strong> ${makeInlineEditable(pageIndex, 'editorInChief', page.editorInChief, 'span', 'text-white')}</div>
+            <div><strong>Yayın Danışmanı:</strong> ${makeInlineEditable(pageIndex, 'advisor', page.advisor, 'span', 'text-white')}</div>
+            <div><strong>Yazı İşleri & Mizanpaj:</strong> ${makeInlineEditable(pageIndex, 'editorialTeam', page.editorialTeam, 'span', 'text-white')}</div>
+            <div class="pt-1 text-[11px] text-slate-400 border-t border-slate-800/80">${makeInlineEditable(pageIndex, 'contactInfo', page.contactInfo, 'div')}</div>
           </div>
         </div>
 
         <div class="bg-gradient-to-br from-indigo-950/60 to-purple-950/60 p-4 rounded-2xl border border-indigo-500/30">
           <div class="flex items-center gap-1.5 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1.5">
             <i class="ph ph-sparkle text-base"></i>
-            <span>${escapeHtml(page.nextIssueTeaserTitle || 'GELECEK SAYIDA NELER VAR?')}</span>
+            ${makeInlineEditable(pageIndex, 'nextIssueTeaserTitle', page.nextIssueTeaserTitle || 'GELECEK SAYIDA NELER VAR?', 'span')}
           </div>
-          <div class="text-xs text-slate-200 whitespace-pre-line leading-relaxed">
-            ${escapeHtml(page.nextIssueText || '')}
-          </div>
+          ${makeInlineEditable(pageIndex, 'nextIssueText', page.nextIssueText, 'div', 'text-xs text-slate-200 whitespace-pre-line leading-relaxed')}
         </div>
       </div>
     `;
@@ -1105,24 +1290,26 @@ function renderTemplateHTML(page, pageIndex) {
   if (page.type === 'k4') {
     return `
       <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950">
-        <img src="${escapeHtml(page.coverImage)}" onerror="this.src='https://placehold.co/800x1100/0f172a/ffffff?text=Arka+Kapak'" class="absolute inset-0 w-full h-full object-cover opacity-50 scale-105 pointer-events-none" alt="Arka Kapak">
+        <div class="absolute inset-0 w-full h-full">
+          ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://placehold.co/800x1100/0f172a/ffffff?text=Arka+Kapak', 'w-full h-full object-cover opacity-50 scale-105', 'w-full h-full', 'Arka Kapak')}
+        </div>
         <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/80 pointer-events-none"></div>
 
         <div class="relative z-10 text-center border-b border-white/20 pb-3">
-          <h2 class="font-display font-extrabold text-2xl tracking-wider text-white uppercase">${escapeHtml(page.schoolName || magazineData.schoolName)}</h2>
-          <div class="text-xs italic text-indigo-300 font-serif mt-1">${escapeHtml(page.motto || '')}</div>
+          ${makeInlineEditable(pageIndex, 'schoolName', page.schoolName || magazineData.schoolName, 'h2', 'font-display font-extrabold text-2xl tracking-wider text-white uppercase')}
+          ${makeInlineEditable(pageIndex, 'motto', page.motto, 'div', 'text-xs italic text-indigo-300 font-serif mt-1')}
         </div>
 
         <div class="relative z-10 my-auto py-4 flex flex-col items-center text-center space-y-3">
           <div class="w-28 h-28 bg-white p-2 rounded-2xl shadow-2xl">
             <img src="${escapeHtml(page.qrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr')}" alt="QR Kod" class="w-full h-full object-contain">
           </div>
-          <div class="text-xs text-slate-300 font-medium max-w-xs">${escapeHtml(page.qrText || 'Dergimizi çevrim içi okumak için karekodu okutun')}</div>
+          ${makeInlineEditable(pageIndex, 'qrText', page.qrText || 'Dergimizi çevrim içi okumak için karekodu okutun', 'div', 'text-xs text-slate-300 font-medium max-w-xs')}
         </div>
 
         <div class="relative z-10 pt-3 border-t border-white/20 text-center space-y-1">
-          <div class="text-[11px] text-slate-400 font-mono">${escapeHtml(page.social || '')}</div>
-          <div class="text-xs font-serif italic text-slate-300 font-semibold">${escapeHtml(page.closingQuote || '')}</div>
+          ${makeInlineEditable(pageIndex, 'social', page.social, 'div', 'text-[11px] text-slate-400 font-mono')}
+          ${makeInlineEditable(pageIndex, 'closingQuote', page.closingQuote, 'div', 'text-xs font-serif italic text-slate-300 font-semibold')}
         </div>
       </div>
     `;
@@ -1159,17 +1346,15 @@ function renderTemplateHTML(page, pageIndex) {
             <span class="text-[11px] text-slate-400 font-medium">BAŞYAZI & İÇİNDEKİLER</span>
           </div>
 
-          <h2 class="font-serif font-bold text-xl text-slate-900 mb-2 leading-snug">
-            ${escapeHtml(page.editorTitle || '')}
-          </h2>
+          ${makeInlineEditable(pageIndex, 'editorTitle', page.editorTitle || 'Başyazı Başlığı', 'h2', 'font-serif font-bold text-xl text-slate-900 mb-2 leading-snug')}
 
           <div class="flex gap-3 mb-3">
-            <img src="${escapeHtml(page.editorImage)}" onerror="this.src='https://placehold.co/200x200/e2e8f0/475569?text=Editor'" class="w-14 h-14 rounded-xl object-cover shrink-0 shadow border border-slate-200" alt="Editör">
-            <div class="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line">
-              ${escapeHtml(page.editorText || '')}
+            <div class="w-14 h-14 rounded-xl shrink-0 shadow border border-slate-200 overflow-hidden">
+              ${makeInlineImage(pageIndex, 'editorImage', page.editorImage, 'https://placehold.co/200x200/e2e8f0/475569?text=Editor', 'w-full h-full object-cover', 'w-full h-full', 'Editör')}
             </div>
+            ${makeInlineEditable(pageIndex, 'editorText', page.editorText, 'div', 'text-[11px] text-slate-600 leading-relaxed whitespace-pre-line flex-1')}
           </div>
-          <div class="text-right text-xs font-semibold text-slate-800 mb-3">— ${escapeHtml(page.editorName || '')}</div>
+          <div class="text-right text-xs font-semibold text-slate-800 mb-3">— ${makeInlineEditable(pageIndex, 'editorName', page.editorName, 'span')}</div>
         </div>
 
         <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/80 my-auto">
@@ -1187,7 +1372,7 @@ function renderTemplateHTML(page, pageIndex) {
         </div>
 
         <div class="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 whitespace-pre-line leading-relaxed">
-          <strong class="text-slate-700 uppercase block mb-0.5">Yayın Kurulu Künyesi:</strong>${escapeHtml(page.editorialBoard || '')}
+          <strong class="text-slate-700 uppercase block mb-0.5">Yayın Kurulu Künyesi:</strong>${makeInlineEditable(pageIndex, 'editorialBoard', page.editorialBoard, 'div')}
         </div>
       </div>
     `;
@@ -1199,29 +1384,23 @@ function renderTemplateHTML(page, pageIndex) {
       <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
         <div>
           <div class="flex items-center gap-2 mb-2">
-            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white" style="background-color: ${accent}">
-              ${escapeHtml(page.category || 'HABER')}
-            </span>
-            <span class="text-[11px] text-slate-400 font-medium">${escapeHtml(page.author || '')}</span>
+            ${makeInlineEditable(pageIndex, 'category', page.category || 'HABER', 'span', 'px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white', `background-color: ${accent}`)}
+            ${makeInlineEditable(pageIndex, 'author', page.author, 'span', 'text-[11px] text-slate-400 font-medium')}
           </div>
 
-          <h2 class="font-serif font-bold text-xl md:text-2xl text-slate-900 leading-snug mb-3">
-            ${escapeHtml(page.title || '')}
-          </h2>
+          ${makeInlineEditable(pageIndex, 'title', page.title, 'h2', 'font-serif font-bold text-xl md:text-2xl text-slate-900 leading-snug mb-3')}
 
           <div class="relative rounded-xl overflow-hidden mb-3 bg-slate-100 border border-slate-200">
-            <img src="${escapeHtml(page.image)}" onerror="this.src='https://placehold.co/800x450/e2e8f0/475569?text=Haber'" class="w-full h-36 md:h-44 object-cover" alt="Haber">
-            ${page.imageCaption ? `<div class="bg-slate-900/80 text-white text-[10px] px-3 py-1">${escapeHtml(page.imageCaption)}</div>` : ''}
+            ${makeInlineImage(pageIndex, 'image', page.image, 'https://placehold.co/800x450/e2e8f0/475569?text=Haber', 'w-full h-36 md:h-44 object-cover', 'w-full h-36 md:h-44', 'Haber')}
+            ${makeInlineEditable(pageIndex, 'imageCaption', page.imageCaption, 'div', 'bg-slate-900/80 text-white text-[10px] px-3 py-1')}
           </div>
 
-          <div class="text-[11.5px] text-slate-700 leading-relaxed columns-1 sm:columns-2 gap-4 whitespace-pre-line text-justify">
-            ${escapeHtml(page.content || '')}
-          </div>
+          ${makeInlineEditable(pageIndex, 'content', page.content, 'div', 'text-[11.5px] text-slate-700 leading-relaxed columns-1 sm:columns-2 gap-4 whitespace-pre-line text-justify')}
         </div>
 
         ${page.pullQuote ? `
           <div class="mt-3 p-3 rounded-xl bg-slate-50 border-l-4 text-xs italic font-serif text-slate-800" style="border-color: ${accent}">
-            "${escapeHtml(page.pullQuote)}"
+            "${makeInlineEditable(pageIndex, 'pullQuote', page.pullQuote, 'span')}"
           </div>
         ` : ''}
       </div>
@@ -1233,12 +1412,14 @@ function renderTemplateHTML(page, pageIndex) {
     return `
       <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
         <div class="flex items-center gap-4 p-3.5 rounded-2xl text-white mb-3 shadow-md" style="background: linear-gradient(135deg, ${accent}, #1e1b4b)">
-          <img src="${escapeHtml(page.photo)}" onerror="this.src='https://placehold.co/300x300/e2e8f0/475569?text=Konuk'" class="w-16 h-16 rounded-xl object-cover border-2 border-white/80 shrink-0 shadow" alt="Konuk">
+          <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 shadow border-2 border-white/80">
+            ${makeInlineImage(pageIndex, 'photo', page.photo, 'https://placehold.co/300x300/e2e8f0/475569?text=Konuk', 'w-full h-full object-cover', 'w-full h-full', 'Konuk')}
+          </div>
           <div>
-            <span class="text-[10px] uppercase tracking-widest font-bold text-white/80 block">${escapeHtml(page.rubric || 'AYIN SÖYLEŞİSİ')}</span>
-            <h2 class="font-serif font-bold text-lg leading-tight">${escapeHtml(page.interviewee || '')}</h2>
-            <div class="text-xs text-white/90 font-medium mb-1">${escapeHtml(page.role || '')}</div>
-            <p class="text-[10.5px] text-white/80 leading-snug line-clamp-2">${escapeHtml(page.intro || '')}</p>
+            ${makeInlineEditable(pageIndex, 'rubric', page.rubric || 'AYIN SÖYLEŞİSİ', 'span', 'text-[10px] uppercase tracking-widest font-bold text-white/80 block')}
+            ${makeInlineEditable(pageIndex, 'interviewee', page.interviewee, 'h2', 'font-serif font-bold text-lg leading-tight')}
+            ${makeInlineEditable(pageIndex, 'role', page.role, 'div', 'text-xs text-white/90 font-medium mb-1')}
+            ${makeInlineEditable(pageIndex, 'intro', page.intro, 'p', 'text-[10.5px] text-white/80 leading-snug line-clamp-2')}
           </div>
         </div>
 
@@ -1246,25 +1427,25 @@ function renderTemplateHTML(page, pageIndex) {
           <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
             <div class="text-xs font-bold text-slate-900 mb-1 flex items-start gap-1.5">
               <span class="px-1.5 rounded text-[10px] text-white shrink-0 mt-0.5" style="background-color: ${accent}">S1</span>
-              <span>${escapeHtml(page.q1 || '')}</span>
+              ${makeInlineEditable(pageIndex, 'q1', page.q1, 'span', 'font-bold')}
             </div>
-            <p class="text-[11px] text-slate-600 leading-relaxed pl-5">${escapeHtml(page.a1 || '')}</p>
+            ${makeInlineEditable(pageIndex, 'a1', page.a1, 'p', 'text-[11px] text-slate-600 leading-relaxed pl-5')}
           </div>
 
           <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
             <div class="text-xs font-bold text-slate-900 mb-1 flex items-start gap-1.5">
               <span class="px-1.5 rounded text-[10px] text-white shrink-0 mt-0.5" style="background-color: ${accent}">S2</span>
-              <span>${escapeHtml(page.q2 || '')}</span>
+              ${makeInlineEditable(pageIndex, 'q2', page.q2, 'span', 'font-bold')}
             </div>
-            <p class="text-[11px] text-slate-600 leading-relaxed pl-5">${escapeHtml(page.a2 || '')}</p>
+            ${makeInlineEditable(pageIndex, 'a2', page.a2, 'p', 'text-[11px] text-slate-600 leading-relaxed pl-5')}
           </div>
 
           <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
             <div class="text-xs font-bold text-slate-900 mb-1 flex items-start gap-1.5">
               <span class="px-1.5 rounded text-[10px] text-white shrink-0 mt-0.5" style="background-color: ${accent}">S3</span>
-              <span>${escapeHtml(page.q3 || '')}</span>
+              ${makeInlineEditable(pageIndex, 'q3', page.q3, 'span', 'font-bold')}
             </div>
-            <p class="text-[11px] text-slate-600 leading-relaxed pl-5">${escapeHtml(page.a3 || '')}</p>
+            ${makeInlineEditable(pageIndex, 'a3', page.a3, 'p', 'text-[11px] text-slate-600 leading-relaxed pl-5')}
           </div>
         </div>
       </div>
@@ -1276,22 +1457,21 @@ function renderTemplateHTML(page, pageIndex) {
     return `
       <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto bg-amber-50/30">
         <div class="text-center border-b border-slate-200 pb-2.5">
-          <span class="text-[10px] font-bold tracking-widest uppercase block mb-0.5" style="color: ${accent}">${escapeHtml(page.header || 'EDEBİYAT')}</span>
-          <h2 class="font-serif italic font-bold text-2xl text-slate-900">${escapeHtml(page.title || '')}</h2>
-          <div class="text-xs text-slate-500 font-medium mt-1">${escapeHtml(page.author || '')}</div>
+          ${makeInlineEditable(pageIndex, 'header', page.header || 'EDEBİYAT', 'span', 'text-[10px] font-bold tracking-widest uppercase block mb-0.5', `color: ${accent}`)}
+          ${makeInlineEditable(pageIndex, 'title', page.title, 'h2', 'font-serif italic font-bold text-2xl text-slate-900')}
+          ${makeInlineEditable(pageIndex, 'author', page.author, 'div', 'text-xs text-slate-500 font-medium mt-1')}
         </div>
 
         <div class="my-auto py-2 flex flex-col items-center">
           <div class="w-full h-28 rounded-xl overflow-hidden mb-3 shadow-sm border border-slate-200">
-            <img src="${escapeHtml(page.bgImage)}" onerror="this.src='https://placehold.co/800x300/e2e8f0/475569?text=Sanat'" class="w-full h-full object-cover" alt="Sanat">
+            ${makeInlineImage(pageIndex, 'bgImage', page.bgImage, 'https://placehold.co/800x300/e2e8f0/475569?text=Sanat', 'w-full h-full object-cover', 'w-full h-full', 'Sanat')}
           </div>
-          <div class="font-serif italic text-xs md:text-sm text-slate-800 leading-loose text-center whitespace-pre-line px-4">
-            ${escapeHtml(page.poemText || '')}
-          </div>
+          ${makeInlineEditable(pageIndex, 'poemText', page.poemText, 'div', 'font-serif italic text-xs md:text-sm text-slate-800 leading-loose text-center whitespace-pre-line px-4')}
         </div>
 
         <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-[10px] text-slate-500 text-center">
-          <i class="ph ph-feather mr-1" style="color: ${accent}"></i> ${escapeHtml(page.bottomNote || '')}
+          <i class="ph ph-feather mr-1" style="color: ${accent}"></i>
+          ${makeInlineEditable(pageIndex, 'bottomNote', page.bottomNote, 'span')}
         </div>
       </div>
     `;
@@ -1304,16 +1484,15 @@ function renderTemplateHTML(page, pageIndex) {
       <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
         <div>
           <div class="flex items-center gap-2 mb-2">
-            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white" style="background-color: ${accent}">
-              ${escapeHtml(page.title || 'ETKİLEŞİMLİ KÖŞE')}
-            </span>
+            ${makeInlineEditable(pageIndex, 'title', page.title || 'ETKİLEŞİMLİ KÖŞE', 'span', 'px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white', `background-color: ${accent}`)}
           </div>
 
           <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-lg mb-3">
             <h3 class="font-display font-bold text-base text-amber-400 mb-1.5 flex items-center gap-1.5">
-              <i class="ph ph-lightbulb text-lg"></i> ${escapeHtml(page.questionTitle || '')}
+              <i class="ph ph-lightbulb text-lg"></i>
+              ${makeInlineEditable(pageIndex, 'questionTitle', page.questionTitle, 'span')}
             </h3>
-            <p class="text-xs text-slate-200 leading-relaxed mb-3">${escapeHtml(page.questionText || '')}</p>
+            ${makeInlineEditable(pageIndex, 'questionText', page.questionText, 'p', 'text-xs text-slate-200 leading-relaxed mb-3')}
 
             <div class="space-y-1.5">
               ${opts.map((opt, oIdx) => `
@@ -1332,11 +1511,11 @@ function renderTemplateHTML(page, pageIndex) {
           </h4>
           <div class="text-xs text-slate-700 flex items-center gap-2">
             <span class="font-semibold text-indigo-600 shrink-0">Kitap:</span>
-            <span class="truncate">${escapeHtml(page.bookRec || '')}</span>
+            ${makeInlineEditable(pageIndex, 'bookRec', page.bookRec, 'span', 'truncate')}
           </div>
           <div class="text-xs text-slate-700 flex items-center gap-2">
             <span class="font-semibold text-rose-600 shrink-0">Film:</span>
-            <span class="truncate">${escapeHtml(page.movieRec || '')}</span>
+            ${makeInlineEditable(pageIndex, 'movieRec', page.movieRec, 'span', 'truncate')}
           </div>
         </div>
       </div>
@@ -1644,6 +1823,7 @@ function updatePageField(key, value) {
   if (key === 'navTitle' || key === 'accentColor') {
     renderPageListSidebar();
   }
+  debouncedSave();
 }
 
 function updateQuizOption(optIdx, value) {
@@ -1652,6 +1832,7 @@ function updateQuizOption(optIdx, value) {
   }
   magazineData.pages[selectedEditIndex].options[optIdx] = value;
   renderMagazineViewport();
+  debouncedSave();
 }
 
 async function uploadImageToServer(event, key) {
@@ -2389,5 +2570,17 @@ window.dismissAdminNote = dismissAdminNote;
 window.downloadProjectJSON = downloadProjectJSON;
 window.uploadProjectJSON = uploadProjectJSON;
 window.exportStandaloneMagazine = exportStandaloneMagazine;
+window.updatePageField = updatePageField;
+window.uploadImageToServer = uploadImageToServer;
+window.uploadPageVideo = uploadPageVideo;
+window.updateQuizOption = updateQuizOption;
+window.setPageStatus = setPageStatus;
+window.uploadTemplateImageInline = uploadTemplateImageInline;
+window.uploadCanvasElementImage = uploadCanvasElementImage;
+window.handleInlineTextChange = handleInlineTextChange;
+window.debouncedSave = debouncedSave;
+window.makeInlineEditable = makeInlineEditable;
+window.makeInlineImage = makeInlineImage;
+window.showToast = showToast;
 window.showToast = showToast;
 
