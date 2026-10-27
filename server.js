@@ -167,7 +167,7 @@ app.post('/api/auth/login', (req, res) => {
           name: user.name,
           role: user.role || 'editor',
           title: user.title,
-          magazineId: user.magazineId || 'mag-ufuk-al',
+          magazineId: user.magazineId || '',
           assignedPages: user.assignedPages || []
         }
       });
@@ -209,7 +209,7 @@ app.post('/api/auth/keys', (req, res) => {
     name: String(name).trim(),
     role: role === 'admin' ? 'admin' : 'editor',
     title: title || '',
-    magazineId: magazineId || 'mag-ufuk-al',
+    magazineId: magazineId || '',
     assignedPages: Array.isArray(assignedPages) ? assignedPages : []
   };
 
@@ -425,7 +425,7 @@ app.get('/api/magazines', (req, res) => {
   const issues = readJSON(ISSUES_FILE, []);
   
   const list = magazines.map(m => {
-    const magIssues = issues.filter(i => (i.magazineId || 'mag-ufuk-al') === m.id);
+    const magIssues = issues.filter(i => i.magazineId === m.id);
     return {
       ...m,
       issueCount: magIssues.length,
@@ -434,6 +434,17 @@ app.get('/api/magazines', (req, res) => {
   });
 
   res.json(list);
+});
+
+app.delete('/api/magazines-all', (req, res) => {
+  const authHeader = req.headers['x-access-code'];
+  const authData = readJSON(AUTH_FILE, { adminKey: 'ADMIN-2026', admins: [], keys: [] });
+  if (!isAdmin(authHeader, authData)) {
+    return res.status(403).json({ error: 'Yetkisiz işlem.' });
+  }
+  writeJSON(MAGAZINES_FILE, []);
+  writeJSON(ISSUES_FILE, []);
+  res.json({ success: true });
 });
 
 app.post('/api/magazines', (req, res) => {
@@ -521,7 +532,7 @@ app.delete('/api/magazines/:id', (req, res) => {
   writeJSON(MAGAZINES_FILE, magazines);
 
   let issues = readJSON(ISSUES_FILE, []);
-  issues = issues.filter(i => (i.magazineId || 'mag-ufuk-al') !== req.params.id);
+  issues = issues.filter(i => i.magazineId !== req.params.id);
   writeJSON(ISSUES_FILE, issues);
 
   res.json({ success: true });
@@ -537,7 +548,7 @@ app.get('/api/issues', (req, res) => {
 
   let filtered = issues;
   if (magId) {
-    filtered = filtered.filter(i => (i.magazineId || 'mag-ufuk-al') === magId);
+    filtered = filtered.filter(i => i.magazineId === magId);
   }
 
   if (includeDrafts) {
@@ -573,8 +584,8 @@ app.post('/api/issues', (req, res) => {
   const newIssue = {
     id: newId,
     title: req.body.title || `Sayı #${newNumber}`,
-    magazineId: req.body.magazineId || 'mag-ufuk-al',
-    schoolName: req.body.schoolName || "UFUK ANADOLU LİSESİ E-DERGİSİ",
+    magazineId: req.body.magazineId || '',
+    schoolName: req.body.schoolName || "E-DERGİ TASARIM STÜDYOSU",
     issueNumber: newNumber,
     issueMonth: req.body.issueMonth || "Yeni Sayı",
     releaseDate: new Date().toISOString().split('T')[0],
@@ -588,16 +599,16 @@ app.post('/api/issues', (req, res) => {
         id: "p1",
         type: "cover",
         navTitle: "Kapak",
-        accentColor: "#4f46e5",
+        accentColor: "#d97706",
         assignedEditor: authData.adminKey,
         status: "approved",
         adminNote: "",
-        magazineName: "UFUK",
+        magazineName: "KAMER",
         issueTag: `SAYI 0${newNumber} • YENİ SAYI`,
-        mainHeadline: "Yeni Sayı Başlığı",
-        subHeadline: "Alt başlık ve dosya konusu açıklaması",
-        coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
-        highlights: "Öne Çıkan Başlık 1\nÖne Çıkan Başlık 2"
+        mainHeadline: "Güçlü Kadın Lider",
+        subHeadline: "Kapak hikayesi için destek metni buraya girilecektir.",
+        coverImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
+        highlights: "Moda Sektöründe\nRenkleri Kendinize Uyarlayın\nSezonun En İyi Görünümleri"
       }
     ]
   };

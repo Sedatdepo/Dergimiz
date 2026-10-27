@@ -37,128 +37,111 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
 
-  <!-- ÜST ARAÇ ÇUBUĞU (FLIPHTML5 v2 & DERGİMİZ YÖNETİM BARI) -->
-  <header id="topToolbar" class="bg-slate-950 border-b border-slate-800 px-3 py-2 flex items-center justify-between z-40 shrink-0 gap-2">
-    <!-- Sol: Ana Sayfa + Okul/Dergi & Sayı Seçici -->
-    <div class="flex items-center gap-2.5 min-w-0">
-      <a href="/" class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 hover:scale-105 transition shrink-0" title="Kitaplığa Dön">
-        <i class="ph ph-book-open-text text-xl text-white"></i>
+  <!-- ÜST ARAÇ ÇUBUĞU (TEK SATIR KOMPAKT & GİZLENEBİLİR YÖNETİM BARI) -->
+  <header id="topToolbar" class="bg-slate-950 border-b border-slate-800 px-3 py-1.5 flex items-center justify-between z-40 shrink-0 gap-2">
+    <!-- Sol: Ana Sayfa + Şablonlar + Dergi/Sayı Seçici -->
+    <div class="flex items-center gap-2 min-w-0 flex-wrap">
+      <a href="/" class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow hover:scale-105 transition shrink-0" title="Kitaplığa Dön">
+        <i class="ph ph-book-open-text text-lg text-white"></i>
       </a>
 
-      <div class="flex flex-col gap-1 min-w-0">
-        <!-- 1. OKUL & DERGİ SEÇİCİ & YENİ DERGİ EKLE / SİL BUTONLARI -->
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <div class="flex items-center gap-1 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-slate-700">
-            <i class="ph ph-buildings text-amber-400 text-xs"></i>
-            <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-transparent border-0 text-xs font-bold text-white focus:outline-none cursor-pointer py-0.5 pr-1 max-w-[180px] sm:max-w-[230px]">
-              <!-- JS ile dolar -->
-            </select>
-          </div>
-          <button id="btnNewMagModal" onclick="openModal('newMagazineModal')" class="px-2 py-0.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition" title="Yeni Bir Okul ve Dergi Ekle">
-            <i class="ph ph-plus-circle text-xs"></i>
-            <span class="hidden sm:inline">+ Okul / Dergi</span>
-          </button>
-          <button id="btnDeleteMag" onclick="deleteCurrentMagazine()" class="px-1.5 py-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-bold flex items-center gap-1 transition" title="Seçili Örnek Okulu / Dergiyi Sil">
-            <i class="ph ph-trash text-xs"></i>
-            <span class="hidden lg:inline">Sil</span>
-          </button>
-          <button onclick="openAllTemplatesModal()" class="px-2 py-0.5 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 text-[11px] font-bold flex items-center gap-1 transition" title="Okul Fark Etmeksizin Tüm 20 Konsept ve Sayfa Şablonlarını Gör">
-            <i class="ph ph-palette text-xs text-amber-400"></i>
-            <span class="hidden md:inline">Tüm Şablonlar (20)</span>
-          </button>
-        </div>
+      <button onclick="openAllTemplatesModal()" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold flex items-center gap-1 shadow transition" title="Tüm 20 Dergi Konsepti ve Sayfa Şablonlarını Gör">
+        <i class="ph ph-palette text-sm"></i>
+        <span>Tüm Şablonlar (20)</span>
+      </button>
 
-        <!-- 2. SAYI SEÇİCİ & KAYIT DURUMU (Görsel 1) -->
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <select id="issueSelector" onchange="onIssueChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-[11px] font-semibold text-slate-200 focus:outline-none focus:border-blue-500 cursor-pointer">
-            <!-- JS ile doldurulur -->
-          </select>
-          <button id="btnDeleteIssue" onclick="deleteCurrentIssue()" class="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 text-[10px] font-semibold flex items-center gap-0.5 transition" title="Bu Sayıyı Sil">
-            <i class="ph ph-trash"></i>
-          </button>
-          <span id="issueStatusBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Yayında</span>
-          <span id="saveStatusIndicator" class="text-[11px] text-slate-400 flex items-center gap-1 ml-1">
-            <i class="ph ph-cloud-check text-emerald-400 text-sm"></i>
-            <span class="hidden xl:inline">Değişiklikler kaydedildi</span>
-          </span>
-          <span id="headerSchoolText" class="hidden">Ufuk Anadolu Lisesi</span>
-        </div>
+      <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
+        <i class="ph ph-Notebook text-amber-400 text-xs"></i>
+        <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-transparent border-0 text-xs font-bold text-white focus:outline-none cursor-pointer max-w-[190px]">
+          <!-- JS ile dolar -->
+        </select>
       </div>
+
+      <select id="issueSelector" onchange="onIssueChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-200 focus:outline-none cursor-pointer hidden sm:block max-w-[150px]">
+        <!-- JS ile doldurulur -->
+      </select>
+
+      <button id="btnNewMagModal" onclick="openModal('newMagazineModal')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition" title="Yeni Dergi Kaydet veya Mevcutları Yönet">
+        <i class="ph ph-plus-circle text-xs"></i>
+        <span class="hidden lg:inline">+ Dergi</span>
+      </button>
+
+      <button id="btnDeleteMag" onclick="clearAllSavedMagazines()" class="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-[11px] font-bold flex items-center gap-1 transition" title="Kayıtlı Örnek Dergileri Sil ve Şablon Masasına Sıfırla">
+        <i class="ph ph-trash text-xs"></i>
+        <span class="hidden xl:inline">Kayıtlıları Sil</span>
+      </button>
+
+      <button id="btnDeleteIssue" onclick="deleteCurrentIssue()" class="hidden"></button>
+      <span id="issueStatusBadge" class="hidden">Taslak</span>
+      <span id="saveStatusIndicator" class="text-[11px] text-slate-400 hidden 2xl:flex items-center gap-1">
+        <i class="ph ph-cloud-check text-emerald-400 text-sm"></i>
+        <span>Hazır</span>
+      </span>
+      <span id="headerSchoolText" class="hidden">Tasarım Stüdyosu</span>
     </div>
 
-    <!-- Orta-Sağ: FlipHTML5 v2 Zoom (%), El Aracı, Önizle, Kaydet & Yönetim (Görsel 1) -->
-    <div class="flex items-center gap-2 shrink-0">
+    <!-- Sağ: Zoom (%), El Aracı, Önizle, Kaydet & Panel Gizleme -->
+    <div class="flex items-center gap-1.5 shrink-0">
       <!-- Yakınlaştırma (Zoom %) Kontrolü -->
-      <div class="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-xl px-1.5 py-1 gap-1">
+      <div class="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-xl px-1.5 py-0.5 gap-0.5">
         <button onclick="stepCanvasZoom(-15)" class="w-6 h-6 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs" title="Uzaklaştır (-)">
           <i class="ph ph-minus"></i>
         </button>
-        <select id="zoomSelector" onchange="setCanvasZoom(Number(this.value))" class="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer px-1">
+        <select id="zoomSelector" onchange="setCanvasZoom(Number(this.value))" class="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer px-0.5">
           <option value="50">50%</option>
+          <option value="65">65%</option>
           <option value="75">75%</option>
           <option value="85">85%</option>
           <option value="100" selected>100%</option>
           <option value="125">125%</option>
           <option value="150">150%</option>
-          <option value="175">175%</option>
         </select>
         <button onclick="stepCanvasZoom(15)" class="w-6 h-6 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs" title="Yakınlaştır (+)">
           <i class="ph ph-plus"></i>
         </button>
       </div>
 
-      <!-- El Aracı (Pan / Sürükle Kaydır Modu - Görsel 1) -->
-      <button id="btnPanMode" onclick="togglePanMode()" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition flex items-center gap-1" title="El Aracı ile Tuvali Kaydır (Pan)">
+      <!-- El Aracı (Pan) -->
+      <button id="btnPanMode" onclick="togglePanMode()" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition" title="El Aracı ile Tuvali Kaydır (Pan)">
         <i class="ph ph-hand-grabbing text-base"></i>
       </button>
 
-      <!-- Önizle / Tasarım Modu Geçişi (Görsel 1) -->
+      <!-- Önizle / Tasarım Modu Geçişi -->
       <div class="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-800">
-        <button id="btnEditMode" onclick="setAppMode('edit')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
+        <button id="btnEditMode" onclick="setAppMode('edit')" class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
           <i class="ph ph-pencil-simple-line text-sm"></i>
           <span class="hidden sm:inline">Tasarım</span>
         </button>
-        <button id="btnReadMode" onclick="setAppMode('read')" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white">
+        <button id="btnReadMode" onclick="setAppMode('read')" class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white">
           <i class="ph ph-play-fill text-sm"></i>
           <span>Önizle</span>
         </button>
       </div>
 
-      <!-- Kaydet Butonu (Mavi - Görsel 1) -->
-      <button onclick="saveAllChangesToServer()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-600/25 transition">
-        <i class="ph ph-floppy-disk text-base"></i>
+      <!-- Kaydet Butonu -->
+      <button onclick="saveAllChangesToServer()" class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow transition">
+        <i class="ph ph-floppy-disk text-sm"></i>
         <span>Kaydet</span>
       </button>
 
       <!-- Admin Özel Butonları -->
-      <div id="adminActions" class="flex items-center gap-1.5">
+      <div id="adminActions" class="flex items-center gap-1">
         <button onclick="togglePublishCurrentIssue()" id="btnPublishToggle" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow transition" title="Canlıya Al / Taslağa Çek">
           <i class="ph ph-rocket-launch text-sm"></i>
-          <span id="btnPublishText" class="hidden xl:inline">Canlıya Al</span>
+          <span id="btnPublishText" class="hidden xl:inline">Yayınla</span>
         </button>
-        <button onclick="openModal('editorKeysModal')" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 text-xs transition" title="Editör Kodları & Görev Dağıtımı">
-          <i class="ph ph-users-three text-base"></i>
-        </button>
-        <button onclick="openModal('newIssueModal')" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800 text-xs transition" title="Yeni Sayı Başlat">
-          <i class="ph ph-plus-circle text-base"></i>
+        <button onclick="openModal('projectModal')" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800 text-xs transition" title="Yedek Al veya İndir">
+          <i class="ph ph-download-simple text-base"></i>
         </button>
       </div>
 
-      <!-- JSON Proje Yedekleme -->
-      <button onclick="openModal('projectModal')" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition" title="Yedek Al veya E-Dergi İndir">
-        <i class="ph ph-download-simple text-base text-emerald-400"></i>
+      <!-- Üst Barı Gizle Butonu -->
+      <button onclick="toggleTopToolbarCollapse()" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs transition" title="Üst Çubuğu Gizle (Çalışma Alanını Büyüt)">
+        <i class="ph ph-caret-up text-sm"></i>
       </button>
 
-      <!-- Aktif Kullanıcı & Çıkış -->
-      <div class="flex items-center gap-1.5 pl-1 border-l border-slate-800">
-        <div class="hidden 2xl:flex flex-col text-right">
-          <span id="userNameDisplay" class="text-[11px] font-bold text-white truncate max-w-[110px]">Editör</span>
-          <span id="userRoleDisplay" class="text-[9.5px] text-blue-400">Admin</span>
-        </div>
-        <button onclick="handleLogout()" class="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs transition" title="Çıkış Yap">
-          <i class="ph ph-sign-out text-base"></i>
-        </button>
-      </div>
+      <span id="userNameDisplay" class="hidden">Editör</span>
+      <span id="userRoleDisplay" class="hidden">Admin</span>
     </div>
   </header>
 
@@ -248,14 +231,17 @@
 
       <!-- SEKME A: SAYFA MİNYATÜRLERİ & YÖNETİMİ (Görsel 1 & 10) -->
       <div id="leftPanel_pages" class="flex-1 flex flex-col overflow-hidden">
-        <!-- Üst "+ Yeni İki Sayfa" ve "+ Tek Sayfa" Butonları -->
-        <div class="p-3 border-b border-slate-800 flex items-center gap-1.5">
-          <button onclick="addSpreadPages()" class="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-blue-600 text-white border border-slate-700 hover:border-blue-500 font-bold text-xs flex items-center justify-center gap-1.5 transition shadow">
+        <!-- Üst "+ Yeni İki Sayfa", "+ Tek Sayfa" ve "Daralt" Butonları -->
+        <div class="p-2.5 border-b border-slate-800 flex items-center gap-1.5">
+          <button onclick="addSpreadPages()" class="flex-1 py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-blue-600 text-white border border-slate-700 hover:border-blue-500 font-bold text-xs flex items-center justify-center gap-1 transition shadow">
             <i class="ph ph-plus text-sm"></i>
             <span>Yeni İki Sayfa</span>
           </button>
-          <button onclick="openModal('addPageModal')" id="btnAddPageBtn" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 transition" title="Şablondan Tek Sayfa Ekle">
+          <button onclick="openModal('addPageModal')" id="btnAddPageBtn" class="p-1.5 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 transition" title="Şablondan Tek Sayfa Ekle">
             <i class="ph ph-file-plus text-base"></i>
+          </button>
+          <button onclick="toggleLeftDrawerCollapse()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="Sol Paneli Kapat">
+            <i class="ph ph-caret-double-left text-sm"></i>
           </button>
         </div>
 
@@ -281,11 +267,14 @@
 
       <!-- SEKME B: ŞABLONLAR & KONSEPTLER ÇEKMECESİ -->
       <div id="leftPanel_templates" class="flex-1 flex flex-col overflow-hidden hidden">
-        <div class="p-3 border-b border-slate-800 flex items-center justify-between">
+        <div class="p-2.5 border-b border-slate-800 flex items-center justify-between">
           <span class="text-xs font-bold text-white flex items-center gap-1.5">
             <i class="ph ph-layout text-amber-400"></i> Şablonlar & Ekoller
           </span>
-          <button onclick="openAllTemplatesModal()" class="text-[11px] text-blue-400 hover:underline font-semibold">Tam Ekran</button>
+          <div class="flex items-center gap-1.5">
+            <button onclick="openAllTemplatesModal()" class="text-[11px] text-blue-400 hover:underline font-semibold">Tam Ekran</button>
+            <button onclick="toggleLeftDrawerCollapse()" class="p-1 rounded bg-slate-800 text-slate-400 hover:text-white" title="Sol Paneli Kapat"><i class="ph ph-x text-xs"></i></button>
+          </div>
         </div>
         <div id="drawerTemplatesList" class="flex-1 overflow-y-auto p-3 space-y-2.5">
           <!-- JS ile doldurulur -->
@@ -297,7 +286,7 @@
         <div class="p-3 border-b border-slate-800 space-y-2.5">
           <div class="flex items-center justify-between">
             <span class="text-xs font-bold text-white">Elementler</span>
-            <button onclick="switchLeftTab('pages')" class="text-slate-400 hover:text-white"><i class="ph ph-x text-sm"></i></button>
+            <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-white" title="Sol Paneli Kapat"><i class="ph ph-x text-sm"></i></button>
           </div>
           <div class="relative">
             <input type="text" id="elementSearchInput" oninput="filterElementsDrawer(this.value)" placeholder="Element ara (Tablo, Buton, Şekil...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
@@ -507,8 +496,40 @@
         <button type="button" onclick="deleteSelectedCanvasElement()" class="w-6 h-6 rounded hover:bg-rose-50 text-rose-600 flex items-center justify-center" title="Öğeyi Sil"><i class="ph ph-trash text-sm"></i></button>
       </div>
 
-      <!-- ÜST HIZLI ARAÇ BARI (Daraltılabilir, Kalıcı Erişim İçin) -->
-      <div id="canvasActionBar" class="sticky top-0 z-30 w-full max-w-4xl flex flex-wrap items-center justify-between gap-1.5 bg-slate-950/95 px-3 py-2 rounded-2xl border border-slate-800 shadow-xl mb-3 text-slate-100 backdrop-blur-md">
+      <!-- PANELLERİ AÇ / KAPAT HIZLI KONTROL ŞERİDİ (Sol, Üst, Sağ ve Tam Tuval Kontrolü) -->
+      <div class="w-full max-w-4xl flex items-center justify-between gap-2 mb-1.5 px-1 z-30 select-none">
+        <div class="flex items-center gap-1.5">
+          <button onclick="toggleLeftDrawerCollapse()" id="btnCanvasToggleLeft" class="px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-[11px] font-semibold flex items-center gap-1 shadow border border-slate-700/80 transition" title="Sol Paneli Aç / Kapat">
+            <i class="ph ph-sidebar-simple"></i>
+            <span id="txtToggleLeft">Sol Paneli Kapat</span>
+          </button>
+          <button onclick="toggleCanvasActionBar()" id="btnToggleTopBar" class="px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-amber-300 text-[11px] font-semibold flex items-center gap-1 shadow border border-slate-700/80 transition" title="Üst Hızlı Ekleme Araç Çubuğunu Aç / Kapat">
+            <i class="ph ph-sliders-horizontal"></i>
+            <span id="txtToggleTopBar">Üst Araçları Aç ▾</span>
+          </button>
+          <button onclick="toggleTopToolbarCollapse()" id="btnRestoreHeader" class="hidden px-2.5 py-1 rounded-xl bg-blue-600 text-white text-[11px] font-bold flex items-center gap-1 shadow transition">
+            <i class="ph ph-caret-down"></i>
+            <span>Üst Menüyü Göster</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <button onclick="toggleSpreadMode()" id="btnSpreadToggle" class="px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 text-[11px] font-semibold shadow transition">
+            <i class="ph ph-columns mr-1"></i><span id="spreadToggleText">Çift Sayfa</span>
+          </button>
+          <button onclick="toggleZenCanvasMode()" id="btnZenMode" class="px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-bold flex items-center gap-1 shadow transition" title="Tüm Yan ve Üst Panelleri Gizle / Göster">
+            <i class="ph ph-corners-out"></i>
+            <span id="txtZenMode">Panelleri Gizle</span>
+          </button>
+          <button onclick="toggleRightSidebarCollapse()" id="btnCanvasToggleRight" class="px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-[11px] font-semibold flex items-center gap-1 shadow border border-slate-700/80 transition" title="Sağ Ayarlar Panelini Aç / Kapat">
+            <span id="txtToggleRight">Sağ Paneli Kapat</span>
+            <i class="ph ph-sidebar-simple"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- ÜST HIZLI ARAÇ BARI (Varsayılan Olarak Kapalı — "Üst Araçları Aç" Butonuyla Açılır) -->
+      <div id="canvasActionBar" class="hidden sticky top-0 z-30 w-full max-w-4xl flex flex-wrap items-center justify-between gap-1.5 bg-slate-950/95 px-3 py-2 rounded-2xl border border-slate-800 shadow-xl mb-2 text-slate-100 backdrop-blur-md">
         <div class="flex flex-wrap items-center gap-1.5">
           <button onclick="addCanvasElement('text')" class="px-2 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 border border-indigo-500/30 text-[11px] font-semibold flex items-center gap-1 transition">
             <i class="ph ph-text-t"></i><span>+ Metin</span>
@@ -570,27 +591,14 @@
           <span id="activeSelectionBadge" class="text-[10px] text-slate-400 font-mono hidden xl:inline">Hazır</span>
           <span id="pageReviewBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Onaylandı</span>
           <span id="pageOwnershipText" class="hidden">Sorumlu: <strong>Admin</strong></span>
-          <button onclick="toggleSpreadMode()" id="btnSpreadToggle" class="px-2 py-1 rounded-lg bg-slate-900 text-slate-300 hover:text-white border border-slate-700 text-[11px] font-medium">
-            <i class="ph ph-columns mr-1"></i><span id="spreadToggleText">Çift Sayfa</span>
-          </button>
+          <button onclick="toggleCanvasActionBar()" class="px-2 py-1 rounded-lg bg-rose-500/20 text-rose-300 hover:bg-rose-600 hover:text-white text-[11px] font-bold" title="Bu Çubuğu Gizle">✕ Gizle</button>
         </div>
       </div>
 
       <!-- Geriye dönük uyumluluk için gizli tutucular -->
       <div id="canvasTopBanner" class="hidden"></div>
       <div id="floatingRichTextBar" class="hidden"></div>
-
-      <!-- Admin Revizyon Notu -->
-      <div id="adminStickyNoteBox" class="w-full max-w-4xl hidden mb-2 p-2.5 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-950 text-xs flex items-center justify-between gap-3">
-        <div class="flex items-center gap-2">
-          <i class="ph ph-warning-diamond text-lg text-amber-700 shrink-0"></i>
-          <div>
-            <strong>Yayın Kurulu Düzeltme Notu:</strong>
-            <span id="adminStickyNoteText" class="ml-1">Lütfen metni gözden geçirin.</span>
-          </div>
-        </div>
-        <button onclick="dismissAdminNote()" class="text-amber-900 hover:text-black text-xs underline font-bold shrink-0">Anladım</button>
-      </div>
+      <div id="adminStickyNoteBox" class="hidden"><span id="adminStickyNoteText"></span></div>
 
       <!-- DERGİ GÖRÜNÜM ALANI (ORTA TUVAL & YAN GEÇİŞ OKLARI - Görsel 1) -->
       <div class="my-auto flex items-center justify-center w-full py-2 relative">
@@ -631,6 +639,10 @@
     <!-- 4. ORTA-SAĞ İNCE DİKEY ARAÇ SÜTUNU (FlipHTML5 v2 Görsel 1, 2, 5: Undo, Redo, AI, Katmanlar, Izgara, Kısayollar) -->
     <div id="centerRightStrip" class="w-11 bg-white border-l border-r border-slate-200 flex flex-col items-center justify-between py-3 z-20 shrink-0 select-none text-slate-700">
       <div class="flex flex-col items-center gap-2">
+        <button onclick="toggleRightSidebarCollapse()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-600 flex items-center justify-center transition" title="Sağ Ayarlar Panelini Aç / Kapat">
+          <i id="rightDrawerToggleIcon" class="ph ph-caret-double-right text-base"></i>
+        </button>
+        <div class="w-6 h-px bg-slate-200 my-0.5"></div>
         <button onclick="undoAction()" id="btnUndo" class="w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-700 disabled:opacity-30 flex items-center justify-center transition" title="Geri Al (Ctrl+Z)">
           <i class="ph ph-arrow-u-up-left text-lg"></i>
         </button>
@@ -673,9 +685,9 @@
     <!-- 5. SAĞ PANEL: BAĞLAMA DUYARLI DENETÇİ (AYARLAR | EYLEMLER | ŞABLON İÇERİĞİ - Görsel 1-6) -->
     <aside id="rightSidebar" class="w-80 md:w-[330px] bg-slate-950 border-l border-slate-800 flex flex-col z-20 shrink-0 transition-all duration-300 select-text">
 
-      <!-- Üst Sekmeler: Ayarlar | Eylemler | Şablon Formu (Görsel 2, 4, 5) -->
-      <div class="border-b border-slate-800 bg-slate-900/90 px-2 pt-2 flex items-center justify-between">
-        <div class="flex items-center gap-1 w-full">
+      <!-- Üst Sekmeler: Ayarlar | Eylemler | Şablon Formu + Sağ Paneli Kapat Butonu -->
+      <div class="border-b border-slate-800 bg-slate-900/90 px-2 pt-2 flex items-center justify-between gap-1">
+        <div class="flex items-center gap-1 flex-1">
           <button id="rightTabBtn_settings" onclick="switchRightInspectorTab('settings')" class="flex-1 pb-2 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition text-center">
             Ayarlar
           </button>
@@ -686,6 +698,9 @@
             Sayfa Metinleri
           </button>
         </div>
+        <button onclick="toggleRightSidebarCollapse()" class="mb-1.5 p-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 transition" title="Sağ Paneli Kapat">
+          <i class="ph ph-x text-xs"></i>
+        </button>
       </div>
 
       <!-- Sayfa Rozeti & Durum Satırı -->
@@ -1262,6 +1277,6 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261027_07"></script>
+  <script src="/js/studio.js?v=20261027_08"></script>
 </body>
 </html>

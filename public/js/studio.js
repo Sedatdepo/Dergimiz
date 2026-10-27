@@ -60,28 +60,269 @@ function renderBarcodeSvg(color = '#000000') {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="inline-block opacity-75"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>`;
 }
 
+let isRightSidebarCollapsed = false;
+let isTopToolbarCollapsed = false;
+let isZenMode = false;
+let activeTemplatePresetId = 1;
+
 const MAGAZINE_PRESETS = [
-  { id: 1, name: 'Kamer', category: 'Moda & Kültür', layout: 'minimalist', accent: '#d97706', title: 'KAMER', headline: 'Güçlü Kadın Lider', desc: 'Kapak hikayesi için destek metni buraya girilecektir.', subs: ['Moda Sektöründe', 'Renkleri Kendinize Uyarlayın', 'Sezonun En İyi Görünümleri'] },
-  { id: 2, name: 'Yeni (Resimlik)', category: 'Popüler Kültür & Gençlik', layout: 'brutalist', accent: '#facc15', title: 'RESİMLİK', headline: 'YENİ GÖRÜNÜMLER', desc: 'LİT POPÜLER KÜLTÜR DOSYASI', subs: ['Mavi Sarı Kırmızı Trend', 'Brütalist Stilde Moda', 'Kapak Hikayesi Destek'] },
-  { id: 3, name: 'Konak', category: 'Mimari & Mekan', layout: 'modular', accent: '#0f172a', title: 'KONAK', headline: 'TARZ DENEYİMLERİ', desc: 'TASARIM ÖDÜLLERİ VE YAŞAM ALANLARI', subs: ['Yeni Renkler', 'Çağdaş Stiller', 'Taze Perspektifler'] },
-  { id: 4, name: 'Doğal', category: 'Doğa & Yaşam', layout: 'fullscreen', accent: '#10b981', title: 'DOĞAL', headline: 'VAHŞİ YAŞAMIN BÜYÜSÜ', desc: 'Gezegenin Paydaşları ve Korunan Alanlar', subs: ['Ormanın Derinlikleri', 'Nesli Tükenenler', 'Yaban Hayatı Korumak'] },
-  { id: 5, name: 'Kapital', category: 'İş & Ekonomi', layout: 'modular', accent: '#1d4ed8', title: 'KAPİTAL', headline: 'KÜRESEL PİYASALAR', desc: 'Yatırımcılar ve geleceğin şirketleri için yeni vizyon.', subs: ['Borsa Analizleri', 'Geleceğin Şirketleri', 'Kripto Dünyası'] },
-  { id: 6, name: 'Siber', category: 'Karanlık Teknoloji', layout: 'brutalist', accent: '#22c55e', title: 'SİBER_AĞ', headline: 'YAPAY ZEKA DEVRİMİ', desc: 'Makineler ne zaman hissedecek ve düşünecek?', subs: ['Kuantum İşlemciler', 'Siber Güvenlik', 'Web 3.0 & Yapay Zeka'] },
-  { id: 7, name: 'Damak', category: 'Gastronomi & Gurme', layout: 'minimalist', accent: '#ea580c', title: 'DAMAK', headline: 'ÇİKOLATALI LEZZETLER', desc: 'Mutfak sanatında ustalaşın. Görsel bir ziyafet.', subs: ['Sokak Lezzetleri', 'Şefin Sırrı', 'Mevsim Yeşillikleri'] },
-  { id: 8, name: 'Bilim', category: 'Modern Keşif', layout: 'fullscreen', accent: '#06b6d4', title: 'BİLİM', headline: 'EVRENİN DERİNLİKLERİ', desc: 'Laboratuvardan derin uzaya uzanan bilim serüveni.', subs: ['James Webb Teleskobu', 'Genom Projeleri', 'Füzyon Enerjisi'] },
-  { id: 9, name: 'Sinema', category: 'Vintage Noir', layout: 'brutalist', accent: '#f43f5e', title: 'SİNEVİZYON', headline: 'BEYAZ PERDE BÜYÜSÜ', desc: 'Klasik yönetmenler ve modern bağımsız sinema.', subs: ['Yönetmenin Vizyonu', 'Festivaller & Ödüller', 'Film Müziği'] },
-  { id: 10, name: 'Spor', category: 'Dinamik Enerji', layout: 'modular', accent: '#ef4444', title: 'DİNAMİK', headline: 'ŞAMPİYONLARIN İZİNDE', desc: 'Zirveye giden yol disiplin ve tutkudan geçer.', subs: ['Antrenman Günlüğü', 'Zihinsel Dayanıklılık', 'Genç Yetenekler'] },
-  { id: 11, name: 'Gezgin', category: 'Macera & Rota', layout: 'fullscreen', accent: '#f97316', title: 'PUSULA', headline: 'BİLİNMEYEN ROTALAR', desc: 'Kültürleri keşfetmek ve sınırların ötesine yolculuk.', subs: ['Sırt Çantalılar', 'Tarihi Şehirler', 'Doğa Yürüyüşleri'] },
-  { id: 12, name: 'Edebiyat', category: 'Klasik Kitap', layout: 'minimalist', accent: '#7c3aed', title: 'SATIR ARASI', headline: 'KELİMELERİN GÜCÜ', desc: 'Şiirin ve düzyazının büyülü evreninde bir yolculuk.', subs: ['Ayın Şairi', 'Unutulmayan Romanlar', 'Kitap İncelemeleri'] },
-  { id: 13, name: 'Müzik', category: 'Neon Ritim', layout: 'brutalist', accent: '#ec4899', title: 'RİTİM', headline: 'SESİN FREKANSI', desc: 'Analog tınılardan elektronik dalgalara müzik tarihi.', subs: ['Plak Kültürü', 'Yeni Çıkan Albümler', 'Konser Notları'] },
-  { id: 14, name: 'Oyun', category: 'Retro Pixel', layout: 'modular', accent: '#8b5cf6', title: 'PİKSEL', headline: 'DİJİTAL DÜNYALAR', desc: 'Oyun tasarımının evrimi ve bağımsız geliştiriciler.', subs: ['İndie Oyunlar', 'Oyun Mekanikleri', 'Espor Arenası'] },
-  { id: 15, name: 'Sanat', category: 'Galeri Çağdaş', layout: 'minimalist', accent: '#6366f1', title: 'GALERİ', headline: 'BİÇİM VE RENK', desc: 'Görsel sanatların dönüştürücü gücü ve yeni sergiler.', subs: ['Atölye Ziyareti', 'Heykel Sanatı', 'Dijital İllüstrasyon'] },
-  { id: 16, name: 'Tarih', category: 'Arşiv Antik', layout: 'modular', accent: '#b45309', title: 'ZAMAN TÜNELİ', headline: 'MEDENİYETİN KÖKLERİ', desc: 'Geçmişin tozlu sayfalarından günümüze ışık tutan belgeler.', subs: ['Antik Kentler', 'Kırılma Noktaları', 'Arşiv Belgeleri'] },
-  { id: 17, name: 'Gençlik', category: 'Canlı Kampüs', layout: 'brutalist', accent: '#e11d48', title: 'KAMPÜS', headline: 'GENÇLİĞİN SESİ', desc: 'Kulüpler, projeler, yarışmalar ve öğrenci başarıları.', subs: ['Münazara Kulübü', 'TÜBİTAK Projeleri', 'Okul Festivali'] },
-  { id: 18, name: 'Uzay', category: 'Derin Kozmos', layout: 'fullscreen', accent: '#38bdf8', title: 'KOZMOS', headline: 'YILDIZLARIN ÖTESİNDE', desc: 'Gezegenler, karadelikler ve geleceğin uzay kolonileri.', subs: ['Mars Görevleri', 'Ötegezegenler', 'Astrofizik Temelleri'] },
-  { id: 19, name: 'Felsefe', category: 'Sade Düşünce', layout: 'minimalist', accent: '#475569', title: 'DÜŞÜNCE', headline: 'SORULARIN PEŞİNDE', desc: 'Varlık, bilgi ve ahlak üzerine derinlikli bir sorgulama.', subs: ['Sokratik Yöntem', 'Zihin Felsefesi', 'Etik Tartışmalar'] },
-  { id: 20, name: 'Doğaüstü', category: 'Gizem & Fenomen', layout: 'fullscreen', accent: '#a855f7', title: 'BİLİNMEYEN', headline: 'GİZEMLİ DÜNYA', desc: 'Evrenin çözülememiş sırları ve bilimin araştırdığı fenomenler.', subs: ['Kriptoloji', 'Derin Deniz Canlıları', 'Tarihin Gizemleri'] }
+  {
+    id: 1, name: 'Kamer (Minimal Moda)', category: 'Moda & Kültür', layout: 'minimalist', accent: '#d97706',
+    title: 'KAMER', issueTag: 'AY YIL | SAYI 01', price: 'MODA & KÜLTÜR DERGİSİ',
+    headline: 'Güçlü Kadın Lider', desc: 'Kapak hikayesi için destek metni buraya girilecektir.',
+    subs: ['Moda Sektöründe', 'Renkleri Kendinize Uyarlayın', 'Sezonun En İyi Görünümleri'],
+    coverImage: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'Editörden Mektup',
+    editorQuote: 'TANITIM ALINTISI, MAKALEDEN ALINAN ETKİLEYİCİ BİR ALINTIDIR. VURGULAMAK İSTEDİĞİNİZ ALINTIYI BURAYA YERLEŞTİREBİLİRSİNİZ.',
+    editorText: 'Editörün mektubu, samimi veya resmi olabilen, çeşitli nedenler için yazılmış bir mesajdır. Okuyucunun belirli bir konunun içeriğini ve kreatif yönünü anlamasına yardımcı olabilir.',
+    editorName: 'Ceyhan Fidancı',
+    articleTitle: 'GÜÇLÜ KADIN LİDER',
+    articleAuthor: 'Yazan: Meryem Pars'
+  },
+  {
+    id: 2, name: 'Yeni (Brütalist Trend)', category: 'Popüler Kültür', layout: 'brutalist', accent: '#facc15',
+    title: 'RESİMLİK', issueTag: 'SAYI 04', price: '2026 TREND',
+    headline: 'YENİ GÖRÜNÜMLER', desc: 'LİT POPÜLER KÜLTÜR DOSYASI',
+    subs: ['Mavi Sarı Kırmızı Trend', 'Brütalist Stilde Moda', 'Kapak Hikayesi Destek'],
+    coverImage: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'MERHABA YENİ ÇAĞ',
+    editorQuote: 'Kuralları yıkmak için önce onları çok iyi bilmek gerekir. Biz bu sayıda her şeyi yeniden tanımlıyoruz.',
+    editorText: 'Bu ay sınırları zorluyoruz. Renklerin çatışmasından doğan uyumu, sokak modasının asi ruhunu sayfalarımıza taşıdık. Hazırsanız başlıyoruz.',
+    editorName: 'Asi Ruh',
+    articleTitle: 'YENİ NESİL KURALLAR',
+    articleAuthor: 'Yazan: Trend Ekibi'
+  },
+  {
+    id: 3, name: 'Konak (Modüler Mimari)', category: 'Ev & Mimari', layout: 'modular', accent: '#0f172a',
+    title: 'KONAK', issueTag: 'SAYI 01', price: 'EV VE İÇ MEKANLAR',
+    headline: 'TARZ DENEYİMLERİ', desc: 'TASARIM ÖDÜLLERİ 2030',
+    subs: ['Yeni Renkler', 'Çağdaş Stiller', 'Taze Perspektifler'],
+    coverImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'MEKANI HİSSETMEK',
+    editorQuote: 'İçinde yaşadığımız duvarlar sadece bizi korumaz, aynı zamanda kim olduğumuzu anlatır.',
+    editorText: 'Mimari sadece beton ve camdan ibaret değildir. Işığın süzülüşü, ahşabın dokusu ve boşlukların dilidir. Bu sayımızda minimalist iç mekanları ve fonksiyonel yaşam alanlarını inceliyoruz.',
+    editorName: 'Mimar Sinem',
+    articleTitle: 'MİNİMALİZM VE IŞIK',
+    articleAuthor: 'Yazan: İç Mimar Kaan'
+  },
+  {
+    id: 4, name: 'Doğal (Tam Ekran Doğa)', category: 'Doğa & Yaşam', layout: 'fullscreen', accent: '#10b981',
+    title: 'DOĞAL', issueTag: 'BAHAR 2026', price: 'YAŞAM ALANLARI',
+    headline: 'VAHŞİ YAŞAMIN BÜYÜSÜ', desc: 'Gezegenin Paydaşları ve Korunan Alanlar',
+    subs: ['Ormanın Derinlikleri', 'Nesli Tükenenler', 'Yaban Hayatı Korumak'],
+    coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'DOĞANIN ÇAĞRISI',
+    editorQuote: 'Biz doğanın efendisi değil, sadece onun milyonlarca çocuğundan biriyiz.',
+    editorText: 'Her yaprak bir hikaye anlatır, her rüzgar bir şarkı fısıldar. Doğanın hızına yavaşlayıp, onun ritmine ayak uydurmanın zamanı geldi. Bu ay rotamızı vahşi yaşama çevirdik.',
+    editorName: 'Doğa Rehberi',
+    articleTitle: 'ORMANIN GİZLİ DİLİ',
+    articleAuthor: 'Yazan: Yeşil İzler'
+  },
+  {
+    id: 5, name: 'Kapital (Kurumsal)', category: 'İş & Ekonomi', layout: 'modular', accent: '#1d4ed8',
+    title: 'KAPİTAL', issueTag: 'SAYI 145', price: 'EKONOMİ',
+    headline: 'KÜRESEL PİYASALAR', desc: 'Yatırımcılar için yeni yol haritası.',
+    subs: ['Borsa Analizleri', 'Geleceğin Şirketleri', 'Kripto Dünyası'],
+    coverImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'PİYASANIN NABZI',
+    editorQuote: 'Risk, ne yaptığınızı bilmemekten kaynaklanır.',
+    editorText: 'Dalgalı piyasalarda güvenli liman arayışı sürüyor. Merkez bankalarının kararları ve teknoloji devlerinin yeni hamleleri doğrultusunda yatırım stratejilerini masaya yatırdık.',
+    editorName: 'Ekonomi Masası',
+    articleTitle: 'YATIRIMIN GELECEĞİ',
+    articleAuthor: 'Yazan: Analist Vefa'
+  },
+  {
+    id: 6, name: 'Siber (Karanlık Teknoloji)', category: 'Teknoloji', layout: 'brutalist', accent: '#22c55e',
+    title: 'SİBER_AĞ', issueTag: 'v2.0.26', price: 'TECH',
+    headline: 'YAPAY ZEKA DEVRİMİ', desc: 'Makineler ne zaman hissedecek?',
+    subs: ['Kuantum İşlemciler', 'Siber Güvenlik', 'Web 3.0 & Yapay Zeka'],
+    coverImage: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'SİSTEME GİRİŞ',
+    editorQuote: 'Gelecek çoktan geldi, sadece eşit dağıtılmadı.',
+    editorText: 'Kod satırlarının arasında yeni bir dünya inşa ediliyor. Yapay zeka artık bir asistan değil, bir yaratıcı. Bu sayımızda algoritmaların ötesine geçiyoruz.',
+    editorName: 'Root Admin',
+    articleTitle: 'KODLARIN İÇİNDE',
+    articleAuthor: 'Yazan: AI.Gen'
+  },
+  {
+    id: 7, name: 'Damak (Pastel Gurme)', category: 'Yemek Kültürü', layout: 'minimalist', accent: '#ea580c',
+    title: 'DAMAK', issueTag: 'GÜZ SAYISI', price: 'GASTRONOMİ',
+    headline: 'ÇİKOLATALI PASTA', desc: 'Sanatında ustalaşın. Sürreal ziyafet.',
+    subs: ['Sokak Lezzetleri', 'Şefin Sırrı', 'Mevsim Yeşillikleri'],
+    coverImage: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=900&q=80',
+    editorTitle: 'TADIM NOTLARI',
+    editorQuote: 'İyi yemek, iyi yaşamın temelidir.',
+    editorText: 'Mutfak sadece yemek yapılan yer değil, anıların ve kültürlerin harmanlandığı bir laboratuvardır. Bu sayımızda damağınızda iz bırakacak lezzetlerin peşine düştük.',
+    editorName: 'Şef Leman',
+    articleTitle: 'TATLI SANATI',
+    articleAuthor: 'Yazan: Gurme Gezgin'
+  },
+  {
+    id: 8, name: 'Bilim (Modern Keşif)', category: 'Modern Keşif', layout: 'fullscreen', accent: '#06b6d4',
+    title: 'BİLİM', headline: 'EVRENİN DERİNLİKLERİ', desc: 'Laboratuvardan derin uzaya uzanan bilim serüveni.',
+    subs: ['James Webb Teleskobu', 'Genom Projeleri', 'Füzyon Enerjisi'],
+    coverImage: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=900&q=80'
+  },
+  { id: 9, name: 'Sinema', category: 'Vintage Noir', layout: 'brutalist', accent: '#f43f5e', title: 'SİNEVİZYON', headline: 'BEYAZ PERDE BÜYÜSÜ', desc: 'Klasik yönetmenler ve modern bağımsız sinema.', subs: ['Yönetmenin Vizyonu', 'Festivaller & Ödüller', 'Film Müziği'], coverImage: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80' },
+  { id: 10, name: 'Spor', category: 'Dinamik Enerji', layout: 'modular', accent: '#ef4444', title: 'DİNAMİK', headline: 'ŞAMPİYONLARIN İZİNDE', desc: 'Zirveye giden yol disiplin ve tutkudan geçer.', subs: ['Antrenman Günlüğü', 'Zihinsel Dayanıklılık', 'Genç Yetenekler'], coverImage: 'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=900&q=80' },
+  { id: 11, name: 'Gezgin', category: 'Macera & Rota', layout: 'fullscreen', accent: '#f97316', title: 'PUSULA', headline: 'BİLİNMEYEN ROTALAR', desc: 'Kültürleri keşfetmek ve sınırların ötesine yolculuk.', subs: ['Sırt Çantalılar', 'Tarihi Şehirler', 'Doğa Yürüyüşleri'], coverImage: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=900&q=80' },
+  { id: 12, name: 'Edebiyat', category: 'Klasik Kitap', layout: 'minimalist', accent: '#7c3aed', title: 'SATIR ARASI', headline: 'KELİMELERİN GÜCÜ', desc: 'Şiirin ve düzyazının büyülü evreninde bir yolculuk.', subs: ['Ayın Şairi', 'Unutulmayan Romanlar', 'Kitap İncelemeleri'], coverImage: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=900&q=80' },
+  { id: 13, name: 'Müzik', category: 'Neon Ritim', layout: 'brutalist', accent: '#ec4899', title: 'RİTİM', headline: 'SESİN FREKANSI', desc: 'Analog tınılardan elektronik dalgalara müzik tarihi.', subs: ['Plak Kültürü', 'Yeni Çıkan Albümler', 'Konser Notları'], coverImage: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=900&q=80' },
+  { id: 14, name: 'Oyun', category: 'Retro Pixel', layout: 'modular', accent: '#8b5cf6', title: 'PİKSEL', headline: 'DİJİTAL DÜNYALAR', desc: 'Oyun tasarımının evrimi ve bağımsız geliştiriciler.', subs: ['İndie Oyunlar', 'Oyun Mekanikleri', 'Espor Arenası'], coverImage: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=900&q=80' },
+  { id: 15, name: 'Sanat', category: 'Galeri Çağdaş', layout: 'minimalist', accent: '#6366f1', title: 'GALERİ', headline: 'BİÇİM VE RENK', desc: 'Görsel sanatların dönüştürücü gücü ve yeni sergiler.', subs: ['Atölye Ziyareti', 'Heykel Sanatı', 'Dijital İllüstrasyon'], coverImage: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=900&q=80' },
+  { id: 16, name: 'Tarih', category: 'Arşiv Antik', layout: 'modular', accent: '#b45309', title: 'ZAMAN TÜNELİ', headline: 'MEDENİYETİN KÖKLERİ', desc: 'Geçmişin tozlu sayfalarından günümüze ışık tutan belgeler.', subs: ['Antik Kentler', 'Kırılma Noktaları', 'Arşiv Belgeleri'], coverImage: 'https://images.unsplash.com/photo-1461360370896-922624d12aa1?auto=format&fit=crop&w=900&q=80' },
+  { id: 17, name: 'Gençlik', category: 'Canlı Kampüs', layout: 'brutalist', accent: '#e11d48', title: 'KAMPÜS', headline: 'GENÇLİĞİN SESİ', desc: 'Kulüpler, projeler, yarışmalar ve öğrenci başarıları.', subs: ['Münazara Kulübü', 'TÜBİTAK Projeleri', 'Okul Festivali'], coverImage: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=900&q=80' },
+  { id: 18, name: 'Kozmos (Uzay)', category: 'Bilim & Uzay', layout: 'fullscreen', accent: '#38bdf8', title: 'KOZMOS', headline: 'YILDIZLARIN ÖTESİNDE', desc: 'Gezegenler, karadelikler ve geleceğin uzay kolonileri.', subs: ['Mars Görevleri', 'Ötegezegenler', 'Astrofizik Temelleri'], coverImage: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=900&q=80' },
+  { id: 19, name: 'Felsefe', category: 'Sade Düşünce', layout: 'minimalist', accent: '#475569', title: 'DÜŞÜNCE', headline: 'SORULARIN PEŞİNDE', desc: 'Varlık, bilgi ve ahlak üzerine derinlikli bir sorgulama.', subs: ['Sokratik Yöntem', 'Zihin Felsefesi', 'Etik Tartışmalar'], coverImage: 'https://images.unsplash.com/photo-1507842217343-583bb7270b66?auto=format&fit=crop&w=900&q=80' },
+  { id: 20, name: 'Doğaüstü', category: 'Gizem & Fenomen', layout: 'fullscreen', accent: '#a855f7', title: 'BİLİNMEYEN', headline: 'GİZEMLİ DÜNYA', desc: 'Evrenin çözülememiş sırları ve bilimin araştırdığı fenomenler.', subs: ['Kriptoloji', 'Derin Deniz Canlıları', 'Tarihin Gizemleri'], coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=900&q=80' }
 ];
+
+// Seçilen Konsept Şablonunun Tüm Sayfa Örneklerini Üretir
+function buildSamplePagesForPreset(presetId) {
+  const p = MAGAZINE_PRESETS.find(x => x.id === Number(presetId)) || MAGAZINE_PRESETS[0];
+  const img = p.coverImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80';
+  return [
+    {
+      id: 'p1',
+      type: 'cover',
+      layout: p.layout || 'minimalist',
+      navTitle: `01 • ${p.title} Kapak`,
+      accentColor: p.accent,
+      status: 'approved',
+      adminNote: '',
+      magazineName: p.title,
+      issueTag: p.issueTag || 'SAYI 01 | 2026',
+      price: p.price || p.category.toUpperCase(),
+      mainHeadline: p.headline,
+      subHeadline: p.desc,
+      coverImage: img,
+      highlights: (p.subs || []).join('\n'),
+      elements: []
+    },
+    {
+      id: 'p2',
+      type: 'toc',
+      navTitle: `02 • ${p.editorTitle || 'Editörden Mektup'}`,
+      accentColor: p.accent,
+      status: 'approved',
+      adminNote: '',
+      editorTitle: p.editorTitle || 'Editörden Mektup',
+      editorQuote: p.editorQuote || 'TANITIM ALINTISI, MAKALEDEN ALINAN ETKİLEYİCİ BİR ALINTIDIR. VURGULAMAK İSTEDİĞİNİZ ALINTIYI BURAYA YERLEŞTİREBİLİRSİNİZ.',
+      editorText: p.editorText || 'Editörün mektubu, samimi veya resmi olabilen, çeşitli nedenler için yazılmış bir mesajdır. Okuyucunun belirli bir konunun içeriğini ve kreatif yönünü anlamasına yardımcı olabilir.',
+      editorName: p.editorName || 'Genel Yayın Yönetmeni',
+      editorImage: img,
+      editorialBoard: `${p.title} Yayın ve Tasarım Ekibi`,
+      elements: []
+    },
+    {
+      id: 'p3',
+      type: 'article',
+      navTitle: `03 • ${p.articleTitle || p.headline}`,
+      accentColor: p.accent,
+      status: 'approved',
+      adminNote: '',
+      category: p.category.toUpperCase(),
+      title: p.articleTitle || p.headline,
+      author: p.articleAuthor || 'Yazan: Editör Ekibi',
+      image: img,
+      imageCaption: `${p.title} özel dosya fotoğrafı.`,
+      content: `${p.desc}\n\n${p.editorText || 'Bu sayımızda konunun tüm boyutlarını uzman görüşleri, görsel analizler ve saha araştırmalarıyla ele alıyoruz. Metinlerin üzerine doğrudan tıklayarak kendi içeriğinizi yazabilirsiniz.'}`,
+      pullQuote: p.editorQuote || 'Yaratıcılık ve vizyon, geleceği şekillendiren en güçlü araçtır.',
+      elements: []
+    },
+    {
+      id: 'p4',
+      type: 'interview',
+      navTitle: '04 • Özel Söyleşi',
+      accentColor: p.accent,
+      status: 'approved',
+      adminNote: '',
+      rubric: `${p.category.toUpperCase()} SÖYLEŞİSİ`,
+      interviewee: p.editorName || 'Konuk Uzman',
+      role: `${p.title} Özel Konuğu`,
+      intro: `${p.headline} dosyamız kapsamında gerçekleştirdiğimiz özel röportaj.`,
+      photo: img,
+      q1: `${p.subs?.[0] || 'Bu alandaki'} yeni yaklaşımlar hakkında ne düşünüyorsunuz?`,
+      a1: 'Değişen dünyada geleneksel kalıpların dışına çıkmak ve özgün bir dil oluşturmak artık her zamankinden daha değerli.',
+      q2: `${p.subs?.[1] || 'Tasarım sürecinde'} ilhamınızı nereden alıyorsunuz?`,
+      a2: 'Doğadan, mimariden ve günlük yaşamın ritminden besleniyoruz. Her detay yeni bir hikayenin başlangıcı oluyor.',
+      q3: 'Okuyucularımıza ve genç tasarımcılara son mesajınız nedir?',
+      a3: 'Merak etmekten ve denemekten asla vazgeçmeyin. Kendi tarzınızı ancak cesur adımlarla bulabilirsiniz.',
+      elements: []
+    },
+    {
+      id: 'p5',
+      type: 'catalog',
+      navTitle: '05 • Katalog & Tablo',
+      accentColor: p.accent,
+      status: 'approved',
+      adminNote: '',
+      catTag: `${p.category.toUpperCase()} DOSYASI`,
+      title: 'GENEL BAKIŞ & ANALİZ',
+      desc: 'Seçili konseptin temel bileşenleri ve teknik inceleme tablosu aşağıda yer almaktadır. Tüm hücrelere tıklayarak düzenleyebilirsiniz.',
+      image: img,
+      specTitle: 'ÖZELLİKLER VE VERİ TABLOSU',
+      specKey1: 'Konsept & Ekol',
+      specVal1: `${p.name} (${p.layout.toUpperCase()})`,
+      specKey2: 'Kategori',
+      specVal2: p.category,
+      specKey3: 'Odak Konuları',
+      specVal3: (p.subs || []).join(' • '),
+      specKey4: 'Yayın Durumu',
+      specVal4: 'Düzenlemeye Hazır Şablon',
+      elements: []
+    },
+    {
+      id: 'p6',
+      type: 'k4',
+      navTitle: '06 • Arka Kapak',
+      accentColor: p.accent,
+      status: 'approved',
+      adminNote: '',
+      schoolName: p.title,
+      motto: `"${p.desc}"`,
+      coverImage: img,
+      qrText: 'Dergimizi dijital ortamda incelemek için karekodu okutun.',
+      qrUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr',
+      social: `@${p.title.toLowerCase().replace(/\s+/g, '')} • dergimiz.com.tr`,
+      closingQuote: p.editorQuote || 'Gelecek sayıda buluşmak dileğiyle.',
+      elements: []
+    }
+  ];
+}
+
+function loadFullTemplatePreset(presetId, silent = false) {
+  const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId)) || MAGAZINE_PRESETS[0];
+  activeTemplatePresetId = preset.id;
+
+  magazineData = {
+    id: currentIssue ? currentIssue.id : ('tpl-' + preset.id),
+    title: `${preset.title} • ${preset.issueTag || 'Sayı 01'}`,
+    schoolName: `${preset.title} — ${preset.category}`,
+    issueMonth: preset.issueTag || 'Sayı 01',
+    issueInfo: preset.price || preset.category,
+    status: currentIssue ? currentIssue.status : 'draft',
+    pages: buildSamplePagesForPreset(preset.id)
+  };
+
+  selectedEditIndex = 0;
+  currentIndex = 0;
+  selectedElementId = null;
+
+  const magSel = document.getElementById('magazineSelector');
+  if (magSel && (!allMagazines || allMagazines.length === 0)) {
+    magSel.value = `preset-${preset.id}`;
+  }
+
+  closeModal('allTemplatesModal');
+  renderAll();
+  if (currentIssue) {
+    saveAllChangesToServer(true);
+  }
+  if (!silent) {
+    showToast(`🎨 "${preset.name}" şablonunun tüm örnek sayfaları yüklendi!`);
+  }
+}
 
 function applyMagPreset(presetId) {
   const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId));
@@ -129,17 +370,10 @@ function initUserSession() {
     localStorage.setItem('dergiAccessCode', currentUser.code);
   }
 
-  document.getElementById('userNameDisplay').textContent = currentUser.name || "Editör";
-  document.getElementById('userRoleDisplay').textContent = currentUser.role === 'admin' ? "👑 Yönetici (Admin)" : "✍️ Sayfa Editörü";
-
-  const adminActions = document.getElementById('adminActions');
-  if (currentUser.role !== 'admin') {
-    if (adminActions) adminActions.classList.add('hidden');
-    const deleteBtn = document.getElementById('btnDeletePage');
-    if (deleteBtn) deleteBtn.classList.add('hidden');
-    const addPageBtn = document.getElementById('btnAddPageBtn');
-    if (addPageBtn) addPageBtn.classList.add('hidden');
-  }
+  const nameEl = document.getElementById('userNameDisplay');
+  const roleEl = document.getElementById('userRoleDisplay');
+  if (nameEl) nameEl.textContent = currentUser.name || "Editör";
+  if (roleEl) roleEl.textContent = currentUser.role === 'admin' ? "👑 Yönetici (Admin)" : "✍️ Sayfa Editörü";
 }
 
 function handleLogout() {
@@ -149,7 +383,7 @@ function handleLogout() {
 }
 
 // ==========================================
-// 2. OKUL & DERGİ (MAGAZINES) VE SAYI SEÇİMİ
+// 2. ŞABLON MASASI & KAYITLI DERGİ YÖNETİMİ
 // ==========================================
 async function loadAllMagazines() {
   try {
@@ -162,28 +396,36 @@ async function loadAllMagazines() {
     allMagazines = [];
   }
 
-  if (allMagazines.length === 0) {
-    allMagazines = [{
-      id: "mag-ufuk-al",
-      name: "Ufuk E-Dergi",
-      schoolName: "Ufuk Anadolu Lisesi",
-      period: "Aylık",
-      themeColor: "#4f46e5"
-    }];
-  }
-
   const magSelector = document.getElementById('magazineSelector');
-  const btnNewMag = document.getElementById('btnNewMagModal');
+  const issueSelector = document.getElementById('issueSelector');
   const keyMagSelect = document.getElementById('newKeyMagazine');
 
   if (magSelector) {
     magSelector.innerHTML = '';
-    allMagazines.forEach(m => {
+
+    // 1. Şablon Örnekleri Grubu (Her zaman doğrudan seçilebilir!)
+    const tplGroup = document.createElement('optgroup');
+    tplGroup.label = '🎨 Hazır Dergi Şablon Örnekleri (Tıkla & Düzenle)';
+    MAGAZINE_PRESETS.forEach(p => {
       const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = `${m.name} (${m.schoolName})`;
-      magSelector.appendChild(opt);
+      opt.value = `preset-${p.id}`;
+      opt.textContent = `Şablon ${p.id}: ${p.name}`;
+      tplGroup.appendChild(opt);
     });
+    magSelector.appendChild(tplGroup);
+
+    // 2. Eğer kullanıcı dergi kaydettiyse Kayıtlı Dergiler Grubu
+    if (allMagazines.length > 0) {
+      const savedGroup = document.createElement('optgroup');
+      savedGroup.label = '📁 Kayıtlı Dergileriniz';
+      allMagazines.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = `${m.name} (${m.schoolName})`;
+        savedGroup.appendChild(opt);
+      });
+      magSelector.appendChild(savedGroup);
+    }
   }
 
   if (keyMagSelect) {
@@ -196,42 +438,46 @@ async function loadAllMagazines() {
     });
   }
 
-  // Yetkilendirme Kontrolü
-  if (currentUser && currentUser.role !== 'admin' && currentUser.magazineId) {
-    const targetMag = allMagazines.find(m => m.id === currentUser.magazineId) || allMagazines[0];
-    currentMagazine = targetMag;
-    if (magSelector) {
-      magSelector.value = targetMag.id;
-      magSelector.disabled = true;
-    }
-    if (btnNewMag) btnNewMag.classList.add('hidden');
-  } else {
-    const urlParams = new URLSearchParams(window.location.search);
-    const targetMagId = urlParams.get('magId');
-    currentMagazine = (targetMagId && allMagazines.find(m => m.id === targetMagId)) || allMagazines[0];
-    if (magSelector) {
-      magSelector.value = currentMagazine.id;
-      magSelector.disabled = false;
-    }
-    if (btnNewMag) btnNewMag.classList.remove('hidden');
-  }
-
-  updateMagazineHeaderUI();
   renderRegisteredMagazinesList();
-  await loadAllIssues(currentMagazine.id);
+
+  // Eğer kayıtlı dergi varsa ve URL'de istenmişse onu aç, yoksa doğrudan Şablon #1 (Kamer) örneğini aç!
+  const urlParams = new URLSearchParams(window.location.search);
+  const targetMagId = urlParams.get('magId');
+
+  if (targetMagId && allMagazines.find(m => m.id === targetMagId)) {
+    currentMagazine = allMagazines.find(m => m.id === targetMagId);
+    if (magSelector) magSelector.value = currentMagazine.id;
+    updateMagazineHeaderUI();
+    await loadAllIssues(currentMagazine.id);
+  } else if (allMagazines.length > 0) {
+    currentMagazine = allMagazines[0];
+    if (magSelector) magSelector.value = currentMagazine.id;
+    updateMagazineHeaderUI();
+    await loadAllIssues(currentMagazine.id);
+  } else {
+    // Kayıtlı dergi yok: Doğrudan Şablon #1 (Kamer) örneğini yükle!
+    currentMagazine = null;
+    currentIssue = null;
+    if (magSelector) magSelector.value = 'preset-1';
+    if (issueSelector) {
+      issueSelector.innerHTML = '<option value="tpl">Şablon Örneği (6 Sayfa)</option>';
+    }
+    loadFullTemplatePreset(1, true);
+  }
 }
 
 function updateMagazineHeaderUI() {
-  if (!currentMagazine) return;
   const schoolText = document.getElementById('headerSchoolText');
-  if (schoolText) schoolText.textContent = currentMagazine.schoolName;
+  if (schoolText) {
+    schoolText.textContent = currentMagazine ? currentMagazine.schoolName : 'Şablon Tasarım Masası';
+  }
 }
 
 function renderRegisteredMagazinesList() {
   const container = document.getElementById('registeredMagazinesList');
   if (!container) return;
   if (!allMagazines || allMagazines.length === 0) {
-    container.innerHTML = `<div class="text-xs text-slate-500">Kayıtlı dergi bulunamadı.</div>`;
+    container.innerHTML = `<div class="text-xs text-emerald-400">✨ Sistemde kayıtlı örnek dergi yok. Doğrudan şablonlar üzerinden özgürce çalışabilirsiniz.</div>`;
     return;
   }
   container.innerHTML = allMagazines.map(m => `
@@ -250,24 +496,45 @@ function renderRegisteredMagazinesList() {
   `).join('');
 }
 
+async function clearAllSavedMagazines() {
+  if (allMagazines.length === 0) {
+    loadFullTemplatePreset(activeTemplatePresetId || 1);
+    showToast("✨ Şablon örneği sıfırlandı!");
+    return;
+  }
+  if (!confirm("Sistemde kayıtlı tüm örnek dergileri silip temiz Şablon Tasarım Masasına geçmek istiyor musunuz?")) {
+    return;
+  }
+  try {
+    await fetch('/api/magazines-all', {
+      method: 'DELETE',
+      headers: { 'x-access-code': currentUser.code }
+    });
+    allMagazines = [];
+    allIssues = [];
+    currentMagazine = null;
+    currentIssue = null;
+    window.history.pushState({}, '', '/editor');
+    await loadAllMagazines();
+    showToast("🗑️ Tüm kayıtlı örnek dergiler silindi! Şablon örnekleri aktif.");
+  } catch (err) {
+    showToast("Sunucu hatası!");
+  }
+}
+
 async function deleteCurrentMagazine() {
-  if (!currentMagazine) return;
+  if (!currentMagazine) {
+    await clearAllSavedMagazines();
+    return;
+  }
   await deleteMagazineById(currentMagazine.id);
 }
 
 async function deleteMagazineById(magId) {
-  if (currentUser.role !== 'admin') {
-    showToast("Yalnızca Yönetici (Admin) dergi silebilir!");
-    return;
-  }
-  if (allMagazines.length <= 1) {
-    showToast("Sistemde en az 1 dergi bulunmalıdır! Önce yeni derginizi ekleyin, sonra örneği silin.");
-    return;
-  }
   const target = allMagazines.find(m => m.id === magId);
   if (!target) return;
 
-  if (!confirm(`"${target.name} (${target.schoolName})" dergisini ve bağlı tüm sayılarını kalıcı olarak silmek istediğinize emin misiniz?`)) {
+  if (!confirm(`"${target.name} (${target.schoolName})" dergisini kalıcı olarak silmek istediğinize emin misiniz?`)) {
     return;
   }
 
@@ -279,10 +546,8 @@ async function deleteMagazineById(magId) {
     const data = await res.json();
     if (data.success) {
       showToast(`🗑️ "${target.name}" dergisi silindi!`);
+      window.history.pushState({}, '', '/editor');
       await loadAllMagazines();
-      if (allMagazines.length > 0) {
-        await onMagazineChange(allMagazines[0].id);
-      }
     } else {
       showToast(data.error || "Silinemedi!");
     }
@@ -292,15 +557,7 @@ async function deleteMagazineById(magId) {
 }
 
 async function deleteCurrentIssue() {
-  if (currentUser.role !== 'admin') {
-    showToast("Yalnızca Yönetici (Admin) sayı silebilir!");
-    return;
-  }
   if (!currentIssue) return;
-  if (allIssues.length <= 1) {
-    showToast("Bu dergide en az 1 sayı bulunmalıdır!");
-    return;
-  }
   if (!confirm(`"${currentIssue.title}" sayısını kalıcı olarak silmek istediğinize emin misiniz?`)) {
     return;
   }
@@ -313,8 +570,6 @@ async function deleteCurrentIssue() {
     if (data.success) {
       showToast(`🗑️ "${currentIssue.title}" sayısı silindi!`);
       await loadAllIssues(currentMagazine ? currentMagazine.id : null);
-    } else {
-      showToast(data.error || "Sayı silinemedi!");
     }
   } catch (err) {
     showToast("Sunucu hatası!");
@@ -325,23 +580,23 @@ async function deleteCurrentIssue() {
 // TÜM ŞABLONLAR & 20 KONSEPT GALERİSİ (OKUL FARK ETMEKSİZİN)
 // ==========================================
 const ALL_PAGE_TEMPLATES_CATALOG = [
-  { type: 'cover', layout: 'minimalist', title: '🏛️ K1 • Minimalist Kapak', desc: 'Sol siyah özet bloğu, sağ dikey görsel ve barkod.', badge: 'Minimalist', color: '#d97706' },
-  { type: 'cover', layout: 'brutalist', title: '⚡ K1 • Brütalist Kapak', desc: 'Devasa üst üste başlık, eğik görsel çerçevesi ve sarı rozet.', badge: 'Brütalist', color: '#eab308' },
-  { type: 'cover', layout: 'modular', title: '📐 K1 • Modüler Kapak', desc: 'Net ızgara çerçeveleri, 2 sütun görsel, 1 sütun kutu yığını.', badge: 'Modüler', color: '#0284c7' },
-  { type: 'cover', layout: 'fullscreen', title: '🌄 K1 • Fullscreen Kapak', desc: 'Tam sayfa görsel üzeri edebi manşet ve yatay spotlar.', badge: 'Fullscreen', color: '#10b981' },
+  { type: 'cover', layout: 'minimalist', title: '🏛️ K1 • Minimalist Kapak (Kamer)', desc: 'Sol siyah özet bloğu, sağ dikey görsel ve barkod.', badge: 'Minimalist', color: '#d97706' },
+  { type: 'cover', layout: 'brutalist', title: '⚡ K1 • Brütalist Kapak (Resimlik)', desc: 'Devasa üst üste başlık, eğik görsel çerçevesi ve sarı rozet.', badge: 'Brütalist', color: '#eab308' },
+  { type: 'cover', layout: 'modular', title: '📐 K1 • Modüler Kapak (Konak)', desc: 'Net ızgara çerçeveleri, 2 sütun görsel, 1 sütun kutu yığını.', badge: 'Modüler', color: '#0284c7' },
+  { type: 'cover', layout: 'fullscreen', title: '🌄 K1 • Fullscreen Kapak (Doğal)', desc: 'Tam sayfa görsel üzeri edebi manşet ve yatay spotlar.', badge: 'Fullscreen', color: '#10b981' },
   { type: 'k2', subType: 'ataturk', title: '🇹🇷 K2 • Atatürk & Hitabe', desc: 'Cumhuriyet köşesi, Atatürk portresi ve Gençliğe Hitabe.', badge: 'Kapak İçi A', color: '#dc2626' },
-  { type: 'k2', subType: 'director', title: '✍️ K2 • Müdür / Sunuş Yazısı', desc: 'Okul müdürü veya genel yayın yönetmeni hoş geldiniz mesajı.', badge: 'Kapak İçi B', color: '#4f46e5' },
-  { type: 'k2', subType: 'artistic', title: '🎨 K2 • Sanatsal Vizyon', desc: 'Tam sayfa sanatsal fotoğraf ve okul vizyon sözü.', badge: 'Kapak İçi C', color: '#8b5cf6' },
-  { type: 'toc', title: '📑 İçindekiler & Başyazı', desc: 'Editörün masası, vurgu alıntısı ve tıklanabilir sayfa fihristi.', badge: 'Fihrist', color: '#6366f1' },
+  { type: 'k2', subType: 'director', title: '✍️ K2 • Başyazı / Sunuş Yazısı', desc: 'Yayın yönetmeni veya kurum başkanı hoş geldiniz mesajı.', badge: 'Kapak İçi B', color: '#4f46e5' },
+  { type: 'k2', subType: 'artistic', title: '🎨 K2 • Sanatsal Vizyon', desc: 'Tam sayfa sanatsal fotoğraf ve vizyon sözü.', badge: 'Kapak İçi C', color: '#8b5cf6' },
+  { type: 'toc', title: '📑 İçindekiler & Editörden Mektup', desc: 'Editörün masası, vurgu alıntısı ve tıklanabilir sayfa fihristi.', badge: 'Fihrist', color: '#6366f1' },
   { type: 'article', title: '📰 Özel Dosya & Makale', desc: 'Manşet fotoğrafı, iki sütunlu yazı ve vurgu alıntı kutusu.', badge: 'Makale', color: '#3b82f6' },
   { type: 'interview', title: '🎙️ Ayın Konuğu & Röportaj', desc: 'Renkli degrade konuk çerçevesi ve S1-S2-S3 soru-cevap kutuları.', badge: 'Renkli Çerçeveli', color: '#d97706' },
-  { type: 'catalog', title: '🛍️ Katalog & Ürün / Proje Özeti', desc: 'FlipHTML5 Görsel 1 & 7: 3\'lü görsel vitrini, numaralı maddeler ve bilgi tablosu.', badge: 'Katalog & Tablo', color: '#881337' },
+  { type: 'catalog', title: '🛍️ Katalog & Ürün / Proje Özeti', desc: 'Görsel vitrin, açıklama ve düzenlenebilir teknik veri tablosu.', badge: 'Katalog & Tablo', color: '#881337' },
   { type: 'literature', title: '🪶 Edebiyat & Şiir Köşesi', desc: 'Sanatsal görsel, ortalı şiir/deneme tipografisi ve alt not.', badge: 'Sanat & Şiir', color: '#ec4899' },
   { type: 'video', title: '🎬 Etkinlik & Video (MP4)', desc: 'Sayfa içi gömülü MP4 video oynatıcı, başlık ve açıklama.', badge: 'Multimedya', color: '#f59e0b' },
-  { type: 'quiz', title: '💡 Etkileşimli Köşe & Quiz', desc: 'Çoktan seçmeli ödüllü soru kutusu + Ayın Kitap & Film önerisi.', badge: 'İnteraktif', color: '#14b8a6' },
-  { type: 'k3', title: '👥 K3 • Arka Kapak İçi (Künye)', desc: 'Resmi yayın kurulu künyesi ve Gelecek Sayıda Neler Var kutusu.', badge: 'Künye', color: '#64748b' },
-  { type: 'k4', title: '🏁 K4 • Arka Dış Kapak', desc: 'Prestij halka rozeti, QR kod, okul mottosu ve barkod.', badge: 'Arka Kapak', color: '#4f46e5' },
-  { type: 'freeform', title: '✨ Boş Tuval (Serbest Tasarım)', desc: 'Metin kutuları, renkli çerçeveler, resim ve videoları serbestçe dizin.', badge: 'Serbest', color: '#10b981' }
+  { type: 'quiz', title: '💡 Etkileşimli Köşe & Quiz', desc: 'Çoktan seçmeli ödüllü soru kutusu + Kitap & Film önerisi.', badge: 'İnteraktif', color: '#14b8a6' },
+  { type: 'k3', title: '👥 K3 • Arka Kapak İçi (Künye)', desc: 'Yayın kurulu künyesi ve Gelecek Sayıda Neler Var kutusu.', badge: 'Künye', color: '#64748b' },
+  { type: 'k4', title: '🏁 K4 • Arka Dış Kapak', desc: 'Prestij halka rozeti, QR kod, motto ve barkod.', badge: 'Arka Kapak', color: '#4f46e5' },
+  { type: 'freeform', title: '✨ Boş Tuval (Serbest Tasarım)', desc: 'Metin kutuları, renkli çerçeveler, resim ve tabloları serbestçe dizin.', badge: 'Serbest', color: '#10b981' }
 ];
 
 function openAllTemplatesModal() {
@@ -360,7 +615,7 @@ function openAllTemplatesModal() {
           <p class="text-[11px] text-slate-400 leading-snug mb-3">${escapeHtml(item.desc)}</p>
         </div>
         <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
-          <button onclick="convertCurrentPageToTemplate('${item.type}', '${item.layout || item.subType || ''}')" class="py-1.5 px-2 rounded-xl bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/30 text-[10.5px] font-bold transition">
+          <button onclick="convertCurrentPageToTemplate('${item.type}', '${item.layout || item.subType || ''}')" class="py-1.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[10.5px] font-bold transition">
             ⚡ Bu Sayfaya Uygula
           </button>
           <button onclick="addNewPage('${item.type}', '${item.layout || item.subType || ''}'); closeModal('allTemplatesModal');" class="py-1.5 px-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10.5px] font-bold transition">
@@ -379,20 +634,25 @@ function openAllTemplatesModal() {
             <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase text-white shadow" style="background-color: ${p.accent}">${escapeHtml(p.category)}</span>
             <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-700">${escapeHtml(p.layout)}</span>
           </div>
-          <div class="p-2.5 rounded-xl mb-2.5 border border-slate-800/90" style="background: linear-gradient(135deg, ${p.accent}33, #0f172a)">
+          <div onclick="loadFullTemplatePreset(${p.id})" class="p-2.5 rounded-xl mb-2.5 border border-slate-800/90 cursor-pointer hover:brightness-110 transition" style="background: linear-gradient(135deg, ${p.accent}33, #0f172a)">
             <div class="text-[10px] font-mono text-slate-300 uppercase tracking-widest">${escapeHtml(p.name)}</div>
             <div class="font-serif font-black text-base text-white tracking-tight truncate">${escapeHtml(p.title)}</div>
             <div class="text-[11px] font-bold text-amber-300 truncate mt-0.5">${escapeHtml(p.headline)}</div>
           </div>
           <p class="text-[11px] text-slate-400 leading-snug mb-3 line-clamp-2">${escapeHtml(p.desc)}</p>
         </div>
-        <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
-          <button onclick="applyConceptToCurrentPage(${p.id})" class="py-1.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[10.5px] font-bold transition shadow">
-            ⚡ Sayfaya Uygula
+        <div class="space-y-1.5 pt-2 border-t border-slate-800/80">
+          <button onclick="loadFullTemplatePreset(${p.id})" class="w-full py-1.5 px-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10.5px] font-extrabold transition shadow">
+            🔥 Tüm Şablon Örneğini Yükle (6 Sayfa)
           </button>
-          <button onclick="addConceptAsNewPage(${p.id})" class="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10.5px] font-semibold transition">
-            ➕ Yeni Kapak Ekle
-          </button>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="applyConceptToCurrentPage(${p.id})" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white text-[10px] font-semibold transition">
+              Bu Sayfaya Uygula
+            </button>
+            <button onclick="addConceptAsNewPage(${p.id})" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10px] font-semibold transition">
+              + Kapak Ekle
+            </button>
+          </div>
         </div>
       </div>
     `).join('');
@@ -405,35 +665,26 @@ function applyConceptToCurrentPage(presetId) {
   const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId));
   const page = magazineData.pages[selectedEditIndex];
   if (!preset || !page) return;
-  if (!canUserEditPage(page)) {
-    showToast("Bu sayfayı düzenleme yetkiniz yok!");
-    return;
-  }
 
   page.type = 'cover';
   page.layout = preset.layout;
   page.accentColor = preset.accent;
+  page.navTitle = `Kapak • ${preset.title}`;
   page.magazineName = preset.title;
-  page.issueTag = "SAYI 01 • 2026";
-  page.price = preset.category.toUpperCase();
+  page.issueTag = preset.issueTag || "SAYI 01 • 2026";
+  page.price = preset.price || preset.category.toUpperCase();
   page.mainHeadline = preset.headline;
   page.subHeadline = preset.desc;
   page.highlights = (preset.subs || []).join('\n');
-  if (!page.coverImage) {
-    page.coverImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80";
-  }
+  page.coverImage = preset.coverImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80";
 
   closeModal('allTemplatesModal');
   renderAll();
-  saveAllChangesToServer();
-  showToast(`🎨 "${preset.name}" konsepti mevcut sayfaya uygulandı!`);
+  if (currentIssue) saveAllChangesToServer(true);
+  showToast(`🎨 "${preset.name}" örneği mevcut sayfaya yüklendi!`);
 }
 
 function addConceptAsNewPage(presetId) {
-  if (currentUser.role !== 'admin') {
-    showToast("Yalnızca Admin yeni sayfa ekleyebilir!");
-    return;
-  }
   const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId));
   if (!preset) return;
 
@@ -444,13 +695,14 @@ function addConceptAsNewPage(presetId) {
     navTitle: `Kapak • ${preset.name}`,
     accentColor: preset.accent,
     assignedEditor: currentUser.code,
-    status: 'draft',
+    status: 'approved',
+    adminNote: '',
     magazineName: preset.title,
-    issueTag: "SAYI 01 • 2026",
-    price: preset.category.toUpperCase(),
+    issueTag: preset.issueTag || "SAYI 01 • 2026",
+    price: preset.price || preset.category.toUpperCase(),
     mainHeadline: preset.headline,
     subHeadline: preset.desc,
-    coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+    coverImage: preset.coverImage || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
     highlights: (preset.subs || []).join('\n'),
     elements: []
   };
@@ -458,82 +710,159 @@ function addConceptAsNewPage(presetId) {
   magazineData.pages.push(newPage);
   closeModal('allTemplatesModal');
   selectPageForEdit(magazineData.pages.length - 1);
-  saveAllChangesToServer();
+  if (currentIssue) saveAllChangesToServer(true);
   showToast(`➕ "${preset.name}" konseptli yeni sayfa eklendi!`);
 }
 
 function convertCurrentPageToTemplate(templateType, subOption = '') {
   const page = magazineData.pages[selectedEditIndex];
-  if (!page || !canUserEditPage(page)) {
-    showToast("Bu sayfayı düzenleme yetkiniz yok!");
-    return;
-  }
+  if (!page) return;
 
   page.type = templateType;
+  page.adminNote = '';
+
   if (templateType === 'cover') {
-    page.layout = subOption || 'minimalist';
-    page.magazineName = page.magazineName || (currentMagazine ? currentMagazine.name.toUpperCase() : 'DERGİ');
-    page.issueTag = page.issueTag || 'SAYI 01 • 2026';
-    page.price = page.price || 'OKUL E-DERGİSİ';
-    page.mainHeadline = page.mainHeadline || 'Kapak Ana Manşet Başlığı';
-    page.subHeadline = page.subHeadline || 'Alt başlık ve dosya açıklaması buraya girilir.';
-    page.coverImage = page.coverImage || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80';
-    page.highlights = page.highlights || 'Özel Dosya\nAyın Röportajı\nEdebiyat Köşesi';
+    const arch = subOption || 'minimalist';
+    page.layout = arch;
+    if (arch === 'brutalist') {
+      page.navTitle = 'K1 • Brütalist Kapak';
+      page.accentColor = '#facc15';
+      page.magazineName = 'RESİMLİK';
+      page.issueTag = 'SAYI 04';
+      page.price = '2026 TREND';
+      page.mainHeadline = 'YENİ GÖRÜNÜMLER';
+      page.subHeadline = 'LİT POPÜLER KÜLTÜR DOSYASI';
+      page.coverImage = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=900&q=80';
+      page.highlights = 'Mavi Sarı Kırmızı Trend\nBrütalist Stilde Moda\nKapak Hikayesi Destek';
+    } else if (arch === 'modular') {
+      page.navTitle = 'K1 • Modüler Kapak';
+      page.accentColor = '#0f172a';
+      page.magazineName = 'KONAK';
+      page.issueTag = 'SAYI 01';
+      page.price = 'EV VE İÇ MEKANLAR';
+      page.mainHeadline = 'TARZ DENEYİMLERİ';
+      page.subHeadline = 'TASARIM ÖDÜLLERİ 2030';
+      page.coverImage = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=900&q=80';
+      page.highlights = 'Yeni Renkler\nÇağdaş Stiller\nTaze Perspektifler';
+    } else if (arch === 'fullscreen') {
+      page.navTitle = 'K1 • Fullscreen Kapak';
+      page.accentColor = '#10b981';
+      page.magazineName = 'DOĞAL';
+      page.issueTag = 'BAHAR 2026';
+      page.price = 'YAŞAM ALANLARI';
+      page.mainHeadline = 'VAHŞİ YAŞAMIN BÜYÜSÜ';
+      page.subHeadline = 'Gezegenin Paydaşları ve Korunan Alanlar';
+      page.coverImage = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=900&q=80';
+      page.highlights = 'Ormanın Derinlikleri\nNesli Tükenenler\nYaban Hayatı Korumak';
+    } else {
+      page.navTitle = 'K1 • Minimalist Kapak';
+      page.accentColor = '#d97706';
+      page.magazineName = 'KAMER';
+      page.issueTag = 'AY YIL | SAYI NO';
+      page.price = 'DERGİ';
+      page.mainHeadline = 'Güçlü Kadın Lider';
+      page.subHeadline = 'Kapak hikayesi için destek metni buraya girilecektir.';
+      page.coverImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80';
+      page.highlights = 'Moda Sektöründe\nRenkleri Kendinize Uyarlayın\nSezonun En İyi Görünümleri';
+    }
   } else if (templateType === 'k2') {
     page.subType = subOption || 'ataturk';
-    page.headerText = page.headerText || (page.subType === 'ataturk' ? 'TÜRK GENÇLİĞİNE HİTABE' : 'SUNUŞ & BAŞYAZI');
-    page.subText = page.subText || 'Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti\'ni, ilelebet muhafaza ve müdafaa etmektir.';
-    page.author = page.author || 'Gazi Mustafa Kemal Atatürk';
-    page.image = page.image || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80';
-    page.quote = page.quote || 'Bütün ümidim gençliktedir.';
+    page.navTitle = page.subType === 'ataturk' ? 'K2 • Atatürk & Hitabe' : (page.subType === 'director' ? 'K2 • Sunuş Yazısı' : 'K2 • Sanatsal Vizyon');
+    page.headerText = page.subType === 'ataturk' ? 'TÜRK GENÇLİĞİNE HİTABE' : 'YENİ SAYIMIZA HOŞ GELDİNİZ';
+    page.subText = page.subType === 'ataturk'
+      ? 'Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti\'ni, ilelebet muhafaza ve müdafaa etmektir.'
+      : 'Dergimizin bu yeni sayısında kültür, sanat, bilim ve tasarım dünyasından ilham verici dosyalarla karşınızdayız.';
+    page.author = page.subType === 'ataturk' ? 'Gazi Mustafa Kemal Atatürk' : 'Genel Yayın Yönetmeni';
+    page.image = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80';
+    page.quote = 'Bütün ümidim gençliktedir.';
   } else if (templateType === 'interview') {
-    page.rubric = page.rubric || 'AYIN KONUĞU';
-    page.interviewee = page.interviewee || 'Selin Arslan';
-    page.role = page.role || 'Türk Dili ve Edebiyatı Öğretmeni';
-    page.intro = page.intro || 'Okulumuzun sevilen öğretmenleriyle gerçekleştirdiğimiz keyifli söyleşi.';
-    page.photo = page.photo || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80';
-    page.q1 = page.q1 || 'Lise yıllarınızda nasıl bir öğrenciydiniz? Edebiyata ilginiz o zaman mı başladı?';
-    page.a1 = page.a1 || 'Çok meraklı ve kütüphaneden çıkmayan bir öğrenciydim. Okul dergisine yazdığım ilk öykü yayınlandığında yaşadığım heyecan bugün öğretmen olmamın en büyük sebebidir.';
-    page.q2 = page.q2 || 'Dijital çağda lise öğrencilerine okuma alışkanlığı kazanmaları için ne önerirsiniz?';
-    page.a2 = page.a2 || 'Klasikleri okumak harikadır ama önce kendi ilgi alanınızı keşfedin. Sizi büyüleyen o ilk kitabı bulduğunuzda gerisi gelecektir.';
-    page.q3 = page.q3 || 'Dergimiz ekibine ve genç yazarlarımıza son mesajınız nedir?';
-    page.a3 = page.a3 || 'Yazmaktan ve üretmekten asla vazgeçmeyin. Kaleminiz daima özgür ve özgün olsun.';
+    page.navTitle = 'Ayın Konuğu & Röportaj';
+    page.accentColor = '#d97706';
+    page.rubric = 'AYIN KONUĞU';
+    page.interviewee = 'Ceyhan Fidancı';
+    page.role = 'Tasarım & Kültür Direktörü';
+    page.intro = 'Yaratıcı endüstriler, modern dergicilik ve geleceğin tasarım trendleri üzerine gerçekleştirdiğimiz özel söyleşi.';
+    page.photo = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80';
+    page.q1 = 'Tasarım yolculuğunuz nasıl başladı? İlk ilham kaynağınız neydi?';
+    page.a1 = 'Görsel hikaye anlatıcılığına duyduğum merakla başladı. Renklerin ve tipografinin insan duyguları üzerindeki etkisini keşfetmek her şeyi değiştirdi.';
+    page.q2 = 'Dijital yayıncılıkta okuyucuyu yakalamanın sırrı nedir?';
+    page.a2 = 'Sade bir mizanpaj, güçlü fotoğraflar ve etkileşimli öğeler. Okuyucu artık sadece okumak değil, sayfayla etkileşime geçmek istiyor.';
+    page.q3 = 'Genç içerik üreticilerine ve tasarımcılara ne önerirsiniz?';
+    page.a3 = 'Kendi özgün sesinizi bulmaktan korkmayın ve her projede yeni bir şeyler deneyin.';
   } else if (templateType === 'article') {
-    page.category = page.category || 'ÖZEL DOSYA';
-    page.title = page.title || 'Geleceğin Dünyasında Bilim ve Sanat';
-    page.author = page.author || 'Araştırma Kulübü';
-    page.image = page.image || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80';
-    page.imageCaption = page.imageCaption || 'Proje atölyesinden bir görünüm.';
-    page.content = page.content || 'Makale metninizi doğrudan üzerine tıklayarak veya sağ panelden düzenleyebilirsiniz.';
-    page.pullQuote = page.pullQuote || 'Yaratıcılık, sınırları zorlamakla başlar.';
+    page.navTitle = 'Özel Dosya & Makale';
+    page.category = 'ÖZEL DOSYA';
+    page.title = 'GÜÇLÜ KADIN LİDER';
+    page.author = 'Yazan: Meryem Pars';
+    page.image = 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80';
+    page.imageCaption = 'Özel dosya çalışmasından bir kare.';
+    page.content = 'Makale metninizi doğrudan üzerine tıklayarak veya sağ panelden düzenleyebilirsiniz. İki sütunlu modern dergi mizanpajı sayesinde uzun metinleriniz bile ferah ve estetik görünür.';
+    page.pullQuote = 'Yaratıcılık, sınırları zorlamak ve yeni ufuklar açmakla başlar.';
   } else if (templateType === 'literature') {
-    page.header = page.header || 'KALEMİMİZDEN • EDEBİYAT & SANAT';
-    page.title = page.title || 'Ekim Rüzgarı ve Koridorlar';
-    page.author = page.author || 'Elif Su Yıldız • 11-C';
-    page.bgImage = page.bgImage || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
-    page.poemText = page.poemText || 'Sarı yapraklar düşerken okul bahçesine,\nBir zil sesi böler en derin hayalleri.\nTahta sıralarda kazılı eski isimler,\nAnlatır sessizce geçen tüm mevsimleri.';
-    page.bottomNote = page.bottomNote || 'Siz de şiir ve denemelerinizi dergi ekibimize gönderebilirsiniz.';
+    page.navTitle = 'Edebiyat & Şiir Köşesi';
+    page.header = 'EDEBİYAT & SANAT SEÇKİSİ';
+    page.title = 'Güz Rüzgarı ve Satırlar';
+    page.author = 'Yazan: Edebiyat Masası';
+    page.bgImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+    page.poemText = 'Sarı yapraklar düşerken şehrin taşlarına,\nBir melodi böler en derin hayalleri.\nSayfalarda saklı kalan eski cümleler,\nAnlatır sessizce geçen tüm mevsimleri.';
+    page.bottomNote = 'Edebiyat ve sanat köşemiz için seçilen özel eser.';
   } else if (templateType === 'toc') {
-    page.editorTitle = page.editorTitle || 'Bu Sayıya Dair';
-    page.editorQuote = page.editorQuote || 'Dergimizi hazırlarken ilhamımızı sanattan ve bilimden alıyoruz.';
-    page.editorText = page.editorText || 'Yeni sayımızda öğrencilerimizin ve öğretmenlerimizin ortak emeğiyle hazırlanan zengin içeriklerle karşınızdayız.';
-    page.editorName = page.editorName || 'Genel Yayın Yönetmeni';
+    page.navTitle = 'Editörden Mektup & İçindekiler';
+    page.editorTitle = 'Editörden Mektup';
+    page.editorQuote = 'TANITIM ALINTISI, MAKALEDEN ALINAN ETKİLEYİCİ BİR ALINTIDIR. VURGULAMAK İSTEDİĞİNİZ ALINTIYI BURAYA YERLEŞTİREBİLİRSİNİZ.';
+    page.editorText = 'Editörün mektubu, samimi veya resmi olabilen, çeşitli nedenler için yazılmış bir mesajdır. Okuyucunun belirli bir konunun içeriğini ve kreatif yönünü anlamasına yardımcı olabilir...';
+    page.editorName = 'Ceyhan Fidancı';
+    page.editorImage = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
   } else if (templateType === 'catalog') {
-    page.accentColor = page.accentColor || '#68181f';
-    page.catTag = page.catTag || 'PROJE & ÜRÜN TANITIMI';
-    page.title = page.title || 'PROJE GENEL BAKIŞ';
-    page.desc = page.desc || 'Projemiz en güncel bilimsel yöntemler ve estetik tasarım ilkeleriyle geliştirilmiştir. Sağ panelden veya tablodan tüm teknik detayları inceleyebilirsiniz.';
-    page.image = page.image || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80';
-    page.specTitle = page.specTitle || 'TEKNİK ÖZELLİKLER TABLOSU';
+    page.navTitle = 'Katalog & Teknik Tablo';
+    page.accentColor = '#68181f';
+    page.catTag = 'PROJE & ÜRÜN TANITIMI';
+    page.title = 'ÜRÜN VE PROJE GENEL BAKIŞ';
+    page.desc = 'Projemiz en güncel bilimsel yöntemler ve estetik tasarım ilkeleriyle geliştirilmiştir. Sağ panelden veya tablodan tüm teknik detayları inceleyebilirsiniz.';
+    page.image = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80';
+    page.specTitle = 'TEKNİK ÖZELLİKLER TABLOSU';
+  } else if (templateType === 'k3') {
+    page.navTitle = 'K3 • Künye';
+    page.boardTitle = 'YAYIN KURULU KÜNYESİ';
+    page.publisher = 'Yayın Grubu';
+    page.editorInChief = 'Genel Yayın Yönetmeni';
+    page.advisor = 'Tasarım & İçerik Danışmanı';
+    page.editorialTeam = 'Yaratıcı Tasarım Ekibi';
+    page.contactInfo = 'iletisim@dergimiz.com.tr';
+    page.nextIssueTeaserTitle = 'GELECEK SAYIDA NELER VAR?';
+    page.nextIssueText = '• Yeni Dosya Konusu\n• Özel Röportajlar ve İncelemeler';
+  } else if (templateType === 'k4') {
+    page.navTitle = 'K4 • Arka Kapak';
+    page.schoolName = magazineData.schoolName || 'DERGİ TASARIM STÜDYOSU';
+    page.motto = '"İlham veren içerikler, modern tasarım..."';
+    page.coverImage = 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=900&q=80';
+    page.qrText = 'Dergiyi çevrim içi okumak için karekodu okutun';
+    page.qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr';
+    page.social = '@dergimiz';
+    page.closingQuote = 'Gelecek sayıda buluşmak dileğiyle.';
+  } else if (templateType === 'freeform') {
+    page.navTitle = 'Serbest Tasarım Sayfası';
   }
 
   closeModal('allTemplatesModal');
   renderAll();
-  saveAllChangesToServer();
-  showToast(`⚡ Sayfa şablonu "${templateType.toUpperCase()}" olarak güncellendi!`);
+  if (currentIssue) saveAllChangesToServer(true);
+  showToast(`⚡ "${templateType.toUpperCase()}" şablon örneği sayfaya yüklendi!`);
 }
 
 async function onMagazineChange(newMagId) {
+  if (String(newMagId).startsWith('preset-')) {
+    const pId = Number(String(newMagId).replace('preset-', '')) || 1;
+    currentMagazine = null;
+    currentIssue = null;
+    const issueSelector = document.getElementById('issueSelector');
+    if (issueSelector) {
+      issueSelector.innerHTML = `<option value="tpl">Şablon #${pId} Örneği (6 Sayfa)</option>`;
+    }
+    loadFullTemplatePreset(pId);
+    return;
+  }
+
   const selected = allMagazines.find(m => m.id === newMagId);
   if (!selected) return;
   currentMagazine = selected;
@@ -560,7 +889,7 @@ async function createNewMagazineSubmit() {
   const layout = preset ? preset.layout : 'minimalist';
 
   if (!schoolName || !name) {
-    showToast("Lütfen Okul Adı ve Dergi Adı alanlarını doldurun!");
+    showToast("Lütfen Kurum/Okul Adı ve Dergi Adı alanlarını doldurun!");
     return;
   }
 
@@ -585,7 +914,7 @@ async function createNewMagazineSubmit() {
     const data = await res.json();
     if (data.success && data.magazine) {
       closeModal('newMagazineModal');
-      showToast(`🎉 "${name}" dergisi ve ${schoolName} masası oluşturuldu!`);
+      showToast(`🎉 "${name}" dergisi oluşturuldu!`);
       document.getElementById('newMagSchoolName').value = '';
       document.getElementById('newMagName').value = '';
       document.getElementById('newMagDesc').value = '';
@@ -602,7 +931,11 @@ async function createNewMagazineSubmit() {
 
 async function loadAllIssues(magId = null) {
   const effectiveMagId = magId || (currentMagazine ? currentMagazine.id : null);
-  const queryParam = effectiveMagId ? `&magazineId=${effectiveMagId}` : '';
+  if (!effectiveMagId) {
+    loadFullTemplatePreset(activeTemplatePresetId || 1, true);
+    return;
+  }
+  const queryParam = `&magazineId=${effectiveMagId}`;
 
   try {
     const res = await fetch(`/api/issues?includeDrafts=true${queryParam}`);
@@ -617,22 +950,23 @@ async function loadAllIssues(magId = null) {
   const targetId = urlParams.get('id');
 
   const selector = document.getElementById('issueSelector');
-  selector.innerHTML = '';
-  allIssues.forEach(iss => {
-    const opt = document.createElement('option');
-    opt.value = iss.id;
-    opt.textContent = `${iss.title} (${iss.status === 'published' ? 'Yayında' : 'Taslak'})`;
-    selector.appendChild(opt);
-  });
+  if (selector) {
+    selector.innerHTML = '';
+    allIssues.forEach(iss => {
+      const opt = document.createElement('option');
+      opt.value = iss.id;
+      opt.textContent = `${iss.title} (${iss.status === 'published' ? 'Yayında' : 'Taslak'})`;
+      selector.appendChild(opt);
+    });
+  }
 
   const activeIssue = (targetId && allIssues.find(i => i.id === targetId)) || allIssues[0];
   if (activeIssue) {
-    selector.value = activeIssue.id;
+    if (selector) selector.value = activeIssue.id;
     setIssue(activeIssue);
   } else {
     currentIssue = null;
-    magazineData = { schoolName: currentMagazine ? currentMagazine.schoolName : '', pages: [] };
-    renderAll();
+    loadFullTemplatePreset(activeTemplatePresetId || 1, true);
   }
 }
 
@@ -650,8 +984,12 @@ function setIssue(issue) {
   currentIssue = issue;
   magazineData = JSON.parse(JSON.stringify(issue));
   if (!magazineData.pages || magazineData.pages.length === 0) {
-    magazineData.pages = [];
+    magazineData.pages = buildSamplePagesForPreset(1);
   }
+  // Eski sayfalardaki can sıkıcı adminNote uyarılarını temizle
+  (magazineData.pages || []).forEach(p => {
+    p.adminNote = '';
+  });
   selectedEditIndex = 0;
   currentIndex = 0;
   selectedElementId = null;
@@ -768,6 +1106,13 @@ function updateUndoRedoButtons() {
 }
 
 function switchLeftTab(tabName) {
+  const sidebar = document.getElementById('leftSidebar');
+  // Aynı sekmeye tekrar tıklandıysa ve çekmece açıksa kapat (FlipHTML5 v2 davranışı)
+  if (activeLeftTab === tabName && sidebar && !isLeftDrawerCollapsed) {
+    toggleLeftDrawerCollapse();
+    return;
+  }
+
   activeLeftTab = tabName;
   const tabs = ['pages', 'templates', 'elements', 'links', 'uploads'];
   tabs.forEach(t => {
@@ -784,7 +1129,6 @@ function switchLeftTab(tabName) {
   });
 
   // Eğer çekmece daraltılmışsa aç
-  const sidebar = document.getElementById('leftSidebar');
   if (sidebar && isLeftDrawerCollapsed) {
     toggleLeftDrawerCollapse();
   }
@@ -798,15 +1142,99 @@ function switchLeftTab(tabName) {
 function toggleLeftDrawerCollapse() {
   const sidebar = document.getElementById('leftSidebar');
   const icon = document.getElementById('leftDrawerToggleIcon');
+  const txt = document.getElementById('txtToggleLeft');
   if (!sidebar) return;
   isLeftDrawerCollapsed = !isLeftDrawerCollapsed;
   if (isLeftDrawerCollapsed) {
     sidebar.classList.add('hidden');
     if (icon) icon.className = 'ph ph-caret-double-right text-base';
+    if (txt) txt.textContent = 'Sol Paneli Aç';
   } else {
     sidebar.classList.remove('hidden');
     if (icon) icon.className = 'ph ph-caret-double-left text-base';
+    if (txt) txt.textContent = 'Sol Paneli Kapat';
   }
+}
+
+function toggleRightSidebarCollapse() {
+  const rightBar = document.getElementById('rightSidebar');
+  const icon = document.getElementById('rightDrawerToggleIcon');
+  const txt = document.getElementById('txtToggleRight');
+  if (!rightBar) return;
+  isRightSidebarCollapsed = !isRightSidebarCollapsed;
+  if (isRightSidebarCollapsed) {
+    rightBar.classList.add('hidden');
+    if (icon) icon.className = 'ph ph-caret-double-left text-base';
+    if (txt) txt.textContent = 'Sağ Paneli Aç';
+  } else {
+    rightBar.classList.remove('hidden');
+    if (icon) icon.className = 'ph ph-caret-double-right text-base';
+    if (txt) txt.textContent = 'Sağ Paneli Kapat';
+  }
+}
+
+function toggleCanvasActionBar() {
+  const bar = document.getElementById('canvasActionBar');
+  const txt = document.getElementById('txtToggleTopBar');
+  if (!bar) return;
+  const isHidden = bar.classList.toggle('hidden');
+  if (txt) {
+    txt.textContent = isHidden ? 'Üst Araçları Aç ▾' : 'Üst Araçları Kapat ▴';
+  }
+}
+
+function toggleTopToolbarCollapse() {
+  const header = document.getElementById('topToolbar');
+  const restoreBtn = document.getElementById('btnRestoreHeader');
+  if (!header) return;
+  isTopToolbarCollapsed = !isTopToolbarCollapsed;
+  if (isTopToolbarCollapsed) {
+    header.classList.add('hidden');
+    if (restoreBtn) restoreBtn.classList.remove('hidden');
+  } else {
+    header.classList.remove('hidden');
+    if (restoreBtn) restoreBtn.classList.add('hidden');
+  }
+}
+
+function toggleZenCanvasMode() {
+  isZenMode = !isZenMode;
+  const leftBar = document.getElementById('leftSidebar');
+  const rightBar = document.getElementById('rightSidebar');
+  const topBar = document.getElementById('topToolbar');
+  const actionBar = document.getElementById('canvasActionBar');
+  const restoreBtn = document.getElementById('btnRestoreHeader');
+  const txtZen = document.getElementById('txtZenMode');
+  const txtLeft = document.getElementById('txtToggleLeft');
+  const txtRight = document.getElementById('txtToggleRight');
+
+  if (isZenMode) {
+    isLeftDrawerCollapsed = true;
+    isRightSidebarCollapsed = true;
+    isTopToolbarCollapsed = true;
+    if (leftBar) leftBar.classList.add('hidden');
+    if (rightBar) rightBar.classList.add('hidden');
+    if (topBar) topBar.classList.add('hidden');
+    if (actionBar) actionBar.classList.add('hidden');
+    if (restoreBtn) restoreBtn.classList.remove('hidden');
+    if (txtZen) txtZen.textContent = 'Panelleri Göster';
+    if (txtLeft) txtLeft.textContent = 'Sol Paneli Aç';
+    if (txtRight) txtRight.textContent = 'Sağ Paneli Aç';
+    showToast("⛶ Tam Tuval Modu: Tüm paneller gizlendi!");
+  } else {
+    isLeftDrawerCollapsed = false;
+    isRightSidebarCollapsed = false;
+    isTopToolbarCollapsed = false;
+    if (leftBar) leftBar.classList.remove('hidden');
+    if (rightBar) rightBar.classList.remove('hidden');
+    if (topBar) topBar.classList.remove('hidden');
+    if (restoreBtn) restoreBtn.classList.add('hidden');
+    if (txtZen) txtZen.textContent = 'Panelleri Gizle';
+    if (txtLeft) txtLeft.textContent = 'Sol Paneli Kapat';
+    if (txtRight) txtRight.textContent = 'Sağ Paneli Kapat';
+    showToast("Paneller tekrar açıldı");
+  }
+  renderMagazineViewport();
 }
 
 function toggleMorePopupMenu(ev) {
@@ -825,8 +1253,27 @@ function renderDrawerTemplatesList() {
   const container = document.getElementById('drawerTemplatesList');
   if (!container) return;
   container.innerHTML = `
-    <div class="text-[10.5px] font-bold uppercase tracking-wider text-amber-400 mb-1">Sayfa Mizanpajları</div>
+    <div class="text-[10.5px] font-bold uppercase tracking-wider text-indigo-400 mb-1">20 Hazır Dergi Konsepti (Örnekleriyle)</div>
     <div class="space-y-2 mb-4">
+      ${MAGAZINE_PRESETS.map(p => `
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500 transition">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-white">${p.id}. ${escapeHtml(p.name)}</span>
+            <span class="text-[9.5px] px-1.5 py-0.5 rounded text-white font-bold" style="background:${p.accent}">${escapeHtml(p.layout)}</span>
+          </div>
+          <div class="text-[10.5px] text-amber-300 font-semibold truncate mb-1.5">${escapeHtml(p.title)} — ${escapeHtml(p.headline)}</div>
+          <button onclick="loadFullTemplatePreset(${p.id})" class="w-full py-1.5 px-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-[10px] font-extrabold mb-1 shadow">
+            🔥 Tüm Şablon Örneğini Yükle
+          </button>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="applyConceptToCurrentPage(${p.id})" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white text-[10px] font-semibold">Bu Sayfaya</button>
+            <button onclick="addConceptAsNewPage(${p.id})" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold">+ Yeni Sayfa</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="text-[10.5px] font-bold uppercase tracking-wider text-amber-400 mb-1 pt-2 border-t border-slate-800">Tekil Sayfa Mizanpajları</div>
+    <div class="space-y-2">
       ${ALL_PAGE_TEMPLATES_CATALOG.map(item => `
         <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500 transition">
           <div class="flex items-center justify-between mb-1">
@@ -835,23 +1282,8 @@ function renderDrawerTemplatesList() {
           </div>
           <p class="text-[10.5px] text-slate-400 mb-2 leading-snug">${escapeHtml(item.desc)}</p>
           <div class="grid grid-cols-2 gap-1.5">
-            <button onclick="convertCurrentPageToTemplate('${item.type}', '${item.layout || item.subType || ''}')" class="py-1 px-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold">Uygula</button>
+            <button onclick="convertCurrentPageToTemplate('${item.type}', '${item.layout || item.subType || ''}')" class="py-1 px-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold">Örneği Yükle</button>
             <button onclick="addNewPage('${item.type}', '${item.layout || item.subType || ''}')" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold">+ Yeni Ekle</button>
-          </div>
-        </div>
-      `).join('')}
-    </div>
-    <div class="text-[10.5px] font-bold uppercase tracking-wider text-indigo-400 mb-1 pt-2 border-t border-slate-800">20 Dergi Konsepti</div>
-    <div class="space-y-2">
-      ${MAGAZINE_PRESETS.map(p => `
-        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500 transition">
-          <div class="flex items-center justify-between mb-1">
-            <span class="text-xs font-bold text-white">${p.id}. ${escapeHtml(p.name)}</span>
-            <span class="text-[9.5px] px-1.5 py-0.5 rounded text-white font-bold" style="background:${p.accent}">${escapeHtml(p.layout)}</span>
-          </div>
-          <div class="grid grid-cols-2 gap-1.5 mt-1.5">
-            <button onclick="applyConceptToCurrentPage(${p.id})" class="py-1 px-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold">Sayfaya Uygula</button>
-            <button onclick="addConceptAsNewPage(${p.id})" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold">+ Yeni Sayfa</button>
           </div>
         </div>
       `).join('')}
@@ -1272,16 +1704,13 @@ function updateTopReviewBanner() {
   else if (page.assignedEditor === 'ADMIN-NAZMIYE') editorName = 'Nazmiye Hoca (Admin)';
   ownershipText.innerHTML = `Sorumlu: <strong>${escapeHtml(editorName)}</strong>`;
 
-  if (page.adminNote && page.adminNote.trim()) {
-    stickyBox.classList.remove('hidden');
-    stickyText.textContent = page.adminNote;
-  } else {
-    stickyBox.classList.add('hidden');
-  }
+  // Can sıkıcı sarı "Yayın Kurulu Düzeltme Notu" kutusunu tuval üstünde asla gösterme!
+  if (stickyBox) stickyBox.classList.add('hidden');
 }
 
 function dismissAdminNote() {
-  document.getElementById('adminStickyNoteBox').classList.add('hidden');
+  const stickyBox = document.getElementById('adminStickyNoteBox');
+  if (stickyBox) stickyBox.classList.add('hidden');
 }
 
 // ==========================================
@@ -1295,7 +1724,9 @@ function renderMagazineViewport() {
   if (currentIndex >= total) currentIndex = total - 1;
   if (currentIndex < 0) currentIndex = 0;
 
-  const heightClass = appMode === 'read' ? 'h-[72vh] md:h-[80vh]' : 'h-[58vh] sm:h-[65vh] md:h-[70vh]';
+  const heightClass = (appMode === 'read' || isZenMode)
+    ? 'h-[76vh] md:h-[84vh]'
+    : 'h-[66vh] sm:h-[72vh] md:h-[77vh]';
 
   if (!spreadMode || currentIndex === 0 || currentIndex === total - 1) {
     const pageData = magazineData.pages[currentIndex];
@@ -4746,12 +5177,12 @@ function addNewPage(templateType, layout) {
     newPage = {
       ...newPage,
       navTitle: "K4 • Arka Dış Kapak",
-      schoolName: magazineData.schoolName || "UFUK ANADOLU LİSESİ",
+      schoolName: magazineData.schoolName || "DİJİTAL DERGİ TASARIM STÜDYOSU",
       motto: "\"Fikri hür, vicdanı hür nesiller için...\"",
       coverImage: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=900&q=80",
       qrText: "Dergiyi çevrim içi okumak için karekodu okutun",
       qrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr",
-      social: "@ufukanadolulisesi",
+      social: "@dergimiz",
       closingQuote: "Geleceğin aydınlık Türkiye'sini birlikte kuruyoruz."
     };
   } else if (templateType === 'freeform') {
@@ -4822,11 +5253,45 @@ function deleteCurrentPage() {
 // 9. SUNUCUYA KAYIT
 // ==========================================
 async function saveAllChangesToServer(silent = false) {
-  if (!currentIssue || !magazineData) return;
+  if (!magazineData) return;
   const ind = document.getElementById('saveStatusIndicator');
   if (ind) {
     ind.innerHTML = `<i class="ph ph-spinner animate-spin text-amber-400"></i><span>Kaydediliyor...</span>`;
   }
+
+  // Eğer kullanıcı doğrudan Şablon Masasında çalışıyorsa ve "Kaydet" butonuna bastıysa otomatik sunucuya kaydet
+  if (!currentIssue) {
+    if (silent) {
+      if (ind) ind.innerHTML = `<i class="ph ph-check-circle text-emerald-400"></i><span>Şablon aktif</span>`;
+      return;
+    }
+    try {
+      const preset = MAGAZINE_PRESETS.find(p => p.id === activeTemplatePresetId) || MAGAZINE_PRESETS[0];
+      const createRes = await fetch('/api/issues', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-access-code': currentUser.code
+        },
+        body: JSON.stringify({
+          title: magazineData.title || `${preset.title} • Sayı 01`,
+          schoolName: magazineData.schoolName || preset.title,
+          issueMonth: magazineData.issueMonth || '2026',
+          pages: magazineData.pages
+        })
+      });
+      const createData = await createRes.json();
+      if (createData.success && createData.issue) {
+        currentIssue = createData.issue;
+        if (ind) ind.innerHTML = `<i class="ph ph-check-circle text-emerald-400"></i><span>Kaydedildi</span>`;
+        showToast("💾 Çalışmanız sunucuya kaydedildi!");
+      }
+    } catch (e) {
+      console.warn("Kayıt hatası:", e);
+    }
+    return;
+  }
+
   try {
     const res = await fetch(`/api/issues/${currentIssue.id}`, {
       method: 'PUT',
@@ -4946,7 +5411,7 @@ async function addNewEditorKey() {
 
   try {
     const magSelect = document.getElementById('newKeyMagazine');
-    const magId = magSelect ? magSelect.value : (currentMagazine ? currentMagazine.id : 'mag-ufuk-al');
+    const magId = magSelect ? magSelect.value : (currentMagazine ? currentMagazine.id : 'mag-default');
     const res = await fetch('/api/auth/keys', {
       method: 'POST',
       headers: {
@@ -4998,121 +5463,10 @@ async function createNewIssueSubmit() {
     return;
   }
 
-  // 4 Kapaklı tam dergi şablonu otomatik hazırla
-  const school = magazineData.schoolName || "UFUK ANADOLU LİSESİ E-DERGİSİ";
-  const num = allIssues.length + 1;
-
-  const initialPages = [
-    {
-      id: "p1",
-      type: "cover",
-      navTitle: "K1 • Ön Dış Kapak",
-      accentColor: "#4f46e5",
-      assignedEditor: currentUser.code,
-      status: "draft",
-      magazineName: "UFUK",
-      issueTag: `SAYI 0${num} • ${month.toUpperCase()} • AYLIK DİJİTAL DERGİ`,
-      mainHeadline: "Yeni Sayı Dosya Konusu",
-      subHeadline: "Geleceğin dünyasını bugünden inşa eden liselilerin başarı hikayeleri.",
-      coverImage: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=900&q=80",
-      highlights: "Ayın Dosyası\nÖzel Söyleşi\nOkuldan Kareler & Video",
-      elements: []
-    },
-    {
-      id: "p2",
-      type: "k2",
-      subType: "ataturk",
-      navTitle: "K2 • Ön Kapak İçi",
-      accentColor: "#b91c1c",
-      assignedEditor: currentUser.code,
-      status: "approved",
-      headerText: "TÜRK GENÇLİĞİNE HİTABE",
-      subText: "Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti'ni, ilelebet muhafaza ve müdafaa etmektir.",
-      author: "Gazi Mustafa Kemal Atatürk",
-      image: "https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80",
-      quote: "Bütün ümidim gençliktedir.",
-      elements: []
-    },
-    {
-      id: "p3",
-      type: "toc",
-      navTitle: "Editörden & İçindekiler",
-      accentColor: "#4f46e5",
-      assignedEditor: currentUser.code,
-      status: "draft",
-      editorTitle: `${title} ile Yeniden Sizlerleyiz`,
-      editorName: currentUser.name || "Sedat İleri (Genel Yayın Yönetmeni)",
-      editorImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-      editorText: "Dergimizin yeni sayısında emeği geçen tüm öğretmenlerimizi ve öğrencilerimizi kutluyoruz.",
-      editorialBoard: `Yayın Kurulu Başkanı: Sedat İleri\nEdebiyat Danışmanı: Nazmiye Hoca\nUfuk Anadolu Lisesi`,
-      elements: []
-    },
-    {
-      id: "p4",
-      type: "article",
-      navTitle: "Dosya Konusu",
-      accentColor: "#0284c7",
-      assignedEditor: currentUser.code,
-      status: "draft",
-      category: "ARAŞTIRMA & GÜNCEL",
-      title: "Ayın Ana Makalesi",
-      author: "Yayın Kurulu",
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=800&q=80",
-      imageCaption: "Konu ile ilgili görsel.",
-      content: "Yazınızı buraya ekleyebilirsiniz.",
-      pullQuote: "Eğitim ve kültür, bir milletin geleceğidir.",
-      elements: []
-    },
-    {
-      id: "p5",
-      type: "video",
-      navTitle: "Etkinlik & Video",
-      accentColor: "#d97706",
-      assignedEditor: currentUser.code,
-      status: "draft",
-      title: "Okul Etkinlikleri Video Kaydı",
-      subTitle: "Bu ay okulumuzda gerçekleşen en özel gösteri ve törenler.",
-      author: "Basın & Yayın Kulübü",
-      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-      videoPoster: "https://images.unsplash.com/photo-1469488865564-c2de10f69f96?auto=format&fit=crop&w=800&q=80",
-      caption: "Etkinlikten canlı kare.",
-      notes: "Tüm katılımcılara teşekkür ederiz.",
-      elements: []
-    },
-    {
-      id: "p6",
-      type: "k3",
-      navTitle: "K3 • Arka Kapak İçi",
-      accentColor: "#4f46e5",
-      assignedEditor: currentUser.code,
-      status: "draft",
-      boardTitle: "YAYIN KURULU KÜNYESİ",
-      publisher: "Ufuk Anadolu Lisesi",
-      editorInChief: "Sedat İleri",
-      advisor: "Nazmiye Hoca",
-      editorialTeam: "Öğrenci Yazı İşleri",
-      contactInfo: "dergi@ufuklisesi.edu.tr",
-      nextIssueTeaserTitle: "GELECEK SAYIDA NELER VAR?",
-      nextIssueText: "• Yeni Dosya Konusu ve Sürpriz Röportajlar",
-      elements: []
-    },
-    {
-      id: "p7",
-      type: "k4",
-      navTitle: "K4 • Arka Dış Kapak",
-      accentColor: "#1e1b4b",
-      assignedEditor: currentUser.code,
-      status: "draft",
-      schoolName: school,
-      motto: "\"Fikri hür, irfanı hür nesiller için...\"",
-      coverImage: "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=900&q=80",
-      qrText: "Dergiyi çevrim içi okumak için karekodu okutun",
-      qrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr",
-      social: "@ufukanadolulisesi",
-      closingQuote: "Geleceği birlikte kuruyoruz.",
-      elements: []
-    }
-  ];
+  // Seçili şablondan tam örnek sayfaları otomatik hazırla
+  const preset = MAGAZINE_PRESETS.find(p => p.id === activeTemplatePresetId) || MAGAZINE_PRESETS[0];
+  const school = magazineData.schoolName || preset.title;
+  const initialPages = buildSamplePagesForPreset(preset.id);
 
   try {
     const res = await fetch('/api/issues', {
@@ -5122,7 +5476,7 @@ async function createNewIssueSubmit() {
         'x-access-code': currentUser.code
       },
       body: JSON.stringify({
-        magazineId: currentMagazine ? currentMagazine.id : 'mag-ufuk-al',
+        magazineId: currentMagazine ? currentMagazine.id : null,
         title,
         schoolName: currentMagazine ? currentMagazine.schoolName : school,
         issueMonth: month,
@@ -5170,7 +5524,7 @@ function closeModal(id) {
 }
 
 function saveMagSettings() {
-  magazineData.schoolName = document.getElementById('inputSchoolName').value || "UFUK ANADOLU LİSESİ E-DERGİ";
+  magazineData.schoolName = document.getElementById('inputSchoolName').value || "DİJİTAL DERGİ";
   magazineData.issueMonth = document.getElementById('inputIssueInfo').value || "Sayı #1";
   closeModal('magSettingsModal');
   renderAll();
@@ -5422,6 +5776,13 @@ window.applyFloatingBgColor = applyFloatingBgColor;
 window.duplicateSelectedCanvasElement = duplicateSelectedCanvasElement;
 window.selectCanvasElement = selectCanvasElement;
 window.deselectAllElements = deselectAllElements;
+window.loadFullTemplatePreset = loadFullTemplatePreset;
+window.clearAllSavedMagazines = clearAllSavedMagazines;
+window.toggleRightSidebarCollapse = toggleRightSidebarCollapse;
+window.toggleCanvasActionBar = toggleCanvasActionBar;
+window.toggleTopToolbarCollapse = toggleTopToolbarCollapse;
+window.toggleZenCanvasMode = toggleZenCanvasMode;
+
 
 
 

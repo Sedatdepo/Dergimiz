@@ -40,14 +40,14 @@ async function loadIssueData(id) {
   } catch (err) {
     console.warn('API verisi alınamadı, hafızadan yükleniyor:', err);
     magazineData = {
-      title: "Sayı #1 • Ekim 2026",
-      schoolName: "UFUK ANADOLU LİSESİ E-DERGİSİ",
-      issueInfo: "Sayı #1 • Ekim 2026",
+      title: "Sayı #1 • 2026",
+      schoolName: "E-DERGİ TASARIM STÜDYOSU",
+      issueInfo: "Sayı #1 • 2026",
       pages: []
     };
   }
 
-  document.getElementById('readerMagTitle').textContent = magazineData.schoolName || "UFUK ANADOLU LİSESİ";
+  document.getElementById('readerMagTitle').textContent = magazineData.schoolName || "E-DERGİ OKUYUCU";
   document.getElementById('readerIssueBadge').textContent = magazineData.title || "Sayı #1";
   renderMagazine();
 }

@@ -12,22 +12,7 @@ async function fetchIssues() {
     allIssues = await res.json();
   } catch (err) {
     console.warn('Backend API erişilemedi, yerel veri kullanılıyor:', err);
-    // Fallback veri
-    allIssues = [
-      {
-        id: "sayi-1",
-        title: "Sayı #1 • Ekim 2026",
-        schoolName: "UFUK ANADOLU LİSESİ E-DERGİSİ",
-        issueNumber: 1,
-        issueMonth: "Ekim 2026",
-        status: "published",
-        views: 1845,
-        likes: 234,
-        description: "Yapay zeka çağında lise öğrencisi olmak, SolarWing İHA projesi, Selin Hocamızla röportaj ve ödüllü zeka soruları.",
-        coverThumb: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
-        pages: [{}, {}, {}, {}, {}, {}]
-      }
-    ];
+    allIssues = [];
   }
 
   renderHero();
@@ -172,7 +157,7 @@ function renderGrid(issues) {
             ${escapeHtml(issue.title)}
           </h3>
           <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-            ${escapeHtml(issue.description || 'Ufuk Anadolu Lisesi dijital e-dergi sayısı.')}
+            ${escapeHtml(issue.description || 'Dijital e-dergi sayısı.')}
           </p>
         </div>
       </div>
