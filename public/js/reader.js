@@ -174,9 +174,11 @@ function renderReaderElement(el) {
     `;
   }
 
-  if (el.type === 'text') {
+  if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
+    const rawBg = el.bgColor || 'transparent';
+    const bgStyle = rawBg.startsWith('linear-gradient') ? `background:${rawBg};` : `background-color:${rawBg};`;
     return `
-      <div class="canvas-element pointer-events-none p-2.5 rounded-xl border leading-relaxed overflow-hidden" style="${style} background-color:${el.bgColor || 'transparent'}; border-color:${el.borderColor || 'transparent'}; font-family:${el.fontFamily || 'inherit'}; font-size:${el.fontSize || 12}px; color:${el.color || '#0f172a'}; text-align:${el.textAlign || 'left'};">
+      <div class="canvas-element pointer-events-none p-3 rounded-2xl border leading-relaxed overflow-hidden shadow-sm" style="${style} ${bgStyle} border-color:${el.borderColor || 'transparent'}; font-family:${el.fontFamily || 'inherit'}; font-size:${el.fontSize || 12}px; color:${el.color || '#0f172a'}; text-align:${el.textAlign || 'left'};">
         ${el.content || ''}
       </div>
     `;

@@ -46,8 +46,8 @@
       </a>
 
       <div class="flex flex-col gap-1">
-        <!-- 1. OKUL & DERGİ SEÇİCİ & YENİ DERGİ EKLE BUTONU -->
-        <div class="flex items-center gap-1.5">
+        <!-- 1. OKUL & DERGİ SEÇİCİ & YENİ DERGİ EKLE / SİL BUTONLARI -->
+        <div class="flex items-center gap-1.5 flex-wrap">
           <div class="flex items-center gap-1 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-slate-700">
             <i class="ph ph-buildings text-amber-400 text-xs"></i>
             <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-transparent border-0 text-xs font-bold text-white focus:outline-none cursor-pointer py-0.5 pr-1">
@@ -58,6 +58,14 @@
             <i class="ph ph-plus-circle text-xs"></i>
             <span class="hidden sm:inline">+ Okul / Dergi Ekle</span>
           </button>
+          <button id="btnDeleteMag" onclick="deleteCurrentMagazine()" class="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-bold flex items-center gap-1 transition" title="Seçili Örnek Okulu / Dergiyi Sil">
+            <i class="ph ph-trash text-xs"></i>
+            <span class="hidden md:inline">Dergiyi Sil</span>
+          </button>
+          <button onclick="openAllTemplatesModal()" class="px-2.5 py-1 rounded-lg bg-indigo-600/25 hover:bg-indigo-600/40 text-indigo-200 border border-indigo-500/40 text-[11px] font-bold flex items-center gap-1 transition" title="Okul Fark Etmeksizin Tüm 20 Konsept ve Sayfa Şablonlarını Gör">
+            <i class="ph ph-palette text-xs text-amber-400"></i>
+            <span>Tüm Şablonlar (20)</span>
+          </button>
         </div>
 
         <!-- 2. SAYI SEÇİCİ & DURUM ROZETİ -->
@@ -65,6 +73,10 @@
           <select id="issueSelector" onchange="onIssueChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-[11.5px] font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer">
             <!-- JS ile doldurulur -->
           </select>
+          <button id="btnDeleteIssue" onclick="deleteCurrentIssue()" class="px-1.5 py-0.5 rounded bg-rose-500/10 hover:bg-rose-500/25 text-rose-400 border border-rose-500/20 text-[10px] font-semibold flex items-center gap-0.5 transition" title="Bu Sayıyı Sil">
+            <i class="ph ph-trash"></i>
+            <span class="hidden sm:inline">Sayıyı Sil</span>
+          </button>
           <span id="issueStatusBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Yayında</span>
           <span id="headerSchoolText" class="text-[11px] text-slate-400 hidden md:inline truncate max-w-[200px]">Ufuk Anadolu Lisesi</span>
         </div>
@@ -141,9 +153,13 @@
         <!-- JS ile render edilir -->
       </div>
 
-      <!-- Yeni Sayfa Ekle Butonu -->
-      <div class="p-3 border-t border-slate-800 bg-slate-950">
-        <button onclick="openModal('addPageModal')" id="btnAddPageBtn" class="w-full py-2.5 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-semibold text-xs flex items-center justify-center gap-2 transition">
+      <!-- Yeni Sayfa & Tüm Şablonlar Butonları -->
+      <div class="p-3 border-t border-slate-800 bg-slate-950 space-y-2">
+        <button onclick="openAllTemplatesModal()" class="w-full py-2 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 font-bold text-xs flex items-center justify-center gap-2 transition">
+          <i class="ph ph-palette text-base"></i>
+          <span>Tüm Şablonları Gör (20 Konsept)</span>
+        </button>
+        <button onclick="openModal('addPageModal')" id="btnAddPageBtn" class="w-full py-2 px-3 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 font-semibold text-xs flex items-center justify-center gap-2 transition">
           <i class="ph ph-plus-circle text-base"></i>
           <span>Yeni Sayfa Şablonu Ekle</span>
         </button>
@@ -151,118 +167,145 @@
     </aside>
 
     <!-- ORTA ALAN: DERGİ TUVALİ (CANVAS) -->
-    <main class="flex-1 bg-slate-900 flex flex-col items-center justify-between p-3 md:p-5 overflow-y-auto relative">
+    <main class="flex-1 bg-slate-900 flex flex-col items-center justify-start p-3 md:p-4 overflow-y-auto relative">
       
-      <!-- Üst Durum & Yetki Bilgilendirme Şeridi -->
-      <div id="canvasTopBanner" class="w-full max-w-4xl flex items-center justify-between text-xs bg-slate-800/80 px-4 py-2.5 rounded-2xl border border-slate-700/80 mb-2">
-        <div class="flex items-center gap-2 overflow-hidden">
-          <span id="pageReviewBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-            Onaylandı
-          </span>
-          <span id="pageOwnershipText" class="text-slate-300 truncate font-medium">
-            Sorumlu Editör: <strong>Admin</strong>
-          </span>
+      <!-- SABİT ÜST ARAÇ ÇUBUĞU: ELEMAN EKLEME + YAZI KARAKTERİ & ÇERÇEVE ARAÇLARI (HER ZAMAN GÖRÜNÜR) -->
+      <div id="canvasActionBar" class="sticky top-0 z-40 w-full max-w-4xl flex flex-col gap-2 bg-slate-950/95 p-2.5 rounded-2xl border border-slate-700/90 shadow-2xl mb-3 backdrop-blur-md">
+        
+        <!-- 1. Satır: Kutu / Görsel / Renkli Çerçeve Ekleme + Durum -->
+        <div class="flex flex-wrap items-center justify-between gap-1.5 border-b border-slate-800 pb-2">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <!-- Metin Kutusu Ekle -->
+            <button onclick="addCanvasElement('text')" class="px-2.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1 transition" title="Sayfaya İstediğiniz Yere Sürüklenebilir Metin Kutusu Ekler">
+              <i class="ph ph-text-t text-sm"></i>
+              <span>+ Metin Kutusu</span>
+            </button>
+
+            <!-- Renkli Çerçeve / Ayın Konuğu Kartı Ekle -->
+            <button onclick="addCanvasElement('card')" class="px-2.5 py-1.5 rounded-xl bg-amber-600/25 hover:bg-amber-600/40 text-amber-300 border border-amber-500/40 text-xs font-bold flex items-center gap-1 transition" title="Ayın Konuğu Sayfasındaki Gibi Degrade / Renkli Çerçeve Kutusu Ekler">
+              <i class="ph ph-frame-corners text-sm"></i>
+              <span>+ Renkli Çerçeve</span>
+            </button>
+
+            <!-- Soru / Bilgi Kutusu Ekle -->
+            <button onclick="addCanvasElement('qbox')" class="px-2.5 py-1.5 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1 transition" title="Röportaj Soru-Cevap veya Bilgi Çerçevesi Ekler">
+              <i class="ph ph-chat-centered-text text-sm"></i>
+              <span>+ Soru Kutusu</span>
+            </button>
+
+            <!-- Resim Ekle -->
+            <label class="px-2.5 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/35 text-sky-300 border border-sky-500/30 text-xs font-semibold flex items-center gap-1 transition cursor-pointer">
+              <i class="ph ph-image text-sm"></i>
+              <span>+ Resim</span>
+              <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event)" class="hidden">
+            </label>
+
+            <!-- Video Ekle (MP4) -->
+            <label class="px-2.5 py-1.5 rounded-xl bg-purple-600/20 hover:bg-purple-600/35 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1 transition cursor-pointer">
+              <i class="ph ph-video-camera text-sm"></i>
+              <span>+ Video</span>
+              <input type="file" accept="video/mp4,video/*" onchange="handleCanvasVideoUpload(event)" class="hidden">
+            </label>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <span id="pageReviewBadge" class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Onaylandı</span>
+            <span id="pageOwnershipText" class="text-[11px] text-slate-400 hidden lg:inline">Sorumlu: <strong>Admin</strong></span>
+            <button onclick="toggleSpreadMode()" id="btnSpreadToggle" class="px-2 py-1 rounded-lg bg-slate-900 text-slate-300 hover:text-white border border-slate-700 text-[11px] font-medium">
+              <i class="ph ph-columns mr-1"></i><span id="spreadToggleText">Çift Sayfa</span>
+            </button>
+            <button onclick="toggleGridOverlay()" id="btnGridToggle" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-800 transition flex items-center gap-1" title="Izgara Kılavuzu">
+              <i class="ph ph-grid-four text-indigo-400"></i>
+            </button>
+            <button onclick="openModal('magSettingsModal')" class="px-2 py-1 rounded-lg bg-slate-900 text-indigo-400 hover:text-indigo-300 border border-slate-800 text-[11px] font-semibold flex items-center gap-1">
+              <i class="ph ph-gear"></i>
+            </button>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <!-- Görünüm Değiştirici -->
-          <button onclick="toggleSpreadMode()" id="btnSpreadToggle" class="px-2.5 py-1 rounded-lg bg-slate-900 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium">
-            <i class="ph ph-columns mr-1"></i><span id="spreadToggleText">Çift Sayfa</span>
-          </button>
-          <!-- Genel Dergi Ayarları -->
-          <button onclick="openModal('magSettingsModal')" class="text-indigo-400 hover:text-indigo-300 text-xs font-semibold flex items-center gap-1">
-            <i class="ph ph-gear"></i> Ayarlar
-          </button>
+        <!-- 2. Satır: HER ZAMAN AÇIK YAZI KARAKTERİ (FONT), PUNTO, RENK VE ÇERÇEVE ARKA PLAN ARAÇLARI -->
+        <div class="flex flex-wrap items-center justify-between gap-1.5 pt-0.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1 mr-1">
+              <i class="ph ph-text-aa text-sm"></i> Yazı & Çerçeve:
+            </span>
+
+            <!-- Font Ailesi (Yazı Karakteri) -->
+            <select id="rtFontFamily" onchange="applyTextStyle('fontFamily', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:border-amber-500 cursor-pointer" title="Yazı Karakteri (Font)">
+              <option value="Inter">Modern Sans (Inter)</option>
+              <option value="'Playfair Display', serif">Edebi Serif (Playfair)</option>
+              <option value="'Cinzel', serif">Destansı Başlık (Cinzel)</option>
+              <option value="'Merriweather', serif">Kitap (Merriweather)</option>
+              <option value="'Plus Jakarta Sans', sans-serif">Kurumsal (Jakarta)</option>
+              <option value="'Caveat', cursive">El Yazısı (Caveat)</option>
+              <option value="monospace">Kod / Daktilo (Mono)</option>
+            </select>
+
+            <!-- Punto Seçimi -->
+            <select id="rtFontSize" onchange="applyTextStyle('fontSize', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white focus:border-amber-500 cursor-pointer" title="Yazı Boyutu (Punto)">
+              <option value="10">10 px</option>
+              <option value="12">12 px</option>
+              <option value="14" selected>14 px</option>
+              <option value="16">16 px</option>
+              <option value="18">18 px</option>
+              <option value="22">22 px</option>
+              <option value="28">28 px</option>
+              <option value="36">36 px</option>
+              <option value="48">48 px</option>
+              <option value="64">64 px</option>
+            </select>
+
+            <!-- Kalın, İtalik, Altı Çizili -->
+            <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5">
+              <button type="button" onclick="applyTextFormat('bold')" class="px-2 py-0.5 rounded hover:bg-slate-800 text-white font-bold text-xs" title="Kalın (Bold)">B</button>
+              <button type="button" onclick="applyTextFormat('italic')" class="px-2 py-0.5 rounded hover:bg-slate-800 text-white italic font-serif text-xs" title="İtalik">I</button>
+              <button type="button" onclick="applyTextFormat('underline')" class="px-2 py-0.5 rounded hover:bg-slate-800 text-white underline text-xs" title="Altı Çizili">U</button>
+            </div>
+
+            <!-- Yazı Rengi -->
+            <label class="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 cursor-pointer" title="Yazı Rengi Seç">
+              <span class="text-[10px] text-slate-300 font-semibold">Yazı:</span>
+              <input type="color" id="rtColor" value="#ffffff" onchange="applyTextStyle('color', this.value)" class="w-5 h-5 rounded cursor-pointer border-0 bg-transparent">
+            </label>
+
+            <!-- Renkli Çerçeve / Kutu Arka Plan Boyama (Ayın Konuğu Degradeleri Dahil) -->
+            <select id="rtBgColor" onchange="applyTextStyle('bgColor', this.value)" class="bg-slate-900 border border-amber-500/40 rounded-lg px-2 py-1 text-xs text-amber-200 font-semibold cursor-pointer" title="Seçili Yazıya veya Kutuya Renkli Çerçeve / Arka Plan Ver">
+              <option value="transparent">🎨 Çerçeve / Kutu Rengi Yok</option>
+              <option value="linear-gradient(135deg, #d97706, #1e1b4b)">🟠 Ayın Konuğu Degrade (Kehribar-Gece)</option>
+              <option value="linear-gradient(135deg, #4f46e5, #1e1b4b)">🟣 İndigo-Lacivert Degrade Çerçeve</option>
+              <option value="linear-gradient(135deg, #059669, #064e3b)">🟢 Zümrüt-Orman Degrade Çerçeve</option>
+              <option value="linear-gradient(135deg, #e11d48, #4c0519)">🔴 Yakut-Bordo Degrade Çerçeve</option>
+              <option value="linear-gradient(135deg, #0284c7, #0c4a6e)">🔵 Okyanus-Mavi Degrade Çerçeve</option>
+              <option value="#f8fafc">⚪ Gri-Beyaz Soru Kutusu Çerçevesi</option>
+              <option value="#ffffff">⬜ Beyaz Kart Çerçevesi</option>
+              <option value="#0f172a">⬛ Koyu Lacivert Kutu</option>
+              <option value="#fef08a">🟡 Sarı Fosfor / Vurgu</option>
+              <option value="#bbf7d0">🟢 Yeşil Vurgu</option>
+              <option value="#bae6fd">🔵 Açık Mavi Vurgu</option>
+              <option value="#fbcfe8">🌸 Pembe Vurgu</option>
+            </select>
+
+            <!-- Hizalama -->
+            <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5">
+              <button type="button" onclick="applyTextStyle('textAlign', 'left')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Sola Yasla"><i class="ph ph-text-align-left text-xs"></i></button>
+              <button type="button" onclick="applyTextStyle('textAlign', 'center')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Ortala"><i class="ph ph-text-align-center text-xs"></i></button>
+              <button type="button" onclick="applyTextStyle('textAlign', 'right')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Sağa Yasla"><i class="ph ph-text-align-right text-xs"></i></button>
+            </div>
+          </div>
+
+          <!-- Katman Sırası & Seçili Kutuyu Silme -->
+          <div class="flex items-center gap-1">
+            <span id="activeSelectionBadge" class="text-[10px] text-slate-400 font-mono hidden sm:inline mr-1">Metne tıklayın</span>
+            <button type="button" onclick="changeElementLayer(1)" class="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300" title="Öne Getir"><i class="ph ph-bring-forward text-xs"></i></button>
+            <button type="button" onclick="changeElementLayer(-1)" class="p-1 rounded bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300" title="Arkaya Gönder"><i class="ph ph-send-backward text-xs"></i></button>
+            <button type="button" onclick="deleteSelectedCanvasElement()" class="px-2 py-1 rounded bg-rose-500/15 border border-rose-500/30 hover:bg-rose-600/30 text-rose-400 text-[11px] font-semibold flex items-center gap-1" title="Seçili Kutuyu Sil"><i class="ph ph-trash text-xs"></i></button>
+          </div>
         </div>
       </div>
 
-      <!-- HIZLI MİZANPAJ VE ELEMAN EKLEME BARI (CANVAS ACTION BAR) -->
-      <div id="canvasActionBar" class="w-full max-w-4xl flex flex-wrap items-center justify-between gap-2 bg-slate-950/90 p-2 rounded-2xl border border-slate-800 shadow-xl mb-2 backdrop-blur-md">
-        <div class="flex items-center gap-2">
-          <!-- Metin Kutusu Ekle -->
-          <button onclick="addCanvasElement('text')" class="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition">
-            <i class="ph ph-text-t text-sm"></i>
-            <span>+ Metin Kutusu</span>
-          </button>
-
-          <!-- Resim Ekle -->
-          <label class="px-3 py-1.5 rounded-xl bg-sky-600/20 hover:bg-sky-600/30 text-sky-300 border border-sky-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-            <i class="ph ph-image text-sm"></i>
-            <span>+ Resim Ekle</span>
-            <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event)" class="hidden">
-          </label>
-
-          <!-- Video Ekle (MP4) -->
-          <label class="px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer">
-            <i class="ph ph-video-camera text-sm"></i>
-            <span>+ Video (MP4)</span>
-            <input type="file" accept="video/mp4,video/*" onchange="handleCanvasVideoUpload(event)" class="hidden">
-          </label>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <!-- Kılavuz / Grid Çizgileri Toggle -->
-          <button onclick="toggleGridOverlay()" id="btnGridToggle" class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium border border-slate-800 transition flex items-center gap-1.5" title="Mizanpaj Izgara Kılavuzunu Göster/Gizle">
-            <i class="ph ph-grid-four text-base text-indigo-400"></i>
-            <span class="hidden sm:inline">Izgara Kılavuzu</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- ZENGİN TİPOGRAFİ YÜZEN ARAÇ ÇUBUĞU (FLOATING RICH TEXT TOOLBAR) -->
-      <div id="floatingRichTextBar" class="rich-text-bar hidden">
-        <!-- Punto Seçimi -->
-        <select id="rtFontSize" onchange="applyTextStyle('fontSize', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
-          <option value="11">11 px</option>
-          <option value="13">13 px</option>
-          <option value="15">15 px</option>
-          <option value="18">18 px</option>
-          <option value="22">22 px</option>
-          <option value="28">28 px</option>
-          <option value="36">36 px</option>
-          <option value="48">48 px</option>
-        </select>
-
-        <!-- Font Ailesi -->
-        <select id="rtFontFamily" onchange="applyTextStyle('fontFamily', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white">
-          <option value="Inter">Modern (Inter)</option>
-          <option value="'Playfair Display', serif">Edebi (Playfair)</option>
-          <option value="'Cinzel', serif">Destansı (Cinzel)</option>
-          <option value="'Merriweather', serif">Kitap (Merriweather)</option>
-          <option value="'Caveat', cursive">El Yazısı (Caveat)</option>
-        </select>
-
-        <!-- Kalın, İtalik, Altı Çizili -->
-        <button type="button" onclick="applyTextFormat('bold')" class="px-2 py-1 rounded hover:bg-slate-800 text-white font-bold text-xs">B</button>
-        <button type="button" onclick="applyTextFormat('italic')" class="px-2 py-1 rounded hover:bg-slate-800 text-white italic font-serif text-xs">I</button>
-        <button type="button" onclick="applyTextFormat('underline')" class="px-2 py-1 rounded hover:bg-slate-800 text-white underline text-xs">U</button>
-
-        <!-- Yazı Rengi -->
-        <input type="color" id="rtColor" onchange="applyTextStyle('color', this.value)" title="Yazı Rengi" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent">
-
-        <!-- Fosforlu / Arka Plan Boyama -->
-        <select id="rtBgColor" onchange="applyTextStyle('bgColor', this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-[11px] text-slate-200">
-          <option value="transparent">Fosfor Yok</option>
-          <option value="#fef08a">🟡 Sarı</option>
-          <option value="#bbf7d0">🟢 Yeşil</option>
-          <option value="#bae6fd">🔵 Mavi</option>
-          <option value="#fbcfe8">🌸 Pembe</option>
-          <option value="#ffffff">⚪ Beyaz Kutu</option>
-        </select>
-
-        <!-- Hizalama -->
-        <button type="button" onclick="applyTextStyle('textAlign', 'left')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Sola Yasla"><i class="ph ph-text-align-left text-sm"></i></button>
-        <button type="button" onclick="applyTextStyle('textAlign', 'center')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Ortala"><i class="ph ph-text-align-center text-sm"></i></button>
-        <button type="button" onclick="applyTextStyle('textAlign', 'right')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Sağa Yasla"><i class="ph ph-text-align-right text-sm"></i></button>
-        <button type="button" onclick="applyTextStyle('textAlign', 'justify')" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="İki Yana Yasla"><i class="ph ph-text-align-justify text-sm"></i></button>
-
-        <div class="h-4 w-px bg-slate-700 mx-0.5"></div>
-
-        <!-- Katman Sırası & Silme -->
-        <button type="button" onclick="changeElementLayer(1)" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Öne Getir"><i class="ph ph-bring-forward text-sm"></i></button>
-        <button type="button" onclick="changeElementLayer(-1)" class="p-1 rounded hover:bg-slate-800 text-slate-300" title="Arkaya Gönder"><i class="ph ph-send-backward text-sm"></i></button>
-        <button type="button" onclick="deleteSelectedCanvasElement()" class="p-1 rounded hover:bg-rose-900/60 text-rose-400" title="Sil"><i class="ph ph-trash text-sm"></i></button>
-      </div>
+      <!-- Geriye dönük uyumluluk için gizli tutucu -->
+      <div id="canvasTopBanner" class="hidden"></div>
+      <div id="floatingRichTextBar" class="hidden"></div>
 
       <!-- Admin Revizyon / Uyarı Notu (Eğer Varsa) -->
       <div id="adminStickyNoteBox" class="w-full max-w-4xl hidden mb-2 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-3">
@@ -722,6 +765,58 @@
             <span>Dergiyi ve Okulu Kaydet</span>
           </button>
         </div>
+
+        <!-- Kayıtlı Okul & Örnek Dergileri Yönetme / Silme Listesi -->
+        <div class="pt-3 border-t border-slate-800">
+          <label class="block text-[11px] font-bold uppercase tracking-wider text-rose-400 mb-2 flex items-center gap-1">
+            <i class="ph ph-trash"></i> Kayıtlı Okullar & Örnek Dergileri Sil / Yönet
+          </label>
+          <div id="registeredMagazinesList" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <!-- JS ile doldurulur -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: OKUL FARK ETMEKSİZİN TÜM ŞABLONLAR & 20 HAZIR KONSEPT GALERİSİ -->
+  <div id="allTemplatesModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-6xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-flip select-none">
+      <!-- Üst Başlık -->
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950/80">
+        <div>
+          <h3 class="font-display font-bold text-base sm:text-lg text-white flex items-center gap-2">
+            <i class="ph ph-palette text-amber-400 text-xl"></i>
+            <span>Tüm Dergi Konseptleri (20 Ekol) & Sayfa Şablonları Kataloğu</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-0.5">Okul fark etmeksizin tüm hazır tasarımları inceleyin; ister açık olan sayfaya giydirin, ister yeni sayfa olarak derginize ekleyin.</p>
+        </div>
+        <button onclick="closeModal('allTemplatesModal')" class="text-slate-400 hover:text-white p-1.5 rounded-xl bg-slate-800/80">
+          <i class="ph ph-x text-xl"></i>
+        </button>
+      </div>
+
+      <!-- İçerik Gövdesi -->
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
+        <!-- BÖLÜM 1: 13 Temel Sayfa Türü Şablonu -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-3 flex items-center gap-1.5">
+            <i class="ph ph-files text-base"></i> A. Tüm Sayfa Mizanpaj Şablonları (Açık Sayfaya Uygula veya Yeni Ekle)
+          </h4>
+          <div id="allPageTypesGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <!-- JS ile doldurulur -->
+          </div>
+        </div>
+
+        <!-- BÖLÜM 2: 20 Hazır Dergi Konsepti -->
+        <div class="pt-4 border-t border-slate-800">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-1.5">
+            <i class="ph ph-sparkle text-base"></i> B. 20 Hazır Dergi & Kapak Konsepti (Okul Fark Etmeksizin Tüm Temalar)
+          </h4>
+          <div id="allPresetsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+            <!-- JS ile 20 konsept doldurulur -->
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -797,6 +892,6 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261027_05"></script>
+  <script src="/js/studio.js?v=20261027_06"></script>
 </body>
 </html>

@@ -194,6 +194,7 @@ async function loadAllMagazines() {
   }
 
   updateMagazineHeaderUI();
+  renderRegisteredMagazinesList();
   await loadAllIssues(currentMagazine.id);
 }
 
@@ -201,6 +202,304 @@ function updateMagazineHeaderUI() {
   if (!currentMagazine) return;
   const schoolText = document.getElementById('headerSchoolText');
   if (schoolText) schoolText.textContent = currentMagazine.schoolName;
+}
+
+function renderRegisteredMagazinesList() {
+  const container = document.getElementById('registeredMagazinesList');
+  if (!container) return;
+  if (!allMagazines || allMagazines.length === 0) {
+    container.innerHTML = `<div class="text-xs text-slate-500">Kayıtlı dergi bulunamadı.</div>`;
+    return;
+  }
+  container.innerHTML = allMagazines.map(m => `
+    <div class="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs">
+      <div class="truncate pr-2">
+        <strong class="text-white">${escapeHtml(m.name)}</strong>
+        <span class="text-slate-400 ml-1">(${escapeHtml(m.schoolName)})</span>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="onMagazineChange('${m.id}'); closeModal('newMagazineModal');" class="px-2 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-[10.5px] font-semibold">Aç</button>
+        <button onclick="deleteMagazineById('${m.id}')" class="px-2 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-600 text-rose-300 hover:text-white text-[10.5px] font-bold flex items-center gap-1 transition">
+          <i class="ph ph-trash"></i> Sil
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deleteCurrentMagazine() {
+  if (!currentMagazine) return;
+  await deleteMagazineById(currentMagazine.id);
+}
+
+async function deleteMagazineById(magId) {
+  if (currentUser.role !== 'admin') {
+    showToast("Yalnızca Yönetici (Admin) dergi silebilir!");
+    return;
+  }
+  if (allMagazines.length <= 1) {
+    showToast("Sistemde en az 1 dergi bulunmalıdır! Önce yeni derginizi ekleyin, sonra örneği silin.");
+    return;
+  }
+  const target = allMagazines.find(m => m.id === magId);
+  if (!target) return;
+
+  if (!confirm(`"${target.name} (${target.schoolName})" dergisini ve bağlı tüm sayılarını kalıcı olarak silmek istediğinize emin misiniz?`)) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/magazines/${magId}`, {
+      method: 'DELETE',
+      headers: { 'x-access-code': currentUser.code }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🗑️ "${target.name}" dergisi silindi!`);
+      await loadAllMagazines();
+      if (allMagazines.length > 0) {
+        await onMagazineChange(allMagazines[0].id);
+      }
+    } else {
+      showToast(data.error || "Silinemedi!");
+    }
+  } catch (err) {
+    showToast("Sunucu bağlantı hatası!");
+  }
+}
+
+async function deleteCurrentIssue() {
+  if (currentUser.role !== 'admin') {
+    showToast("Yalnızca Yönetici (Admin) sayı silebilir!");
+    return;
+  }
+  if (!currentIssue) return;
+  if (allIssues.length <= 1) {
+    showToast("Bu dergide en az 1 sayı bulunmalıdır!");
+    return;
+  }
+  if (!confirm(`"${currentIssue.title}" sayısını kalıcı olarak silmek istediğinize emin misiniz?`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/issues/${currentIssue.id}`, {
+      method: 'DELETE',
+      headers: { 'x-access-code': currentUser.code }
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast(`🗑️ "${currentIssue.title}" sayısı silindi!`);
+      await loadAllIssues(currentMagazine ? currentMagazine.id : null);
+    } else {
+      showToast(data.error || "Sayı silinemedi!");
+    }
+  } catch (err) {
+    showToast("Sunucu hatası!");
+  }
+}
+
+// ==========================================
+// TÜM ŞABLONLAR & 20 KONSEPT GALERİSİ (OKUL FARK ETMEKSİZİN)
+// ==========================================
+const ALL_PAGE_TEMPLATES_CATALOG = [
+  { type: 'cover', layout: 'minimalist', title: '🏛️ K1 • Minimalist Kapak', desc: 'Sol siyah özet bloğu, sağ dikey görsel ve barkod.', badge: 'Minimalist', color: '#d97706' },
+  { type: 'cover', layout: 'brutalist', title: '⚡ K1 • Brütalist Kapak', desc: 'Devasa üst üste başlık, eğik görsel çerçevesi ve sarı rozet.', badge: 'Brütalist', color: '#eab308' },
+  { type: 'cover', layout: 'modular', title: '📐 K1 • Modüler Kapak', desc: 'Net ızgara çerçeveleri, 2 sütun görsel, 1 sütun kutu yığını.', badge: 'Modüler', color: '#0284c7' },
+  { type: 'cover', layout: 'fullscreen', title: '🌄 K1 • Fullscreen Kapak', desc: 'Tam sayfa görsel üzeri edebi manşet ve yatay spotlar.', badge: 'Fullscreen', color: '#10b981' },
+  { type: 'k2', subType: 'ataturk', title: '🇹🇷 K2 • Atatürk & Hitabe', desc: 'Cumhuriyet köşesi, Atatürk portresi ve Gençliğe Hitabe.', badge: 'Kapak İçi A', color: '#dc2626' },
+  { type: 'k2', subType: 'director', title: '✍️ K2 • Müdür / Sunuş Yazısı', desc: 'Okul müdürü veya genel yayın yönetmeni hoş geldiniz mesajı.', badge: 'Kapak İçi B', color: '#4f46e5' },
+  { type: 'k2', subType: 'artistic', title: '🎨 K2 • Sanatsal Vizyon', desc: 'Tam sayfa sanatsal fotoğraf ve okul vizyon sözü.', badge: 'Kapak İçi C', color: '#8b5cf6' },
+  { type: 'toc', title: '📑 İçindekiler & Başyazı', desc: 'Editörün masası, vurgu alıntısı ve tıklanabilir sayfa fihristi.', badge: 'Fihrist', color: '#6366f1' },
+  { type: 'article', title: '📰 Özel Dosya & Makale', desc: 'Manşet fotoğrafı, iki sütunlu yazı ve vurgu alıntı kutusu.', badge: 'Makale', color: '#3b82f6' },
+  { type: 'interview', title: '🎙️ Ayın Konuğu & Röportaj', desc: 'Renkli degrade konuk çerçevesi ve S1-S2-S3 soru-cevap kutuları.', badge: 'Renkli Çerçeveli', color: '#d97706' },
+  { type: 'literature', title: '🪶 Edebiyat & Şiir Köşesi', desc: 'Sanatsal görsel, ortalı şiir/deneme tipografisi ve alt not.', badge: 'Sanat & Şiir', color: '#ec4899' },
+  { type: 'video', title: '🎬 Etkinlik & Video (MP4)', desc: 'Sayfa içi gömülü MP4 video oynatıcı, başlık ve açıklama.', badge: 'Multimedya', color: '#f59e0b' },
+  { type: 'quiz', title: '💡 Etkileşimli Köşe & Quiz', desc: 'Çoktan seçmeli ödüllü soru kutusu + Ayın Kitap & Film önerisi.', badge: 'İnteraktif', color: '#14b8a6' },
+  { type: 'k3', title: '👥 K3 • Arka Kapak İçi (Künye)', desc: 'Resmi yayın kurulu künyesi ve Gelecek Sayıda Neler Var kutusu.', badge: 'Künye', color: '#64748b' },
+  { type: 'k4', title: '🏁 K4 • Arka Dış Kapak', desc: 'Prestij halka rozeti, QR kod, okul mottosu ve barkod.', badge: 'Arka Kapak', color: '#4f46e5' },
+  { type: 'freeform', title: '✨ Boş Tuval (Serbest Tasarım)', desc: 'Metin kutuları, renkli çerçeveler, resim ve videoları serbestçe dizin.', badge: 'Serbest', color: '#10b981' }
+];
+
+function openAllTemplatesModal() {
+  const pageGrid = document.getElementById('allPageTypesGrid');
+  const presetGrid = document.getElementById('allPresetsGrid');
+
+  if (pageGrid) {
+    pageGrid.innerHTML = ALL_PAGE_TEMPLATES_CATALOG.map((item, idx) => `
+      <div class="bg-slate-950 border border-slate-800 hover:border-indigo-500/60 rounded-2xl p-3.5 flex flex-col justify-between transition group">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase text-white" style="background-color: ${item.color}">${escapeHtml(item.badge)}</span>
+            <span class="text-[10px] text-slate-500 font-mono">#${idx + 1}</span>
+          </div>
+          <h5 class="font-bold text-white text-xs mb-1">${escapeHtml(item.title)}</h5>
+          <p class="text-[11px] text-slate-400 leading-snug mb-3">${escapeHtml(item.desc)}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
+          <button onclick="convertCurrentPageToTemplate('${item.type}', '${item.layout || item.subType || ''}')" class="py-1.5 px-2 rounded-xl bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/30 text-[10.5px] font-bold transition">
+            ⚡ Bu Sayfaya Uygula
+          </button>
+          <button onclick="addNewPage('${item.type}', '${item.layout || item.subType || ''}'); closeModal('allTemplatesModal');" class="py-1.5 px-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-[10.5px] font-bold transition">
+            ➕ Yeni Sayfa Ekle
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  if (presetGrid) {
+    presetGrid.innerHTML = MAGAZINE_PRESETS.map(p => `
+      <div class="bg-slate-950 border border-slate-800 hover:border-amber-500/60 rounded-2xl p-3.5 flex flex-col justify-between transition">
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase text-white shadow" style="background-color: ${p.accent}">${escapeHtml(p.category)}</span>
+            <span class="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-slate-900 text-amber-300 border border-slate-700">${escapeHtml(p.layout)}</span>
+          </div>
+          <div class="p-2.5 rounded-xl mb-2.5 border border-slate-800/90" style="background: linear-gradient(135deg, ${p.accent}33, #0f172a)">
+            <div class="text-[10px] font-mono text-slate-300 uppercase tracking-widest">${escapeHtml(p.name)}</div>
+            <div class="font-serif font-black text-base text-white tracking-tight truncate">${escapeHtml(p.title)}</div>
+            <div class="text-[11px] font-bold text-amber-300 truncate mt-0.5">${escapeHtml(p.headline)}</div>
+          </div>
+          <p class="text-[11px] text-slate-400 leading-snug mb-3 line-clamp-2">${escapeHtml(p.desc)}</p>
+        </div>
+        <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-slate-800/80">
+          <button onclick="applyConceptToCurrentPage(${p.id})" class="py-1.5 px-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-[10.5px] font-bold transition shadow">
+            ⚡ Sayfaya Uygula
+          </button>
+          <button onclick="addConceptAsNewPage(${p.id})" class="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white text-[10.5px] font-semibold transition">
+            ➕ Yeni Kapak Ekle
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  openModal('allTemplatesModal');
+}
+
+function applyConceptToCurrentPage(presetId) {
+  const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId));
+  const page = magazineData.pages[selectedEditIndex];
+  if (!preset || !page) return;
+  if (!canUserEditPage(page)) {
+    showToast("Bu sayfayı düzenleme yetkiniz yok!");
+    return;
+  }
+
+  page.type = 'cover';
+  page.layout = preset.layout;
+  page.accentColor = preset.accent;
+  page.magazineName = preset.title;
+  page.issueTag = "SAYI 01 • 2026";
+  page.price = preset.category.toUpperCase();
+  page.mainHeadline = preset.headline;
+  page.subHeadline = preset.desc;
+  page.highlights = (preset.subs || []).join('\n');
+  if (!page.coverImage) {
+    page.coverImage = "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80";
+  }
+
+  closeModal('allTemplatesModal');
+  renderAll();
+  saveAllChangesToServer();
+  showToast(`🎨 "${preset.name}" konsepti mevcut sayfaya uygulandı!`);
+}
+
+function addConceptAsNewPage(presetId) {
+  if (currentUser.role !== 'admin') {
+    showToast("Yalnızca Admin yeni sayfa ekleyebilir!");
+    return;
+  }
+  const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId));
+  if (!preset) return;
+
+  const newPage = {
+    id: 'p' + Date.now(),
+    type: 'cover',
+    layout: preset.layout,
+    navTitle: `Kapak • ${preset.name}`,
+    accentColor: preset.accent,
+    assignedEditor: currentUser.code,
+    status: 'draft',
+    magazineName: preset.title,
+    issueTag: "SAYI 01 • 2026",
+    price: preset.category.toUpperCase(),
+    mainHeadline: preset.headline,
+    subHeadline: preset.desc,
+    coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+    highlights: (preset.subs || []).join('\n'),
+    elements: []
+  };
+
+  magazineData.pages.push(newPage);
+  closeModal('allTemplatesModal');
+  selectPageForEdit(magazineData.pages.length - 1);
+  saveAllChangesToServer();
+  showToast(`➕ "${preset.name}" konseptli yeni sayfa eklendi!`);
+}
+
+function convertCurrentPageToTemplate(templateType, subOption = '') {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !canUserEditPage(page)) {
+    showToast("Bu sayfayı düzenleme yetkiniz yok!");
+    return;
+  }
+
+  page.type = templateType;
+  if (templateType === 'cover') {
+    page.layout = subOption || 'minimalist';
+    page.magazineName = page.magazineName || (currentMagazine ? currentMagazine.name.toUpperCase() : 'DERGİ');
+    page.issueTag = page.issueTag || 'SAYI 01 • 2026';
+    page.price = page.price || 'OKUL E-DERGİSİ';
+    page.mainHeadline = page.mainHeadline || 'Kapak Ana Manşet Başlığı';
+    page.subHeadline = page.subHeadline || 'Alt başlık ve dosya açıklaması buraya girilir.';
+    page.coverImage = page.coverImage || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80';
+    page.highlights = page.highlights || 'Özel Dosya\nAyın Röportajı\nEdebiyat Köşesi';
+  } else if (templateType === 'k2') {
+    page.subType = subOption || 'ataturk';
+    page.headerText = page.headerText || (page.subType === 'ataturk' ? 'TÜRK GENÇLİĞİNE HİTABE' : 'SUNUŞ & BAŞYAZI');
+    page.subText = page.subText || 'Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti\'ni, ilelebet muhafaza ve müdafaa etmektir.';
+    page.author = page.author || 'Gazi Mustafa Kemal Atatürk';
+    page.image = page.image || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=800&q=80';
+    page.quote = page.quote || 'Bütün ümidim gençliktedir.';
+  } else if (templateType === 'interview') {
+    page.rubric = page.rubric || 'AYIN KONUĞU';
+    page.interviewee = page.interviewee || 'Selin Arslan';
+    page.role = page.role || 'Türk Dili ve Edebiyatı Öğretmeni';
+    page.intro = page.intro || 'Okulumuzun sevilen öğretmenleriyle gerçekleştirdiğimiz keyifli söyleşi.';
+    page.photo = page.photo || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80';
+    page.q1 = page.q1 || 'Lise yıllarınızda nasıl bir öğrenciydiniz? Edebiyata ilginiz o zaman mı başladı?';
+    page.a1 = page.a1 || 'Çok meraklı ve kütüphaneden çıkmayan bir öğrenciydim. Okul dergisine yazdığım ilk öykü yayınlandığında yaşadığım heyecan bugün öğretmen olmamın en büyük sebebidir.';
+    page.q2 = page.q2 || 'Dijital çağda lise öğrencilerine okuma alışkanlığı kazanmaları için ne önerirsiniz?';
+    page.a2 = page.a2 || 'Klasikleri okumak harikadır ama önce kendi ilgi alanınızı keşfedin. Sizi büyüleyen o ilk kitabı bulduğunuzda gerisi gelecektir.';
+    page.q3 = page.q3 || 'Dergimiz ekibine ve genç yazarlarımıza son mesajınız nedir?';
+    page.a3 = page.a3 || 'Yazmaktan ve üretmekten asla vazgeçmeyin. Kaleminiz daima özgür ve özgün olsun.';
+  } else if (templateType === 'article') {
+    page.category = page.category || 'ÖZEL DOSYA';
+    page.title = page.title || 'Geleceğin Dünyasında Bilim ve Sanat';
+    page.author = page.author || 'Araştırma Kulübü';
+    page.image = page.image || 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80';
+    page.imageCaption = page.imageCaption || 'Proje atölyesinden bir görünüm.';
+    page.content = page.content || 'Makale metninizi doğrudan üzerine tıklayarak veya sağ panelden düzenleyebilirsiniz.';
+    page.pullQuote = page.pullQuote || 'Yaratıcılık, sınırları zorlamakla başlar.';
+  } else if (templateType === 'literature') {
+    page.header = page.header || 'KALEMİMİZDEN • EDEBİYAT & SANAT';
+    page.title = page.title || 'Ekim Rüzgarı ve Koridorlar';
+    page.author = page.author || 'Elif Su Yıldız • 11-C';
+    page.bgImage = page.bgImage || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80';
+    page.poemText = page.poemText || 'Sarı yapraklar düşerken okul bahçesine,\nBir zil sesi böler en derin hayalleri.\nTahta sıralarda kazılı eski isimler,\nAnlatır sessizce geçen tüm mevsimleri.';
+    page.bottomNote = page.bottomNote || 'Siz de şiir ve denemelerinizi dergi ekibimize gönderebilirsiniz.';
+  } else if (templateType === 'toc') {
+    page.editorTitle = page.editorTitle || 'Bu Sayıya Dair';
+    page.editorQuote = page.editorQuote || 'Dergimizi hazırlarken ilhamımızı sanattan ve bilimden alıyoruz.';
+    page.editorText = page.editorText || 'Yeni sayımızda öğrencilerimizin ve öğretmenlerimizin ortak emeğiyle hazırlanan zengin içeriklerle karşınızdayız.';
+    page.editorName = page.editorName || 'Genel Yayın Yönetmeni';
+  }
+
+  closeModal('allTemplatesModal');
+  renderAll();
+  saveAllChangesToServer();
+  showToast(`⚡ Sayfa şablonu "${templateType.toUpperCase()}" olarak güncellendi!`);
 }
 
 async function onMagazineChange(newMagId) {
@@ -694,11 +993,17 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       `;
     }
 
-    // Metin Kutusu Elemanı
-    if (el.type === 'text') {
-      elDom.className += ' canvas-text-element p-2.5 rounded-xl border leading-relaxed overflow-hidden';
-      elDom.style.backgroundColor = el.bgColor || '#ffffff';
-      elDom.style.borderColor = el.borderColor || '#cbd5e1';
+    // Metin Kutusu / Renkli Çerçeve Elemanı
+    if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
+      elDom.className += ' canvas-text-element p-3 rounded-2xl border leading-relaxed overflow-hidden shadow-md';
+      if (el.bgColor && el.bgColor.startsWith('linear-gradient')) {
+        elDom.style.background = el.bgColor;
+        elDom.style.borderColor = el.borderColor || 'rgba(255,255,255,0.28)';
+      } else {
+        elDom.style.background = 'none';
+        elDom.style.backgroundColor = el.bgColor || '#ffffff';
+        elDom.style.borderColor = el.borderColor || '#cbd5e1';
+      }
       elDom.style.fontSize = `${el.fontSize || 14}px`;
       elDom.style.fontFamily = el.fontFamily || 'Inter';
       elDom.style.color = el.color || '#0f172a';
@@ -708,6 +1013,8 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       if (isEditable) {
         elDom.contentEditable = "true";
         elDom.onfocus = () => {
+          activeInlineElement = null;
+          activeInlineFieldKey = null;
           showFloatingRichTextBar(elDom, el);
         };
         elDom.oninput = () => {
@@ -972,59 +1279,177 @@ function startRotatingElement(e, el, pageWrapper) {
   window.addEventListener('mouseup', onMouseUp);
 }
 
-// Zengin Tipografi Araç Çubuğu Kontrolleri
+// Zengin Tipografi & Renkli Çerçeve Araç Çubuğu Kontrolleri (Sabit Üst Bar ile Entegre)
+let activeInlineElement = null;
+let activeInlineFieldKey = null;
+
 function showFloatingRichTextBar(elDom, el) {
-  const bar = document.getElementById('floatingRichTextBar');
-  if (!bar) return;
+  const badge = document.getElementById('activeSelectionBadge');
+  if (badge) {
+    badge.textContent = "Seçili: Serbest Kutu";
+    badge.className = "text-[10px] text-emerald-400 font-mono font-bold mr-1";
+  }
 
-  const rect = elDom.getBoundingClientRect();
-  bar.classList.remove('hidden');
-  bar.style.top = `${Math.max(10, rect.top - 46)}px`;
-  bar.style.left = `${Math.max(10, rect.left)}px`;
+  const fsEl = document.getElementById('rtFontSize');
+  const ffEl = document.getElementById('rtFontFamily');
+  const colEl = document.getElementById('rtColor');
+  const bgEl = document.getElementById('rtBgColor');
 
-  document.getElementById('rtFontSize').value = el.fontSize || 13;
-  document.getElementById('rtFontFamily').value = el.fontFamily || 'Inter';
-  document.getElementById('rtColor').value = el.color || '#0f172a';
-  document.getElementById('rtBgColor').value = el.bgColor || 'transparent';
+  if (fsEl) fsEl.value = el.fontSize || 14;
+  if (ffEl) ffEl.value = el.fontFamily || 'Inter';
+  if (colEl) colEl.value = (el.color && el.color.startsWith('#')) ? el.color : '#ffffff';
+  if (bgEl) bgEl.value = el.bgColor || 'transparent';
 }
 
 function hideFloatingRichTextBar() {
-  const bar = document.getElementById('floatingRichTextBar');
-  if (bar) bar.classList.add('hidden');
+  // Sabit üst bar her zaman görünür kalır
+}
+
+function handleInlineTextFocus(pageIndex, key, domEl) {
+  activeInlineElement = domEl;
+  activeInlineFieldKey = key;
+  selectedElementId = null;
+
+  const badge = document.getElementById('activeSelectionBadge');
+  if (badge) {
+    badge.textContent = `Seçili: ${key}`;
+    badge.className = "text-[10px] text-amber-400 font-mono font-bold mr-1";
+  }
+
+  const page = magazineData.pages[pageIndex];
+  const fs = (page && page.fieldStyles && page.fieldStyles[key]) ? page.fieldStyles[key] : {};
+
+  const fsEl = document.getElementById('rtFontSize');
+  const ffEl = document.getElementById('rtFontFamily');
+  const colEl = document.getElementById('rtColor');
+  const bgEl = document.getElementById('rtBgColor');
+
+  if (fsEl && fs.fontSize) fsEl.value = fs.fontSize;
+  if (ffEl && fs.fontFamily) ffEl.value = fs.fontFamily;
+  if (colEl && fs.color && fs.color.startsWith('#')) colEl.value = fs.color;
+  if (bgEl) bgEl.value = fs.bgColor || 'transparent';
 }
 
 function applyTextStyle(prop, val) {
   const page = magazineData.pages[selectedEditIndex];
-  const el = (page.elements || []).find(x => x.id === selectedElementId);
-  if (!el) return;
+  if (!page) return;
 
-  el[prop] = val;
-  const elDom = document.getElementById(`elDom_${el.id}`);
-  if (elDom) {
-    if (prop === 'fontSize') elDom.style.fontSize = `${val}px`;
-    if (prop === 'fontFamily') elDom.style.fontFamily = val;
-    if (prop === 'color') elDom.style.color = val;
-    if (prop === 'bgColor') elDom.style.backgroundColor = val;
-    if (prop === 'textAlign') elDom.style.textAlign = val;
+  // 1. Durum: Serbest eklenen kutu veya renkli çerçeve seçiliyse
+  if (selectedElementId) {
+    const el = (page.elements || []).find(x => x.id === selectedElementId);
+    if (!el) return;
+
+    el[prop] = val;
+    const elDom = document.getElementById(`elDom_${el.id}`);
+    if (elDom) {
+      if (prop === 'fontSize') elDom.style.fontSize = `${val}px`;
+      if (prop === 'fontFamily') elDom.style.fontFamily = val;
+      if (prop === 'color') elDom.style.color = val;
+      if (prop === 'bgColor') {
+        if (val && val.startsWith('linear-gradient')) {
+          elDom.style.background = val;
+          elDom.style.borderColor = 'rgba(255,255,255,0.28)';
+          if (!el.color || el.color === '#0f172a') {
+            el.color = '#ffffff';
+            elDom.style.color = '#ffffff';
+          }
+        } else {
+          elDom.style.background = 'none';
+          elDom.style.backgroundColor = val;
+          elDom.style.borderColor = val === 'transparent' ? 'transparent' : '#cbd5e1';
+        }
+      }
+      if (prop === 'textAlign') elDom.style.textAlign = val;
+    }
+    saveAllChangesToServer();
+    return;
   }
-  saveAllChangesToServer();
+
+  // 2. Durum: Şablon içindeki herhangi bir metin seçiliyse (Inline Editable Text)
+  if (activeInlineFieldKey && activeInlineElement) {
+    if (!page.fieldStyles) page.fieldStyles = {};
+    if (!page.fieldStyles[activeInlineFieldKey]) page.fieldStyles[activeInlineFieldKey] = {};
+    page.fieldStyles[activeInlineFieldKey][prop] = val;
+
+    if (prop === 'fontSize') activeInlineElement.style.fontSize = `${val}px`;
+    if (prop === 'fontFamily') activeInlineElement.style.fontFamily = val;
+    if (prop === 'color') activeInlineElement.style.color = val;
+    if (prop === 'textAlign') activeInlineElement.style.textAlign = val;
+    if (prop === 'bgColor') {
+      if (val === 'transparent') {
+        activeInlineElement.style.background = 'none';
+        activeInlineElement.style.backgroundColor = 'transparent';
+        activeInlineElement.style.padding = '';
+        activeInlineElement.style.borderRadius = '';
+        activeInlineElement.style.border = '';
+      } else if (val.startsWith('linear-gradient')) {
+        activeInlineElement.style.background = val;
+        activeInlineElement.style.padding = '10px 14px';
+        activeInlineElement.style.borderRadius = '14px';
+        activeInlineElement.style.border = '1px solid rgba(255,255,255,0.25)';
+        activeInlineElement.style.color = '#ffffff';
+        page.fieldStyles[activeInlineFieldKey].color = '#ffffff';
+      } else {
+        activeInlineElement.style.background = 'none';
+        activeInlineElement.style.backgroundColor = val;
+        activeInlineElement.style.padding = '6px 12px';
+        activeInlineElement.style.borderRadius = '10px';
+        activeInlineElement.style.border = '1px solid rgba(148,163,184,0.35)';
+      }
+    }
+
+    saveAllChangesToServer();
+    showToast("Yazı ve çerçeve stili uygulandı!");
+    return;
+  }
+
+  showToast("Lütfen önce sayfa üzerindeki bir yazıya veya kutuya tıklayın.");
 }
 
 function applyTextFormat(cmd) {
-  document.execCommand(cmd, false, null);
-  const elDom = document.getElementById(`elDom_${selectedElementId}`);
   const page = magazineData.pages[selectedEditIndex];
-  const el = (page.elements || []).find(x => x.id === selectedElementId);
-  if (el && elDom) {
-    el.content = elDom.innerHTML;
-    saveAllChangesToServer();
+  if (!page) return;
+
+  if (selectedElementId) {
+    document.execCommand(cmd, false, null);
+    const elDom = document.getElementById(`elDom_${selectedElementId}`);
+    const el = (page.elements || []).find(x => x.id === selectedElementId);
+    if (el && elDom) {
+      el.content = elDom.innerHTML;
+      saveAllChangesToServer();
+    }
+    return;
   }
+
+  if (activeInlineFieldKey && activeInlineElement) {
+    if (!page.fieldStyles) page.fieldStyles = {};
+    if (!page.fieldStyles[activeInlineFieldKey]) page.fieldStyles[activeInlineFieldKey] = {};
+    const fs = page.fieldStyles[activeInlineFieldKey];
+
+    if (cmd === 'bold') {
+      fs.fontWeight = fs.fontWeight === 'bold' ? 'normal' : 'bold';
+      activeInlineElement.style.fontWeight = fs.fontWeight;
+    } else if (cmd === 'italic') {
+      fs.fontStyle = fs.fontStyle === 'italic' ? 'normal' : 'italic';
+      activeInlineElement.style.fontStyle = fs.fontStyle;
+    } else if (cmd === 'underline') {
+      fs.textDecoration = fs.textDecoration === 'underline' ? 'none' : 'underline';
+      activeInlineElement.style.textDecoration = fs.textDecoration;
+    }
+    saveAllChangesToServer();
+    return;
+  }
+
+  showToast("Lütfen önce sayfa üzerindeki bir yazıya tıklayın.");
 }
 
 function changeElementLayer(delta) {
   const page = magazineData.pages[selectedEditIndex];
   const el = (page.elements || []).find(x => x.id === selectedElementId);
-  if (!el) return;
+  if (!el) {
+    showToast("Katman sırasını değiştirmek için serbest eklenen bir kutu seçin.");
+    return;
+  }
   el.zIndex = Math.max(1, (el.zIndex || 10) + delta * 5);
   const elDom = document.getElementById(`elDom_${el.id}`);
   if (elDom) elDom.style.zIndex = el.zIndex;
@@ -1034,13 +1459,15 @@ function changeElementLayer(delta) {
 
 function deleteSelectedCanvasElement() {
   const page = magazineData.pages[selectedEditIndex];
-  if (!page || !selectedElementId) return;
+  if (!page || !selectedElementId) {
+    showToast("Silmek için sonradan eklenen bir kutu veya görsel seçin.");
+    return;
+  }
   page.elements = (page.elements || []).filter(x => x.id !== selectedElementId);
   selectedElementId = null;
-  hideFloatingRichTextBar();
   renderAllElementsForCurrentPage();
   saveAllChangesToServer();
-  showToast("Eleman silindi.");
+  showToast("Kutu silindi.");
 }
 
 function toggleGridOverlay() {
@@ -1048,14 +1475,14 @@ function toggleGridOverlay() {
   const btn = document.getElementById('btnGridToggle');
   if (btn) {
     btn.className = showGridGuide 
-      ? 'px-2.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold border border-indigo-500 shadow'
-      : 'px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium border border-slate-800 transition flex items-center gap-1.5';
+      ? 'px-2 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-semibold border border-indigo-500 shadow'
+      : 'px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-800 transition flex items-center gap-1';
   }
   renderMagazineViewport();
-  showToast(showGridGuide ? "Izgara kılavuzları açık (Mıknatıslı hizalama)" : "Izgara kapatıldı");
+  showToast(showGridGuide ? "Izgara kılavuzları açık" : "Izgara kapatıldı");
 }
 
-// Eleman Ekleme Butonları
+// Eleman Ekleme Butonları (Metin Kutusu, Renkli Çerçeve, Soru Kutusu, Resim, Video)
 function addCanvasElement(type, data = {}) {
   const page = magazineData.pages[selectedEditIndex];
   if (!page) {
@@ -1063,24 +1490,25 @@ function addCanvasElement(type, data = {}) {
     return;
   }
   if (!page.elements) page.elements = [];
+  const accent = page.accentColor || '#d97706';
 
   const newId = 'el-' + Date.now();
   let newEl = {
     id: newId,
     type,
-    x: 20,
-    y: 25,
-    width: 45,
+    x: 15,
+    y: 20,
+    width: 55,
     height: 22,
     rotate: 0,
-    zIndex: 20,
+    zIndex: 25,
     ...data
   };
 
   if (type === 'text') {
     newEl = {
       ...newEl,
-      content: "<strong>Yeni Başlık / Metin Kutusu</strong><br>Çift tıklayarak doğrudan yazmaya başlayabilirsiniz.",
+      content: "<strong>Yeni Başlık / Metin Kutusu</strong><br>Tıklayarak doğrudan yazınızı yazabilir, üst çubuktan yazı tipini ve çerçeve rengini değiştirebilirsiniz.",
       fontSize: 14,
       fontFamily: "Inter",
       color: "#0f172a",
@@ -1088,16 +1516,50 @@ function addCanvasElement(type, data = {}) {
       borderColor: "#cbd5e1",
       textAlign: "left"
     };
+  } else if (type === 'card') {
+    newEl = {
+      ...newEl,
+      type: 'text',
+      x: 8,
+      y: 12,
+      width: 84,
+      height: 24,
+      content: `<span style="font-size:10px; letter-spacing:0.15em; text-transform:uppercase; opacity:0.85; font-weight:700;">AYIN KONUĞU / ÖZEL ÇERÇEVE</span><br><strong style="font-size:19px; font-family:'Playfair Display', serif;">Konuk Adı veya Başlık</strong><br><span style="font-size:11.5px; opacity:0.9;">Türk Dili ve Edebiyatı Öğretmeni • Okulumuzun sevilen öğretmenleriyle söyleşi...</span>`,
+      fontSize: 13,
+      fontFamily: "Inter",
+      color: "#ffffff",
+      bgColor: `linear-gradient(135deg, ${accent}, #1e1b4b)`,
+      borderColor: "rgba(255,255,255,0.28)",
+      textAlign: "left"
+    };
+  } else if (type === 'qbox') {
+    newEl = {
+      ...newEl,
+      type: 'text',
+      x: 8,
+      y: 42,
+      width: 84,
+      height: 20,
+      content: `<span style="background:${accent}; color:#fff; padding:2px 6px; border-radius:4px; font-size:10px; font-weight:700; margin-right:6px;">S1</span><strong>Lise yıllarınızda nasıl bir öğrenciydiniz?</strong><br><span style="color:#475569; font-size:11px;">Çok meraklı ve kütüphaneden çıkmayan bir öğrenciydim. Buraya tıklayarak cevabı düzenleyin.</span>`,
+      fontSize: 12,
+      fontFamily: "Inter",
+      color: "#0f172a",
+      bgColor: "#f8fafc",
+      borderColor: "#cbd5e1",
+      textAlign: "left"
+    };
   }
 
   page.elements.push(newEl);
   selectedElementId = newId;
+  activeInlineElement = null;
+  activeInlineFieldKey = null;
   renderMagazineViewport();
   setTimeout(() => {
     selectCanvasElement(newId);
   }, 40);
   saveAllChangesToServer();
-  showToast("Eleman sayfaya eklendi! Taşıyabilir veya çift tıklayıp düzenleyebilirsiniz.");
+  showToast("Kutu sayfaya eklendi! Kenarından tutup taşıyabilir veya içine tıklayıp yazabilirsiniz.");
 }
 
 async function handleCanvasImageUpload(event) {
@@ -1261,9 +1723,29 @@ async function uploadCanvasElementImage(event, elementId) {
 }
 
 function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', style = '') {
-  const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(magazineData.pages[pageIndex]));
+  const page = magazineData?.pages?.[pageIndex];
+  const isEditable = (appMode === 'edit' && pageIndex === selectedEditIndex && canUserEditPage(page));
   const safeText = escapeHtml(text || '');
-  const styleAttr = style ? `style="${style}"` : '';
+
+  // Kullanıcı tarafından şablon metnine uygulanmış özel tipografi ve çerçeve stillerini oku
+  const fs = page?.fieldStyles?.[key] || {};
+  let customStyle = style ? `${style};` : '';
+  if (fs.fontSize) customStyle += ` font-size:${fs.fontSize}px !important;`;
+  if (fs.fontFamily) customStyle += ` font-family:${fs.fontFamily} !important;`;
+  if (fs.color) customStyle += ` color:${fs.color} !important;`;
+  if (fs.textAlign) customStyle += ` text-align:${fs.textAlign} !important;`;
+  if (fs.fontWeight) customStyle += ` font-weight:${fs.fontWeight} !important;`;
+  if (fs.fontStyle) customStyle += ` font-style:${fs.fontStyle} !important;`;
+  if (fs.textDecoration) customStyle += ` text-decoration:${fs.textDecoration} !important;`;
+  if (fs.bgColor && fs.bgColor !== 'transparent') {
+    if (fs.bgColor.startsWith('linear-gradient')) {
+      customStyle += ` background:${fs.bgColor} !important; padding:8px 12px !important; border-radius:12px !important; box-shadow:0 4px 12px rgba(0,0,0,0.12) !important;`;
+    } else {
+      customStyle += ` background-color:${fs.bgColor} !important; padding:6px 10px !important; border-radius:10px !important;`;
+    }
+  }
+
+  const styleAttr = customStyle.trim() ? `style="${customStyle.trim()}"` : '';
 
   if (!isEditable) {
     return `<${tag} class="${className}" ${styleAttr}>${safeText}</${tag}>`;
@@ -1275,7 +1757,9 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
       ${styleAttr}
       contenteditable="true" 
       data-field-key="${key}"
-      title="Tıklayarak doğrudan metni düzenleyin"
+      title="Tıklayarak metni ve üst araç çubuğundan yazı karakterini/çerçevesini düzenleyin"
+      onfocus="handleInlineTextFocus(${pageIndex}, '${key}', this)"
+      onclick="handleInlineTextFocus(${pageIndex}, '${key}', this)"
       onblur="handleInlineTextChange(${pageIndex}, '${key}', this)"
     >${safeText}</${tag}>
   `;
@@ -3066,4 +3550,13 @@ window.changePageLayout = changePageLayout;
 window.applyMagPreset = applyMagPreset;
 window.renderBarcodeSvg = renderBarcodeSvg;
 window.showToast = showToast;
+window.deleteCurrentMagazine = deleteCurrentMagazine;
+window.deleteMagazineById = deleteMagazineById;
+window.deleteCurrentIssue = deleteCurrentIssue;
+window.openAllTemplatesModal = openAllTemplatesModal;
+window.applyConceptToCurrentPage = applyConceptToCurrentPage;
+window.addConceptAsNewPage = addConceptAsNewPage;
+window.convertCurrentPageToTemplate = convertCurrentPageToTemplate;
+window.handleInlineTextFocus = handleInlineTextFocus;
+
 
