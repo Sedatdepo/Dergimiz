@@ -318,3 +318,200 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* =========================================================
+   FLIPHTML5 v2 STUDIO PRO ARAYÜZ & BİLEŞEN STİLLERİ
+   ========================================================= */
+
+/* Sol Dikey İkon Rayı */
+.rail-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 52px;
+  height: 54px;
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  transition: all 0.18s ease;
+  cursor: pointer;
+}
+.rail-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+.rail-btn.active {
+  background-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+}
+
+/* Sol Panel Sayfa Minyatür (Thumbnail) Kartları & Hover 4 İkon (Görsel 1 & 10) */
+.page-thumb-card {
+  position: relative;
+  border-radius: 12px;
+  padding: 10px;
+  background: #1e293b;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.page-thumb-card:hover {
+  border-color: #60a5fa;
+  background: #1e293b;
+}
+.page-thumb-card.active {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+.page-thumb-actions {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease;
+}
+.page-thumb-card:hover .page-thumb-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.thumb-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.88);
+  color: #f8fafc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  transition: all 0.15s ease;
+}
+.thumb-action-btn:hover {
+  background: #2563eb;
+  border-color: #60a5fa;
+  transform: scale(1.08);
+}
+.thumb-action-btn.danger:hover {
+  background: #e11d48;
+  border-color: #fb7185;
+}
+
+/* FlipHTML5 v2 Mavi Seçim Çerçevesi ve Sol Alt Döndürme İkonu (Görsel 2 & 5) */
+.canvas-element.element-selected {
+  outline: 2px solid #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.22) !important;
+  z-index: 45 !important;
+}
+.resize-handle {
+  width: 10px;
+  height: 10px;
+  background-color: #ffffff;
+  border: 2px solid #2563eb;
+  border-radius: 50%;
+  z-index: 50;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.rotate-handle {
+  position: absolute;
+  bottom: -28px;
+  top: auto;
+  left: -18px;
+  width: 24px;
+  height: 24px;
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 50%;
+  cursor: grab;
+  z-index: 52;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.22);
+}
+.rotate-handle:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+.rotate-handle::after {
+  display: none;
+}
+
+/* Yüzen Beyaz Hızlı Araç Çubuğu (Görsel 2) */
+.floating-context-toolbar {
+  position: fixed;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 5px 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.28), 0 4px 10px -2px rgba(15, 23, 42, 0.12);
+  z-index: 80;
+  user-select: none;
+}
+
+/* Sıcak Nokta (Hotspot) Nabız Animasyonu (Görsel 1 & 9) */
+@keyframes hotspotPulse {
+  0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.7); transform: scale(1); }
+  70% { box-shadow: 0 0 0 12px rgba(244, 63, 94, 0); transform: scale(1.08); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); transform: scale(1); }
+}
+.hotspot-pulse {
+  animation: hotspotPulse 1.8s infinite;
+}
+
+/* Modern Switch Toggle (Görsel 3 & 6) */
+.studio-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+.studio-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.studio-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #334155;
+  transition: .2s;
+  border-radius: 20px;
+}
+.studio-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+.studio-switch input:checked + .studio-switch-slider {
+  background-color: #2563eb;
+}
+.studio-switch input:checked + .studio-switch-slider:before {
+  transform: translateX(16px);
+}
+
+/* Pan (El ile Tuval Kaydırma) Modu */
+.canvas-pan-mode {
+  cursor: grab !important;
+}
+.canvas-pan-mode:active {
+  cursor: grabbing !important;
+}
+

@@ -23,12 +23,35 @@ let initialElemX = 0, initialElemY = 0, initialElemW = 0, initialElemH = 0;
 let initialAngle = 0;
 let showGridGuide = false;
 
+// FlipHTML5 v2 Studio Pro Durum Değişkenleri (Undo/Redo, Zoom, Pan, Sol/Sağ Sekmeler)
+let historyStack = [];
+let redoStack = [];
+let isRestoringHistory = false;
+let canvasZoom = 100;
+let isPanMode = false;
+let isPanningWorkspace = false;
+let panStartX = 0, panStartY = 0, panScrollLeft = 0, panScrollTop = 0;
+let activeLeftTab = 'pages';
+let isLeftDrawerCollapsed = false;
+let activeRightTab = 'settings';
+
+// Görsel 1'deki Hazır Renk Şemaları (Tema Paletleri)
+const FLIP_COLOR_SCHEMES = [
+  { id: 'sky', name: 'Gök mavisi', bg: '#f8fafc', text: '#0f172a', accent: '#2563eb', cardBg: '#ffffff', palette: ['#2563eb', '#3b82f6', '#06b6d4', '#10b981', '#6ee7b7'] },
+  { id: 'fern', name: 'Fern Green', bg: '#f7fee7', text: '#14532d', accent: '#16a34a', cardBg: '#ffffff', palette: ['#84cc16', '#22c55e', '#10b981', '#059669', '#a7f3d0'] },
+  { id: 'warm', name: 'Sıcak Kahverengi', bg: '#f5f2eb', text: '#292524', accent: '#9a3412', cardBg: '#faf8f5', palette: ['#b45309', '#a16207', '#78350f', '#1e3a8a', '#172554'] },
+  { id: 'midnight', name: 'Gece yarısı', bg: '#0f172a', text: '#f8fafc', accent: '#ea580c', cardBg: '#1e293b', palette: ['#ea580c', '#f97316', '#64748b', '#94a3b8', '#fdba74'] },
+  { id: 'royal', name: 'Kraliyet Moru', bg: '#faf5ff', text: '#1e1b4b', accent: '#7c3aed', cardBg: '#ffffff', palette: ['#7c3aed', '#6366f1', '#ec4899', '#a855f7', '#ddd6fe'] },
+  { id: 'crimson', name: 'Katalog Bordo', bg: '#faf7f5', text: '#1c1917', accent: '#881337', cardBg: '#ffffff', palette: ['#881337', '#be123c', '#e11d48', '#fb7185', '#ffe4e6'] }
+];
+
 const colorSwatches = [
   { name: "İndigo", hex: "#4f46e5" },
   { name: "Okyanus", hex: "#0284c7" },
   { name: "Zümrüt", hex: "#059669" },
   { name: "Kehribar", hex: "#d97706" },
   { name: "Yakut", hex: "#e11d48" },
+  { name: "Bordo", hex: "#881337" },
   { name: "Mor", hex: "#7c3aed" },
   { name: "Koyu Gri", hex: "#1e293b" }
 ];
@@ -312,6 +335,7 @@ const ALL_PAGE_TEMPLATES_CATALOG = [
   { type: 'toc', title: '📑 İçindekiler & Başyazı', desc: 'Editörün masası, vurgu alıntısı ve tıklanabilir sayfa fihristi.', badge: 'Fihrist', color: '#6366f1' },
   { type: 'article', title: '📰 Özel Dosya & Makale', desc: 'Manşet fotoğrafı, iki sütunlu yazı ve vurgu alıntı kutusu.', badge: 'Makale', color: '#3b82f6' },
   { type: 'interview', title: '🎙️ Ayın Konuğu & Röportaj', desc: 'Renkli degrade konuk çerçevesi ve S1-S2-S3 soru-cevap kutuları.', badge: 'Renkli Çerçeveli', color: '#d97706' },
+  { type: 'catalog', title: '🛍️ Katalog & Ürün / Proje Özeti', desc: 'FlipHTML5 Görsel 1 & 7: 3\'lü görsel vitrini, numaralı maddeler ve bilgi tablosu.', badge: 'Katalog & Tablo', color: '#881337' },
   { type: 'literature', title: '🪶 Edebiyat & Şiir Köşesi', desc: 'Sanatsal görsel, ortalı şiir/deneme tipografisi ve alt not.', badge: 'Sanat & Şiir', color: '#ec4899' },
   { type: 'video', title: '🎬 Etkinlik & Video (MP4)', desc: 'Sayfa içi gömülü MP4 video oynatıcı, başlık ve açıklama.', badge: 'Multimedya', color: '#f59e0b' },
   { type: 'quiz', title: '💡 Etkileşimli Köşe & Quiz', desc: 'Çoktan seçmeli ödüllü soru kutusu + Ayın Kitap & Film önerisi.', badge: 'İnteraktif', color: '#14b8a6' },
@@ -494,6 +518,13 @@ function convertCurrentPageToTemplate(templateType, subOption = '') {
     page.editorQuote = page.editorQuote || 'Dergimizi hazırlarken ilhamımızı sanattan ve bilimden alıyoruz.';
     page.editorText = page.editorText || 'Yeni sayımızda öğrencilerimizin ve öğretmenlerimizin ortak emeğiyle hazırlanan zengin içeriklerle karşınızdayız.';
     page.editorName = page.editorName || 'Genel Yayın Yönetmeni';
+  } else if (templateType === 'catalog') {
+    page.accentColor = page.accentColor || '#68181f';
+    page.catTag = page.catTag || 'PROJE & ÜRÜN TANITIMI';
+    page.title = page.title || 'PROJE GENEL BAKIŞ';
+    page.desc = page.desc || 'Projemiz en güncel bilimsel yöntemler ve estetik tasarım ilkeleriyle geliştirilmiştir. Sağ panelden veya tablodan tüm teknik detayları inceleyebilirsiniz.';
+    page.image = page.image || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80';
+    page.specTitle = page.specTitle || 'TEKNİK ÖZELLİKLER TABLOSU';
   }
 
   closeModal('allTemplatesModal');
@@ -676,43 +707,263 @@ async function togglePublishCurrentIssue() {
 }
 
 // ==========================================
-// 3. SAYFA RENDER & GÖRÜNÜM
+// 3. SAYFA RENDER, UNDO/REDO, SOL RAY & MİNYATÜR GÖRÜNÜM (FAZ 1)
 // ==========================================
+function pushHistoryState() {
+  if (isRestoringHistory || !magazineData || !magazineData.pages) return;
+  const snapshot = JSON.stringify({
+    pages: magazineData.pages,
+    selectedEditIndex
+  });
+  if (historyStack.length > 0 && historyStack[historyStack.length - 1] === snapshot) return;
+  historyStack.push(snapshot);
+  if (historyStack.length > 50) historyStack.shift();
+  redoStack = [];
+  updateUndoRedoButtons();
+}
+
+function undoAction() {
+  if (historyStack.length <= 1) {
+    showToast("Geri alınacak başka işlem yok");
+    return;
+  }
+  isRestoringHistory = true;
+  const currentSnap = historyStack.pop();
+  redoStack.push(currentSnap);
+  const prevSnap = JSON.parse(historyStack[historyStack.length - 1]);
+  magazineData.pages = prevSnap.pages;
+  selectedEditIndex = Math.min(prevSnap.selectedEditIndex || 0, magazineData.pages.length - 1);
+  selectedElementId = null;
+  renderAll();
+  saveAllChangesToServer(true);
+  isRestoringHistory = false;
+  updateUndoRedoButtons();
+  showToast("↶ İşlem geri alındı");
+}
+
+function redoAction() {
+  if (redoStack.length === 0) {
+    showToast("İleri alınacak işlem yok");
+    return;
+  }
+  isRestoringHistory = true;
+  const nextSnapRaw = redoStack.pop();
+  historyStack.push(nextSnapRaw);
+  const nextSnap = JSON.parse(nextSnapRaw);
+  magazineData.pages = nextSnap.pages;
+  selectedEditIndex = Math.min(nextSnap.selectedEditIndex || 0, magazineData.pages.length - 1);
+  selectedElementId = null;
+  renderAll();
+  saveAllChangesToServer(true);
+  isRestoringHistory = false;
+  updateUndoRedoButtons();
+  showToast("↷ İşlem ileri alındı");
+}
+
+function updateUndoRedoButtons() {
+  const btnU = document.getElementById('btnUndo');
+  const btnR = document.getElementById('btnRedo');
+  if (btnU) btnU.disabled = historyStack.length <= 1;
+  if (btnR) btnR.disabled = redoStack.length === 0;
+}
+
+function switchLeftTab(tabName) {
+  activeLeftTab = tabName;
+  const tabs = ['pages', 'templates', 'elements', 'links', 'uploads'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`railBtn_${t}`);
+    const panel = document.getElementById(`leftPanel_${t}`);
+    if (btn) {
+      if (t === tabName) btn.classList.add('active');
+      else btn.classList.remove('active');
+    }
+    if (panel) {
+      if (t === tabName) panel.classList.remove('hidden');
+      else panel.classList.add('hidden');
+    }
+  });
+
+  // Eğer çekmece daraltılmışsa aç
+  const sidebar = document.getElementById('leftSidebar');
+  if (sidebar && isLeftDrawerCollapsed) {
+    toggleLeftDrawerCollapse();
+  }
+
+  if (tabName === 'templates') {
+    renderDrawerTemplatesList();
+  }
+  closeMorePopupMenu();
+}
+
+function toggleLeftDrawerCollapse() {
+  const sidebar = document.getElementById('leftSidebar');
+  const icon = document.getElementById('leftDrawerToggleIcon');
+  if (!sidebar) return;
+  isLeftDrawerCollapsed = !isLeftDrawerCollapsed;
+  if (isLeftDrawerCollapsed) {
+    sidebar.classList.add('hidden');
+    if (icon) icon.className = 'ph ph-caret-double-right text-base';
+  } else {
+    sidebar.classList.remove('hidden');
+    if (icon) icon.className = 'ph ph-caret-double-left text-base';
+  }
+}
+
+function toggleMorePopupMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const menu = document.getElementById('morePopupMenu');
+  if (!menu) return;
+  menu.classList.toggle('hidden');
+}
+
+function closeMorePopupMenu() {
+  const menu = document.getElementById('morePopupMenu');
+  if (menu) menu.classList.add('hidden');
+}
+
+function renderDrawerTemplatesList() {
+  const container = document.getElementById('drawerTemplatesList');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="text-[10.5px] font-bold uppercase tracking-wider text-amber-400 mb-1">Sayfa Mizanpajları</div>
+    <div class="space-y-2 mb-4">
+      ${ALL_PAGE_TEMPLATES_CATALOG.map(item => `
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-blue-500 transition">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-white">${escapeHtml(item.title)}</span>
+            <span class="text-[9.5px] px-1.5 py-0.5 rounded text-white font-bold" style="background:${item.color}">${escapeHtml(item.badge)}</span>
+          </div>
+          <p class="text-[10.5px] text-slate-400 mb-2 leading-snug">${escapeHtml(item.desc)}</p>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button onclick="convertCurrentPageToTemplate('${item.type}', '${item.layout || item.subType || ''}')" class="py-1 px-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold">Uygula</button>
+            <button onclick="addNewPage('${item.type}', '${item.layout || item.subType || ''}')" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold">+ Yeni Ekle</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="text-[10.5px] font-bold uppercase tracking-wider text-indigo-400 mb-1 pt-2 border-t border-slate-800">20 Dergi Konsepti</div>
+    <div class="space-y-2">
+      ${MAGAZINE_PRESETS.map(p => `
+        <div class="p-2.5 rounded-xl bg-slate-950 border border-slate-800 hover:border-amber-500 transition">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-white">${p.id}. ${escapeHtml(p.name)}</span>
+            <span class="text-[9.5px] px-1.5 py-0.5 rounded text-white font-bold" style="background:${p.accent}">${escapeHtml(p.layout)}</span>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 mt-1.5">
+            <button onclick="applyConceptToCurrentPage(${p.id})" class="py-1 px-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-bold">Sayfaya Uygula</button>
+            <button onclick="addConceptAsNewPage(${p.id})" class="py-1 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-semibold">+ Yeni Sayfa</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function setCanvasZoom(zoomVal) {
+  canvasZoom = Math.max(40, Math.min(200, zoomVal));
+  const wrapper = document.getElementById('magazineZoomWrapper');
+  const sel = document.getElementById('zoomSelector');
+  if (wrapper) {
+    wrapper.style.transform = `scale(${canvasZoom / 100})`;
+  }
+  if (sel) {
+    const existing = Array.from(sel.options).find(o => Number(o.value) === canvasZoom);
+    if (existing) sel.value = String(canvasZoom);
+  }
+}
+
+function stepCanvasZoom(delta) {
+  setCanvasZoom(canvasZoom + delta);
+}
+
+function togglePanMode() {
+  isPanMode = !isPanMode;
+  const btn = document.getElementById('btnPanMode');
+  const mainWs = document.getElementById('mainCanvasWorkspace');
+  if (btn) {
+    btn.className = isPanMode
+      ? 'p-2 rounded-xl bg-blue-600 text-white border border-blue-500 text-xs transition flex items-center gap-1 shadow'
+      : 'p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition flex items-center gap-1';
+  }
+  if (mainWs) {
+    if (isPanMode) mainWs.classList.add('canvas-pan-mode');
+    else mainWs.classList.remove('canvas-pan-mode');
+  }
+  showToast(isPanMode ? "✋ El ile kaydırma modu aktif" : "İmleç seçim modu aktif");
+}
+
+function switchRightInspectorTab(tabName) {
+  activeRightTab = tabName;
+  const tabs = ['settings', 'actions', 'content'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`rightTabBtn_${t}`);
+    const panel = document.getElementById(`rightInspector_${t}`);
+    if (btn) {
+      btn.className = (t === tabName)
+        ? 'flex-1 pb-2 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition text-center'
+        : 'flex-1 pb-2 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition text-center';
+    }
+    if (panel) {
+      if (t === tabName) panel.classList.remove('hidden');
+      else panel.classList.add('hidden');
+    }
+  });
+  renderRightEditorPanel();
+}
+
 function renderAll() {
-  document.getElementById('totalPagesBadge').textContent = `${magazineData.pages.length} Sayfa`;
+  if (!magazineData || !magazineData.pages) return;
+  pushHistoryState();
+  const total = magazineData.pages.length;
+  const badge = document.getElementById('totalPagesBadge');
+  if (badge) {
+    if (spreadMode && selectedEditIndex > 0 && selectedEditIndex < total - 1) {
+      const leftIdx = selectedEditIndex % 2 === 1 ? selectedEditIndex : selectedEditIndex - 1;
+      const rightIdx = Math.min(leftIdx + 1, total - 1);
+      badge.textContent = leftIdx === rightIdx ? `${leftIdx + 1}/${total}` : `${leftIdx + 1}-${rightIdx + 1}/${total}`;
+    } else {
+      badge.textContent = `${selectedEditIndex + 1}/${total}`;
+    }
+  }
   renderPageListSidebar();
   renderMagazineViewport();
   renderRightEditorPanel();
   updateTopReviewBanner();
+  if (!document.getElementById('layersPopover')?.classList.contains('hidden')) {
+    renderLayersPopover();
+  }
 }
 
 function setAppMode(mode) {
   appMode = mode;
+  const leftRail = document.getElementById('leftIconRail');
   const leftBar = document.getElementById('leftSidebar');
   const rightBar = document.getElementById('rightSidebar');
-  const topBanner = document.getElementById('canvasTopBanner');
+  const centerStrip = document.getElementById('centerRightStrip');
   const actionBar = document.getElementById('canvasActionBar');
   const stickyNote = document.getElementById('adminStickyNoteBox');
   const btnEdit = document.getElementById('btnEditMode');
   const btnRead = document.getElementById('btnReadMode');
-  const rtBar = document.getElementById('floatingRichTextBar');
+  const floatBar = document.getElementById('floatingContextToolbar');
 
   if (mode === 'read') {
-    leftBar.classList.add('hidden');
-    rightBar.classList.add('hidden');
-    topBanner.classList.add('hidden');
-    actionBar.classList.add('hidden');
-    stickyNote.classList.add('hidden');
-    if (rtBar) rtBar.classList.add('hidden');
-    btnRead.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow";
-    btnEdit.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white";
+    if (leftRail) leftRail.classList.add('hidden');
+    if (leftBar) leftBar.classList.add('hidden');
+    if (rightBar) rightBar.classList.add('hidden');
+    if (centerStrip) centerStrip.classList.add('hidden');
+    if (actionBar) actionBar.classList.add('hidden');
+    if (stickyNote) stickyNote.classList.add('hidden');
+    if (floatBar) floatBar.classList.add('hidden');
+    btnRead.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
+    btnEdit.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white";
   } else {
-    leftBar.classList.remove('hidden');
-    rightBar.classList.remove('hidden');
-    topBanner.classList.remove('hidden');
-    actionBar.classList.remove('hidden');
-    btnEdit.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow";
-    btnRead.className = "flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-white";
+    if (leftRail) leftRail.classList.remove('hidden');
+    if (leftBar && !isLeftDrawerCollapsed) leftBar.classList.remove('hidden');
+    if (rightBar) rightBar.classList.remove('hidden');
+    if (centerStrip) centerStrip.classList.remove('hidden');
+    if (actionBar) actionBar.classList.remove('hidden');
+    btnEdit.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
+    btnRead.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white";
     updateTopReviewBanner();
   }
   renderMagazineViewport();
@@ -721,7 +972,7 @@ function setAppMode(mode) {
 function toggleSpreadMode() {
   spreadMode = !spreadMode;
   updateSpreadButtonUI();
-  renderMagazineViewport();
+  renderAll();
 }
 
 function updateSpreadButtonUI() {
@@ -729,58 +980,248 @@ function updateSpreadButtonUI() {
   if (el) el.textContent = spreadMode ? "Çift Sayfa" : "Tek Sayfa";
 }
 
+function getMiniThumbPreviewHTML(page, idx) {
+  if (!page) return '';
+  const accent = page.accentColor || '#4f46e5';
+  const bg = page.bgColor || (page.type === 'cover' && page.layout === 'brutalist' ? accent : '#ffffff');
+  const imgUrl = page.coverImage || page.image || page.photo || page.bgImage || page.videoPoster || (page.elements && page.elements.find(e => e.type === 'image')?.url) || '';
+  const headline = page.magazineName || page.mainHeadline || page.title || page.headerText || page.interviewee || page.navTitle || `Sayfa ${idx + 1}`;
+
+  return `
+    <div class="w-full h-full rounded overflow-hidden relative flex flex-col justify-between p-1.5 text-[7px] select-none border border-slate-300/60 shadow-inner" style="background:${bg}; color:${bg === '#0f172a' ? '#fff' : '#0f172a'};">
+      <div class="font-bold truncate leading-tight" style="color:${accent}">${escapeHtml(headline)}</div>
+      ${imgUrl ? `<img src="${escapeHtml(imgUrl)}" class="w-full h-12 object-cover rounded-sm my-0.5 pointer-events-none" onerror="this.style.display='none'">` : `<div class="w-full h-10 rounded-sm my-0.5 flex items-center justify-center opacity-20" style="background:${accent}"><i class="ph ph-article text-sm"></i></div>`}
+      <div class="flex items-center justify-between text-[6px] opacity-60">
+        <span class="truncate">${escapeHtml(getTemplateLabel(page.type))}</span>
+        <span class="font-bold">${idx + 1}</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderPageListSidebar() {
   const container = document.getElementById('pageListContainer');
+  if (!container || !magazineData || !magazineData.pages) return;
   container.innerHTML = '';
 
-  const statusIcons = {
-    approved: 'ph-check-circle text-emerald-400',
-    review: 'ph-clock text-sky-400',
-    revision: 'ph-warning text-rose-400',
-    draft: 'ph-pencil-line text-amber-400'
-  };
+  const pages = magazineData.pages;
+  const total = pages.length;
 
-  const statusTexts = {
-    approved: 'Onaylandı',
-    review: 'İncelemede',
-    revision: 'Revize',
-    draft: 'Taslak'
-  };
+  // FlipHTML5 v2 Görsel 1 & 10: Kapak (01) tek, iç sayfalar çift (02-03, 04-05...) veya tek modda kartlar
+  let i = 0;
+  while (i < total) {
+    const isSingleCard = (!spreadMode || i === 0 || i === total - 1);
 
-  magazineData.pages.forEach((page, idx) => {
-    const isSelected = idx === selectedEditIndex;
-    const pageStatus = page.status || 'draft';
-    const isAssignedToMe = canUserEditPage(page);
+    if (isSingleCard) {
+      const idx = i;
+      const page = pages[idx];
+      const isSelected = (idx === selectedEditIndex);
+      const numStr = String(idx + 1).padStart(2, '0');
 
-    const item = document.createElement('div');
-    item.className = `p-2.5 rounded-xl border cursor-pointer transition flex items-center justify-between ${
-      isSelected 
-        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow' 
-        : 'bg-slate-900/80 border-slate-800/80 text-slate-300 hover:bg-slate-800'
-    }`;
-    item.onclick = () => selectPageForEdit(idx);
+      const card = document.createElement('div');
+      card.className = `page-thumb-card ${isSelected ? 'active' : ''}`;
+      card.onclick = () => selectPageForEdit(idx);
 
-    item.innerHTML = `
-      <div class="flex items-center gap-2.5 overflow-hidden">
-        <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 font-bold text-xs text-slate-300 border border-slate-700">
-          ${idx + 1}
-        </div>
-        <div class="truncate">
-          <div class="text-xs font-semibold truncate flex items-center gap-1.5">
-            <span class="truncate">${escapeHtml(page.navTitle || 'Sayfa ' + (idx + 1))}</span>
-            ${!isAssignedToMe ? '<i class="ph ph-lock text-slate-500 text-[11px]" title="Salt Okunur"></i>' : ''}
-          </div>
-          <div class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-            <i class="ph ${statusIcons[pageStatus]}"></i>
-            <span class="uppercase">${statusTexts[pageStatus]}</span>
+      card.innerHTML = `
+        <!-- Hover 4 Hızlı İkon (Görsel 10: Sol üst Şablon Değiştir, Sağ üst Kopyala, Ekle, Sil) -->
+        <div class="page-thumb-actions absolute top-2 left-2 right-2 flex items-center justify-between z-20">
+          <button onclick="openQuickTemplateForPage(${idx}, event)" class="thumb-action-btn" title="Sayfa Şablonunu Değiştir">
+            <i class="ph ph-arrows-Clockwise"></i>
+          </button>
+          <div class="flex items-center gap-1">
+            <button onclick="duplicatePage(${idx}, event)" class="thumb-action-btn" title="Sayfayı Kopyala (Çoğalt)">
+              <i class="ph ph-copy"></i>
+            </button>
+            <button onclick="insertPageAfter(${idx}, event)" class="thumb-action-btn" title="Sonrasına Yeni Sayfa Ekle">
+              <i class="ph ph-file-plus"></i>
+            </button>
+            <button onclick="deletePageAtIndex(${idx}, event)" class="thumb-action-btn danger" title="Sayfayı Sil">
+              <i class="ph ph-trash"></i>
+            </button>
           </div>
         </div>
-      </div>
-      ${isSelected ? '<i class="ph ph-caret-right text-indigo-400 shrink-0"></i>' : ''}
-    `;
 
-    container.appendChild(item);
-  });
+        <div class="flex justify-center py-1">
+          <div class="w-24 h-32 rounded shadow-md overflow-hidden bg-white">
+            ${getMiniThumbPreviewHTML(page, idx)}
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-1.5 px-1">
+          <span class="text-[10.5px] font-medium text-slate-300 truncate max-w-[140px]">${escapeHtml(page.navTitle || 'Sayfa ' + (idx + 1))}</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] font-bold">${numStr}</span>
+        </div>
+      `;
+
+      container.appendChild(card);
+      i += 1;
+    } else {
+      // Çift Sayfa (Spread) Kartı: örn. 02 - 03
+      const leftIdx = i;
+      const rightIdx = i + 1;
+      const leftPage = pages[leftIdx];
+      const rightPage = pages[rightIdx];
+      const isSelected = (selectedEditIndex === leftIdx || selectedEditIndex === rightIdx);
+      const leftNum = String(leftIdx + 1).padStart(2, '0');
+      const rightNum = String(rightIdx + 1).padStart(2, '0');
+
+      const card = document.createElement('div');
+      card.className = `page-thumb-card ${isSelected ? 'active' : ''}`;
+
+      card.innerHTML = `
+        <!-- Hover 4 Hızlı İkon (Görsel 10) -->
+        <div class="page-thumb-actions absolute top-2 left-2 right-2 flex items-center justify-between z-20">
+          <button onclick="openQuickTemplateForPage(${selectedEditIndex === rightIdx ? rightIdx : leftIdx}, event)" class="thumb-action-btn" title="Şablon Değiştir">
+            <i class="ph ph-arrows-clockwise"></i>
+          </button>
+          <div class="flex items-center gap-1">
+            <button onclick="duplicatePage(${selectedEditIndex === rightIdx ? rightIdx : leftIdx}, event)" class="thumb-action-btn" title="Seçili Sayfayı Kopyala">
+              <i class="ph ph-copy"></i>
+            </button>
+            <button onclick="insertPageAfter(${rightIdx}, event)" class="thumb-action-btn" title="Sonrasına Sayfa Ekle">
+              <i class="ph ph-file-plus"></i>
+            </button>
+            <button onclick="deletePageAtIndex(${selectedEditIndex === rightIdx ? rightIdx : leftIdx}, event)" class="thumb-action-btn danger" title="Sayfayı Sil">
+              <i class="ph ph-trash"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1 py-1 px-1">
+          <div onclick="event.stopPropagation(); selectPageForEdit(${leftIdx});" class="h-28 rounded-l shadow overflow-hidden bg-white ${selectedEditIndex === leftIdx ? 'ring-2 ring-blue-500' : ' opacity-90 hover:opacity-100'}">
+            ${getMiniThumbPreviewHTML(leftPage, leftIdx)}
+          </div>
+          <div onclick="event.stopPropagation(); selectPageForEdit(${rightIdx});" class="h-28 rounded-r shadow overflow-hidden bg-white ${selectedEditIndex === rightIdx ? 'ring-2 ring-blue-500' : 'opacity-90 hover:opacity-100'}">
+            ${getMiniThumbPreviewHTML(rightPage, rightIdx)}
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mt-1.5 px-1">
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] font-bold">${leftNum}</span>
+          <span class="text-[10px] text-slate-400 truncate px-1">${escapeHtml(leftPage.navTitle || '')} • ${escapeHtml(rightPage.navTitle || '')}</span>
+          <span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px] font-bold">${rightNum}</span>
+        </div>
+      `;
+
+      card.onclick = () => selectPageForEdit(leftIdx);
+      container.appendChild(card);
+      i += 2;
+    }
+  }
+}
+
+function openQuickTemplateForPage(idx, ev) {
+  if (ev) ev.stopPropagation();
+  selectPageForEdit(idx);
+  openAllTemplatesModal();
+}
+
+function duplicatePage(idx, ev) {
+  if (ev) ev.stopPropagation();
+  if (!magazineData || !magazineData.pages[idx]) return;
+  const orig = magazineData.pages[idx];
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.id = 'p' + Date.now();
+  copy.navTitle = (orig.navTitle || 'Sayfa') + ' (Kopya)';
+  if (copy.elements) {
+    copy.elements = copy.elements.map((el, i) => ({ ...el, id: 'el-' + Date.now() + '-' + i }));
+  }
+  magazineData.pages.splice(idx + 1, 0, copy);
+  selectPageForEdit(idx + 1);
+  saveAllChangesToServer();
+  showToast("📋 Sayfa kopyalandı!");
+}
+
+function insertPageAfter(idx, ev) {
+  if (ev) ev.stopPropagation();
+  const newPage = {
+    id: 'p' + Date.now(),
+    type: 'article',
+    layout: 'minimalist',
+    navTitle: `Yeni Sayfa ${idx + 2}`,
+    accentColor: currentMagazine?.themeColor || '#2563eb',
+    assignedEditor: currentUser.code,
+    status: 'draft',
+    category: 'ÖZEL DOSYA',
+    title: 'Yeni Sayfa Başlığı',
+    author: currentUser.name || 'Editör Ekibi',
+    image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+    imageCaption: 'Fotoğraf açıklaması',
+    content: 'Sayfa metninizi doğrudan üzerine tıklayarak düzenleyebilir veya sol menüden Öğeler ekleyebilirsiniz.',
+    pullQuote: 'Öne çıkan vurgu cümlesi buraya yazılır.',
+    elements: []
+  };
+  magazineData.pages.splice(idx + 1, 0, newPage);
+  selectPageForEdit(idx + 1);
+  saveAllChangesToServer();
+  showToast("➕ Yeni sayfa araya eklendi!");
+}
+
+function addSpreadPages() {
+  const insertPos = magazineData.pages.length > 1 ? magazineData.pages.length - 1 : magazineData.pages.length;
+  const accent = currentMagazine?.themeColor || '#2563eb';
+  const leftPage = {
+    id: 'p' + Date.now() + 'L',
+    type: 'article',
+    layout: 'minimalist',
+    navTitle: 'Sol Sayfa • Dosya',
+    accentColor: accent,
+    assignedEditor: currentUser.code,
+    status: 'draft',
+    category: 'BÖLÜM 01',
+    title: 'Çift Sayfa Sol Başlık',
+    author: 'Yayın Ekibi',
+    image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
+    imageCaption: 'Etkinlik karesi',
+    content: 'Sol sayfa içeriğini buraya yazabilirsiniz. Sol menüdeki Öğeler sekmesinden tablo, buton veya şekil ekleyebilirsiniz.',
+    pullQuote: 'Her yeni sayfa yeni bir keşiftir.',
+    elements: []
+  };
+  const rightPage = {
+    id: 'p' + Date.now() + 'R',
+    type: 'interview',
+    layout: 'minimalist',
+    navTitle: 'Sağ Sayfa • Söyleşi',
+    accentColor: accent,
+    assignedEditor: currentUser.code,
+    status: 'draft',
+    rubric: 'ÖZEL KÖŞE',
+    interviewee: 'Konuk & Detaylar',
+    role: 'Okul Dergisi Özel Dosyası',
+    intro: 'Sağ sayfa röportaj veya katalog alanı.',
+    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+    q1: 'Birinci alt başlık veya soru?',
+    a1: 'Cevap ve detay metni buraya girilir.',
+    q2: 'İkinci alt başlık veya soru?',
+    a2: 'İkinci açıklama metni buraya girilir.',
+    q3: 'Üçüncü alt başlık veya soru?',
+    a3: 'Üçüncü açıklama metni buraya girilir.',
+    elements: []
+  };
+  magazineData.pages.splice(insertPos, 0, leftPage, rightPage);
+  selectPageForEdit(insertPos);
+  saveAllChangesToServer();
+  showToast("➕ Yeni İki Sayfa (Çift Sayfa Spread) eklendi!");
+}
+
+function deletePageAtIndex(idx, ev) {
+  if (ev) ev.stopPropagation();
+  if (magazineData.pages.length <= 1) {
+    showToast("Dergide en az 1 sayfa bulunmalıdır!");
+    return;
+  }
+  magazineData.pages.splice(idx, 1);
+  if (selectedEditIndex >= magazineData.pages.length) {
+    selectedEditIndex = magazineData.pages.length - 1;
+  }
+  selectPageForEdit(selectedEditIndex);
+  saveAllChangesToServer();
+  showToast("🗑️ Sayfa silindi");
+}
+
+function goToLastPage() {
+  if (!magazineData || !magazineData.pages.length) return;
+  selectPageForEdit(magazineData.pages.length - 1);
 }
 
 function selectPageForEdit(index) {
@@ -945,6 +1386,18 @@ function createPageDOM(page, pageIndex, position, heightClass) {
   return wrapper;
 }
 
+function getClipPathForMask(maskType) {
+  const masks = {
+    none: 'none',
+    circle: 'circle(50% at 50% 50%)',
+    ellipse: 'ellipse(48% 38% at 50% 50%)',
+    triangle: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+    diamond: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+    hexagon: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
+  };
+  return masks[maskType] || 'none';
+}
+
 function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
   const layer = pageWrapper.querySelector(`#elemLayer_${pageIndex}`);
   if (!layer) return;
@@ -953,6 +1406,7 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
   const isEditable = (appMode === 'edit' && canUserEditPage(page) && pageIndex === selectedEditIndex);
 
   (page.elements || []).forEach(el => {
+    if (el.hidden && appMode === 'read') return;
     const isSelected = (el.id === selectedElementId && isEditable);
     const elDom = document.createElement('div');
     elDom.className = `canvas-element ${isSelected ? 'element-selected' : ''} pointer-events-auto`;
@@ -965,14 +1419,23 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
     elDom.style.height = `${el.height}%`;
     elDom.style.transform = `rotate(${el.rotate || 0}deg)`;
     elDom.style.zIndex = el.zIndex || 10;
+    elDom.style.opacity = (el.opacity !== undefined ? el.opacity : 100) / 100;
 
-    // Resim Elemanı
+    if (el.hasShadow) {
+      elDom.style.filter = 'drop-shadow(0 12px 20px rgba(15, 23, 42, 0.32))';
+    }
+
+    const radiusPx = el.borderRadius !== undefined ? `${el.borderRadius}px` : '12px';
+
+    // 1. RESİM ELEMANI (Görsel 5 & 6: Yarıçap, Katman Maskesi, Saydamlık, Gölge, Değiştir)
     if (el.type === 'image') {
       elDom.className += ' canvas-media-element group relative';
+      const clipStyle = el.mask && el.mask !== 'none' ? `clip-path:${getClipPathForMask(el.mask)};` : '';
+      const fitMode = el.objectFit || 'cover';
       elDom.innerHTML = `
-        <img src="${escapeHtml(el.url)}" class="w-full h-full object-cover rounded-xl shadow-md pointer-events-none" alt="">
+        <img src="${escapeHtml(el.url)}" class="w-full h-full pointer-events-none" style="object-fit:${fitMode}; border-radius:${radiusPx}; ${clipStyle}" alt="">
         ${isEditable ? `
-          <label class="img-change-badge" title="Görseli Değiştir">
+          <label class="img-change-badge" style="border-radius:${radiusPx};" title="Görseli Değiştir">
             <i class="ph ph-camera text-xl"></i>
             <span>Değiştir</span>
             <input type="file" accept="image/*" onchange="uploadCanvasElementImage(event, '${el.id}')" class="hidden">
@@ -981,11 +1444,11 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       `;
     }
 
-    // Video Elemanı (MP4)
+    // 2. VİDEO ELEMANI (MP4)
     if (el.type === 'video') {
       elDom.className += ' canvas-media-element';
       elDom.innerHTML = `
-        <div class="magazine-video-container">
+        <div class="magazine-video-container" style="border-radius:${radiusPx};">
           <video controls preload="metadata" poster="${escapeHtml(el.poster || '')}">
             <source src="${escapeHtml(el.url)}" type="video/mp4">
           </video>
@@ -993,21 +1456,36 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       `;
     }
 
-    // Metin Kutusu / Renkli Çerçeve Elemanı
+    // 3. METİN KUTUSU / RENKLİ ÇERÇEVE / SORU KUTUSU (Görsel 2 & 3: Harf/Satır/Paragraf Aralığı, Sütun, Kaydırma, Kontur, Gölge)
     if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
-      elDom.className += ' canvas-text-element p-3 rounded-2xl border leading-relaxed overflow-hidden shadow-md';
+      elDom.className += ' canvas-text-element p-3 border leading-relaxed';
+      elDom.style.borderRadius = radiusPx;
+      elDom.style.overflowY = el.scrollable ? 'auto' : 'hidden';
+      elDom.style.overflowX = 'hidden';
+
       if (el.bgColor && el.bgColor.startsWith('linear-gradient')) {
         elDom.style.background = el.bgColor;
         elDom.style.borderColor = el.borderColor || 'rgba(255,255,255,0.28)';
       } else {
         elDom.style.background = 'none';
-        elDom.style.backgroundColor = el.bgColor || '#ffffff';
-        elDom.style.borderColor = el.borderColor || '#cbd5e1';
+        elDom.style.backgroundColor = el.bgColor || 'transparent';
+        elDom.style.borderColor = el.hasStroke ? (el.strokeColor || '#0f172a') : (el.borderColor || 'transparent');
+      }
+      if (el.hasStroke) {
+        elDom.style.borderWidth = `${el.strokeWidth || 2}px`;
       }
       elDom.style.fontSize = `${el.fontSize || 14}px`;
       elDom.style.fontFamily = el.fontFamily || 'Inter';
       elDom.style.color = el.color || '#0f172a';
       elDom.style.textAlign = el.textAlign || 'left';
+      elDom.style.letterSpacing = el.letterSpacing ? `${el.letterSpacing}px` : 'normal';
+      elDom.style.lineHeight = el.lineHeight || '1.35';
+      if (el.columns && Number(el.columns) > 1) {
+        elDom.style.columnCount = String(el.columns);
+        elDom.style.columnGap = '14px';
+      } else {
+        elDom.style.columnCount = '1';
+      }
       elDom.innerHTML = el.content || 'Yazınızı buraya yazın...';
 
       if (isEditable) {
@@ -1016,6 +1494,7 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
           activeInlineElement = null;
           activeInlineFieldKey = null;
           showFloatingRichTextBar(elDom, el);
+          renderRightEditorPanel();
         };
         elDom.oninput = () => {
           el.content = elDom.innerHTML;
@@ -1028,18 +1507,148 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
       }
     }
 
-    // Seçim ve Taşıma Olayları (Sadece Düzenleme Modunda)
+    // 4. TABLO WIDGET'I (Görsel 1 & 7: Product Information / Sewing Techniques Tablosu)
+    if (el.type === 'table') {
+      elDom.className += ' canvas-media-element bg-white/95 rounded-xl overflow-hidden shadow-sm border border-slate-200 flex flex-col';
+      const headerBg = el.headerBg || page.accentColor || '#7f1d1d';
+      const rows = el.rows || [
+        ['ITEM', 'SPECIFICATION'],
+        ['Product Name', 'Silk Satin Midi Dress'],
+        ['Category', 'Women\'s Dress'],
+        ['Season', 'Spring / Summer'],
+        ['Silhouette', 'Bias-cut Silhouette']
+      ];
+      elDom.innerHTML = `
+        <table class="w-full h-full border-collapse text-[10px]">
+          <thead>
+            <tr style="background:${headerBg}; color:#ffffff;">
+              <th contenteditable="${isEditable}" onblur="updateTableCell('${el.id}', 0, 0, this.innerText)" class="py-1.5 px-2.5 text-left font-bold uppercase tracking-wider">${escapeHtml(rows[0]?.[0] || 'BAŞLIK 1')}</th>
+              <th contenteditable="${isEditable}" onblur="updateTableCell('${el.id}', 0, 1, this.innerText)" class="py-1.5 px-2.5 text-left font-bold uppercase tracking-wider">${escapeHtml(rows[0]?.[1] || 'BAŞLIK 2')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.slice(1).map((r, rIdx) => `
+              <tr class="border-b border-slate-200/80 ${rIdx % 2 === 1 ? 'bg-slate-50/70' : 'bg-white'}">
+                <td contenteditable="${isEditable}" onblur="updateTableCell('${el.id}', ${rIdx + 1}, 0, this.innerText)" class="py-1.5 px-2.5 font-semibold text-slate-800">${escapeHtml(r[0] || '')}</td>
+                <td contenteditable="${isEditable}" onblur="updateTableCell('${el.id}', ${rIdx + 1}, 1, this.innerText)" class="py-1.5 px-2.5 text-slate-600">${escapeHtml(r[1] || '')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    // 5. ŞEKİLLER (Kare, Daire, Üçgen, Çizgi - Görsel 9)
+    if (el.type === 'shape') {
+      elDom.className += ' canvas-media-element';
+      const fill = el.bgColor || '#881337';
+      const stType = el.shapeType || 'rect';
+      if (stType === 'circle') {
+        elDom.innerHTML = `<div class="w-full h-full rounded-full shadow" style="background:${fill}; border:${el.hasStroke ? (el.strokeWidth || 2) + 'px solid ' + (el.strokeColor || '#0f172a') : 'none'};"></div>`;
+      } else if (stType === 'triangle') {
+        elDom.innerHTML = `<div class="w-full h-full" style="background:${fill}; clip-path:polygon(50% 0%, 0% 100%, 100% 100%);"></div>`;
+      } else if (stType === 'line') {
+        elDom.innerHTML = `<div class="w-full h-full flex items-center"><div class="w-full" style="height:${Math.max(2, el.strokeWidth || 3)}px; background:${fill}; border-radius:99px;"></div></div>`;
+      } else {
+        elDom.innerHTML = `<div class="w-full h-full shadow" style="background:${fill}; border-radius:${radiusPx}; border:${el.hasStroke ? (el.strokeWidth || 2) + 'px solid ' + (el.strokeColor || '#0f172a') : 'none'};"></div>`;
+      }
+    }
+
+    // 6. DÜĞMELER / BUTONLAR (Görsel 7 & 9: VIEW MORE, Ayarlar, Kaydol)
+    if (el.type === 'button') {
+      elDom.className += ' canvas-media-element';
+      const bg = el.bgColor || '#7f1d1d';
+      const col = el.color || '#ffffff';
+      elDom.innerHTML = `
+        <div class="w-full h-full flex items-center justify-center font-bold tracking-wider uppercase shadow-md transition hover:brightness-110 px-3 text-center" style="background:${bg}; color:${col}; border-radius:${el.borderRadius !== undefined ? el.borderRadius + 'px' : '999px'}; font-size:${el.fontSize || 11}px;">
+          <span contenteditable="${isEditable}" onblur="updateElementPropById('${el.id}', 'label', this.innerText)" class="outline-none">${escapeHtml(el.label || 'İNCELE / TIKLA')}</span>
+        </div>
+      `;
+    }
+
+    // 7. SICAK NOKTALAR (HOTSPOTS - Görsel 1 & 9)
+    if (el.type === 'hotspot') {
+      elDom.className += ' canvas-media-element flex items-center justify-center';
+      const bg = el.bgColor || '#e11d48';
+      elDom.innerHTML = `
+        <div class="w-7 h-7 rounded-full border-2 border-white hotspot-pulse flex items-center justify-center text-white font-bold text-xs shadow-lg cursor-pointer" style="background:${bg};" title="${escapeAttr(el.popupTitle || 'Detay için tıklayın')}">
+          <i class="ph ph-plus-bold text-xs"></i>
+        </div>
+      `;
+    }
+
+    // 8. SES OYNATICI (Görsel 8)
+    if (el.type === 'audio') {
+      elDom.className += ' canvas-media-element bg-slate-900 text-white p-2.5 rounded-2xl shadow-lg border border-slate-700 flex flex-col justify-center gap-1';
+      elDom.innerHTML = `
+        <div class="flex items-center gap-2 text-[11px] font-bold text-emerald-400">
+          <i class="ph ph-music-notes-simple text-base"></i>
+          <span class="truncate">${escapeHtml(el.title || 'Ses Kaydı / Podcast')}</span>
+        </div>
+        <audio controls class="w-full h-7" src="${escapeHtml(el.url || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3')}"></audio>
+      `;
+    }
+
+    // 9. SLAYT GÖSTERİSİ (KARUSEL - Görsel 8)
+    if (el.type === 'slideshow') {
+      elDom.className += ' canvas-media-element rounded-2xl overflow-hidden shadow-lg relative group bg-slate-900';
+      const slides = el.slides || [
+        'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'
+      ];
+      const activeSlide = Number(el.activeSlide || 0) % slides.length;
+      elDom.innerHTML = `
+        <img src="${escapeHtml(slides[activeSlide])}" class="w-full h-full object-cover pointer-events-none" alt="">
+        <button onclick="event.stopPropagation(); stepElementSlideshow('${el.id}', -1)" class="absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs hover:bg-black"><i class="ph ph-caret-left"></i></button>
+        <button onclick="event.stopPropagation(); stepElementSlideshow('${el.id}', 1)" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center text-xs hover:bg-black"><i class="ph ph-caret-right"></i></button>
+        <div class="absolute bottom-1.5 left-1/2 -translate-x-1/2 bg-black/60 text-white px-2 py-0.5 rounded-full text-[9px] font-bold">${activeSlide + 1} / ${slides.length}</div>
+      `;
+    }
+
+    // 10. HARİTA WIDGET'I (Görsel 9)
+    if (el.type === 'map') {
+      elDom.className += ' canvas-media-element rounded-2xl overflow-hidden shadow-md border border-slate-300 bg-slate-100 relative flex flex-col justify-between p-3';
+      elDom.style.backgroundImage = "url('https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&w=600&q=80')";
+      elDom.style.backgroundSize = "cover";
+      elDom.innerHTML = `
+        <div class="bg-white/95 backdrop-blur px-2.5 py-1.5 rounded-xl shadow flex items-center gap-1.5 text-xs font-bold text-slate-800 w-fit">
+          <i class="ph ph-map-pin-fill text-rose-600 text-base"></i>
+          <span contenteditable="${isEditable}" onblur="updateElementPropById('${el.id}', 'locationTitle', this.innerText)">${escapeHtml(el.locationTitle || (magazineData.schoolName || 'Okul Kampüsü'))}</span>
+        </div>
+        <div class="bg-slate-900/85 text-white text-[10px] px-2.5 py-1 rounded-lg self-end font-semibold">Konum Haritası</div>
+      `;
+    }
+
+    // Eylem (Action) Rozeti (Eğer öğeye tıklama eylemi atanmışsa sağ üstte küçük yıldırım/link rozeti göster)
+    if (el.actionType && el.actionType !== 'none') {
+      const badge = document.createElement('div');
+      badge.className = 'absolute -top-2 -right-2 w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] shadow z-30 pointer-events-none';
+      badge.innerHTML = '<i class="ph ph-lightning-fill"></i>';
+      elDom.appendChild(badge);
+    }
+
+    // Okuyucu / Önizleme Modunda Tıklama Eylemini Çalıştır
+    if (appMode === 'read' && (el.actionType || el.type === 'hotspot' || el.type === 'button')) {
+      elDom.style.cursor = 'pointer';
+      elDom.onclick = (ev) => {
+        ev.stopPropagation();
+        triggerElementAction(el);
+      };
+    }
+
+    // Seçim ve Taşıma Olayları (Düzenleme Modunda)
     if (isEditable) {
       elDom.onmousedown = (ev) => {
-        if (ev.target.closest('.resize-handle') || ev.target.closest('.rotate-handle') || ev.target.closest('.img-change-badge')) return;
+        if (ev.target.closest('.resize-handle') || ev.target.closest('.rotate-handle') || ev.target.closest('.img-change-badge') || ev.target.tagName === 'AUDIO' || ev.target.tagName === 'VIDEO') return;
         ev.stopPropagation();
 
-        if (el.type === 'text') {
+        if (el.type === 'text' || el.type === 'card' || el.type === 'qbox' || el.type === 'table') {
           selectCanvasElement(el.id, false);
           showFloatingRichTextBar(elDom, el);
-          // Kenara yakın tutulduysa sürüklemeyi başlat
+          renderRightEditorPanel();
           const rect = elDom.getBoundingClientRect();
-          const borderThreshold = 8;
+          const borderThreshold = 12;
           const isNearEdge = (
             ev.clientX - rect.left < borderThreshold ||
             rect.right - ev.clientX < borderThreshold ||
@@ -1053,10 +1662,11 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
         }
 
         selectCanvasElement(el.id);
+        renderRightEditorPanel();
         startDraggingElement(ev, el, pageWrapper);
       };
 
-      // Eğer seçiliyse 8 kulakçık ve döndürme kolu ekle
+      // Seçiliyse 8 Boyutlandırma Kulakçığı ve Sol-Alt Döndürme İkonu Ekle (Görsel 2 & 5)
       if (isSelected) {
         elDom.appendChild(createHandleDOM('handle-nw', 'nw'));
         elDom.appendChild(createHandleDOM('handle-ne', 'ne'));
@@ -1067,12 +1677,7 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
         elDom.appendChild(createHandleDOM('handle-e', 'e'));
         elDom.appendChild(createHandleDOM('handle-w', 'w'));
         elDom.appendChild(createRotateHandleDOM(el, pageWrapper));
-
-        if (el.type === 'text') {
-          showFloatingRichTextBar(elDom, el);
-        } else {
-          hideFloatingRichTextBar();
-        }
+        showFloatingRichTextBar(elDom, el);
       }
     }
 
@@ -1094,6 +1699,7 @@ function createHandleDOM(className, handleType) {
 function createRotateHandleDOM(el, pageWrapper) {
   const rh = document.createElement('div');
   rh.className = 'rotate-handle';
+  rh.innerHTML = '<i class="ph ph-arrows-clockwise"></i>';
   rh.title = 'Döndürmek için sürükleyin';
   rh.onmousedown = (e) => {
     e.stopPropagation();
@@ -1279,14 +1885,14 @@ function startRotatingElement(e, el, pageWrapper) {
   window.addEventListener('mouseup', onMouseUp);
 }
 
-// Zengin Tipografi & Renkli Çerçeve Araç Çubuğu Kontrolleri (Sabit Üst Bar ile Entegre)
+// Zengin Tipografi, Yüzen Beyaz Araç Çubuğu & Renkli Çerçeve Kontrolleri (FAZ 2 & FAZ 3)
 let activeInlineElement = null;
 let activeInlineFieldKey = null;
 
 function showFloatingRichTextBar(elDom, el) {
   const badge = document.getElementById('activeSelectionBadge');
   if (badge) {
-    badge.textContent = "Seçili: Serbest Kutu";
+    badge.textContent = `Seçili: ${(el?.type || 'öğe').toUpperCase()}`;
     badge.className = "text-[10px] text-emerald-400 font-mono font-bold mr-1";
   }
 
@@ -1295,14 +1901,37 @@ function showFloatingRichTextBar(elDom, el) {
   const colEl = document.getElementById('rtColor');
   const bgEl = document.getElementById('rtBgColor');
 
-  if (fsEl) fsEl.value = el.fontSize || 14;
-  if (ffEl) ffEl.value = el.fontFamily || 'Inter';
-  if (colEl) colEl.value = (el.color && el.color.startsWith('#')) ? el.color : '#ffffff';
-  if (bgEl) bgEl.value = el.bgColor || 'transparent';
+  if (el) {
+    if (fsEl) fsEl.value = el.fontSize || 14;
+    if (ffEl) ffEl.value = el.fontFamily || 'Inter';
+    if (colEl) colEl.value = (el.color && el.color.startsWith('#')) ? el.color : '#0f172a';
+    if (bgEl) bgEl.value = el.bgColor || 'transparent';
+  }
+
+  // FlipHTML5 v2 Görsel 2: Seçili öğenin tam üstünde açılan beyaz yüzen araç çubuğu
+  const floatBar = document.getElementById('floatingContextToolbar');
+  if (floatBar && elDom && appMode === 'edit') {
+    const rect = elDom.getBoundingClientRect();
+    floatBar.classList.remove('hidden');
+    const topPos = Math.max(58, rect.top - 48);
+    const leftPos = Math.max(80, Math.min(window.innerWidth - 460, rect.left));
+    floatBar.style.top = `${topPos}px`;
+    floatBar.style.left = `${leftPos}px`;
+
+    const fFont = document.getElementById('floatFontFamily');
+    const fSize = document.getElementById('floatFontSize');
+    const fColor = document.getElementById('floatTextColor');
+    if (el) {
+      if (fFont) fFont.value = el.fontFamily || 'Inter';
+      if (fSize) fSize.value = el.fontSize || 14;
+      if (fColor && el.color && el.color.startsWith('#')) fColor.value = el.color;
+    }
+  }
 }
 
 function hideFloatingRichTextBar() {
-  // Sabit üst bar her zaman görünür kalır
+  const floatBar = document.getElementById('floatingContextToolbar');
+  if (floatBar) floatBar.classList.add('hidden');
 }
 
 function handleInlineTextFocus(pageIndex, key, domEl) {
@@ -1328,13 +1957,78 @@ function handleInlineTextFocus(pageIndex, key, domEl) {
   if (ffEl && fs.fontFamily) ffEl.value = fs.fontFamily;
   if (colEl && fs.color && fs.color.startsWith('#')) colEl.value = fs.color;
   if (bgEl) bgEl.value = fs.bgColor || 'transparent';
+
+  // Yüzen beyaz çubuğu şablon içi yazının da tam üstünde göster (Görsel 2)
+  const floatBar = document.getElementById('floatingContextToolbar');
+  if (floatBar && domEl && appMode === 'edit') {
+    const rect = domEl.getBoundingClientRect();
+    floatBar.classList.remove('hidden');
+    floatBar.style.top = `${Math.max(58, rect.top - 46)}px`;
+    floatBar.style.left = `${Math.max(80, Math.min(window.innerWidth - 460, rect.left))}px`;
+  }
+  renderRightEditorPanel();
+}
+
+function cycleTextAlign() {
+  const aligns = ['left', 'center', 'right', 'justify'];
+  const page = magazineData.pages[selectedEditIndex];
+  let curr = 'left';
+  if (selectedElementId) {
+    const el = (page.elements || []).find(x => x.id === selectedElementId);
+    if (el) curr = el.textAlign || 'left';
+  } else if (activeInlineFieldKey && page.fieldStyles?.[activeInlineFieldKey]) {
+    curr = page.fieldStyles[activeInlineFieldKey].textAlign || 'left';
+  }
+  const next = aligns[(aligns.indexOf(curr) + 1) % aligns.length];
+  applyTextStyle('textAlign', next);
+}
+
+function cycleTextCase() {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page) return;
+  if (selectedElementId) {
+    const el = (page.elements || []).find(x => x.id === selectedElementId);
+    const elDom = document.getElementById(`elDom_${selectedElementId}`);
+    if (el && elDom) {
+      const modes = ['none', 'uppercase', 'lowercase', 'capitalize'];
+      const next = modes[(modes.indexOf(el.textTransform || 'none') + 1) % modes.length];
+      el.textTransform = next;
+      elDom.style.textTransform = next;
+      saveAllChangesToServer();
+    }
+  } else if (activeInlineElement) {
+    const curr = activeInlineElement.style.textTransform || 'none';
+    const modes = ['none', 'uppercase', 'lowercase', 'capitalize'];
+    const next = modes[(modes.indexOf(curr) + 1) % modes.length];
+    activeInlineElement.style.textTransform = next;
+    saveAllChangesToServer();
+  }
+}
+
+function duplicateSelectedCanvasElement() {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !selectedElementId) {
+    showToast("Çoğaltmak için önce bir öğe seçin.");
+    return;
+  }
+  const orig = (page.elements || []).find(x => x.id === selectedElementId);
+  if (!orig) return;
+  const copy = JSON.parse(JSON.stringify(orig));
+  copy.id = 'el-' + Date.now();
+  copy.x = Math.min(85, (orig.x || 10) + 4);
+  copy.y = Math.min(85, (orig.y || 10) + 4);
+  page.elements.push(copy);
+  selectedElementId = copy.id;
+  renderAll();
+  saveAllChangesToServer();
+  showToast("📋 Öğe çoğaltıldı!");
 }
 
 function applyTextStyle(prop, val) {
   const page = magazineData.pages[selectedEditIndex];
   if (!page) return;
 
-  // 1. Durum: Serbest eklenen kutu veya renkli çerçeve seçiliyse
+  // 1. Durum: Serbest eklenen kutu veya öğe seçiliyse
   if (selectedElementId) {
     const el = (page.elements || []).find(x => x.id === selectedElementId);
     if (!el) return;
@@ -1361,6 +2055,7 @@ function applyTextStyle(prop, val) {
       }
       if (prop === 'textAlign') elDom.style.textAlign = val;
     }
+    pushHistoryState();
     saveAllChangesToServer();
     return;
   }
@@ -1398,6 +2093,7 @@ function applyTextStyle(prop, val) {
       }
     }
 
+    pushHistoryState();
     saveAllChangesToServer();
     showToast("Yazı ve çerçeve stili uygulandı!");
     return;
@@ -1435,6 +2131,9 @@ function applyTextFormat(cmd) {
     } else if (cmd === 'underline') {
       fs.textDecoration = fs.textDecoration === 'underline' ? 'none' : 'underline';
       activeInlineElement.style.textDecoration = fs.textDecoration;
+    } else if (cmd === 'strikethrough') {
+      fs.textDecoration = fs.textDecoration === 'line-through' ? 'none' : 'line-through';
+      activeInlineElement.style.textDecoration = fs.textDecoration;
     }
     saveAllChangesToServer();
     return;
@@ -1447,12 +2146,13 @@ function changeElementLayer(delta) {
   const page = magazineData.pages[selectedEditIndex];
   const el = (page.elements || []).find(x => x.id === selectedElementId);
   if (!el) {
-    showToast("Katman sırasını değiştirmek için serbest eklenen bir kutu seçin.");
+    showToast("Katman sırasını değiştirmek için bir öğe seçin.");
     return;
   }
   el.zIndex = Math.max(1, (el.zIndex || 10) + delta * 5);
   const elDom = document.getElementById(`elDom_${el.id}`);
   if (elDom) elDom.style.zIndex = el.zIndex;
+  renderLayersPopover();
   saveAllChangesToServer();
   showToast(delta > 0 ? "Öne getirildi" : "Arkaya gönderildi");
 }
@@ -1460,14 +2160,15 @@ function changeElementLayer(delta) {
 function deleteSelectedCanvasElement() {
   const page = magazineData.pages[selectedEditIndex];
   if (!page || !selectedElementId) {
-    showToast("Silmek için sonradan eklenen bir kutu veya görsel seçin.");
+    showToast("Silmek için bir öğe seçin.");
     return;
   }
   page.elements = (page.elements || []).filter(x => x.id !== selectedElementId);
   selectedElementId = null;
-  renderAllElementsForCurrentPage();
+  hideFloatingRichTextBar();
+  renderAll();
   saveAllChangesToServer();
-  showToast("Kutu silindi.");
+  showToast("🗑️ Öğe silindi.");
 }
 
 function toggleGridOverlay() {
@@ -1475,14 +2176,124 @@ function toggleGridOverlay() {
   const btn = document.getElementById('btnGridToggle');
   if (btn) {
     btn.className = showGridGuide 
-      ? 'px-2 py-1 rounded-lg bg-indigo-600 text-white text-[11px] font-semibold border border-indigo-500 shadow'
-      : 'px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-medium border border-slate-800 transition flex items-center gap-1';
+      ? 'w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center transition shadow'
+      : 'w-8 h-8 rounded-lg hover:bg-slate-100 text-slate-700 flex items-center justify-center transition';
   }
   renderMagazineViewport();
-  showToast(showGridGuide ? "Izgara kılavuzları açık" : "Izgara kapatıldı");
+  showToast(showGridGuide ? "⊞ Izgara kılavuzları açık" : "Izgara kapatıldı");
 }
 
-// Eleman Ekleme Butonları (Metin Kutusu, Renkli Çerçeve, Soru Kutusu, Resim, Video)
+function toggleLayersPopover() {
+  const pop = document.getElementById('layersPopover');
+  if (!pop) return;
+  pop.classList.toggle('hidden');
+  if (!pop.classList.contains('hidden')) {
+    renderLayersPopover();
+  }
+}
+
+function renderLayersPopover() {
+  const container = document.getElementById('layersListContainer');
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (!container || !page) return;
+  const elems = [...(page.elements || [])].sort((a, b) => (b.zIndex || 10) - (a.zIndex || 10));
+  if (elems.length === 0) {
+    container.innerHTML = `<div class="text-slate-400 text-[11px] py-3 text-center">Bu sayfada henüz serbest katman yok.<br><button onclick="convertTemplateToFreeformObjects()" class="mt-2 px-2.5 py-1 rounded-lg bg-blue-600 text-white text-[10px] font-bold">Şablonu Katmanlara Ayrıştır</button></div>`;
+    return;
+  }
+  container.innerHTML = elems.map(el => `
+    <div onclick="selectCanvasElement('${el.id}'); renderRightEditorPanel();" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition ${el.id === selectedElementId ? 'bg-blue-600/20 border-blue-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:bg-slate-800'}">
+      <div class="truncate pr-2 flex items-center gap-1.5">
+        <i class="ph ${el.type === 'image' ? 'ph-image text-sky-400' : el.type === 'table' ? 'ph-table text-amber-400' : el.type === 'button' ? 'ph-cursor-click text-rose-400' : el.type === 'shape' ? 'ph-shapes text-purple-400' : 'ph-text-t text-indigo-400'}"></i>
+        <span class="truncate text-[11px] font-semibold">${escapeHtml(el.label || (el.content ? el.content.replace(/<[^>]*>/g, '').slice(0, 18) : el.type.toUpperCase()))}</span>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <button onclick="event.stopPropagation(); selectedElementId='${el.id}'; changeElementLayer(1);" class="p-1 rounded hover:bg-slate-700" title="Üste"><i class="ph ph-caret-up"></i></button>
+        <button onclick="event.stopPropagation(); selectedElementId='${el.id}'; changeElementLayer(-1);" class="p-1 rounded hover:bg-slate-700" title="Alta"><i class="ph ph-caret-down"></i></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterElementsDrawer(query) {
+  const q = (query || '').toLowerCase().trim();
+  document.querySelectorAll('#elementsLibraryContainer .elem-group').forEach(g => {
+    const kw = (g.dataset.keywords || '') + ' ' + g.innerText.toLowerCase();
+    g.style.display = (!q || kw.includes(q)) ? '' : 'none';
+  });
+}
+
+// Şablondaki mevcut başlık, yazı ve resimleri tek tıkla taşınabilir/boyutlandırılabilir serbest nesnelere dönüştürür (Görsel 2 & 5)
+function convertTemplateToFreeformObjects() {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !canUserEditPage(page)) return;
+  if (!page.elements) page.elements = [];
+
+  const accent = page.accentColor || '#2563eb';
+  const imgUrl = page.coverImage || page.image || page.photo || page.bgImage;
+  const mainTitle = page.magazineName || page.mainHeadline || page.title || page.headerText || page.interviewee || 'Sayfa Başlığı';
+  const subBody = page.subHeadline || page.content || page.subText || page.poemText || page.editorText || page.a1 || 'İçerik metninizi doğrudan düzenleyebilir veya istediğiniz yere sürükleyebilirsiniz.';
+
+  if (imgUrl) {
+    page.elements.push({
+      id: 'el-' + Date.now() + '-img',
+      type: 'image',
+      url: imgUrl,
+      x: 8,
+      y: 24,
+      width: 42,
+      height: 56,
+      rotate: 0,
+      zIndex: 15,
+      opacity: 100,
+      borderRadius: 12
+    });
+  }
+
+  page.elements.push({
+    id: 'el-' + Date.now() + '-title',
+    type: 'text',
+    x: 8,
+    y: 8,
+    width: 84,
+    height: 13,
+    rotate: 0,
+    zIndex: 20,
+    content: `<strong>${escapeHtml(mainTitle)}</strong>`,
+    fontSize: 24,
+    fontFamily: "'Playfair Display', serif",
+    color: '#0f172a',
+    bgColor: 'transparent',
+    borderColor: 'transparent',
+    textAlign: 'left'
+  });
+
+  page.elements.push({
+    id: 'el-' + Date.now() + '-body',
+    type: 'text',
+    x: imgUrl ? 53 : 8,
+    y: 24,
+    width: imgUrl ? 39 : 84,
+    height: 45,
+    rotate: 0,
+    zIndex: 20,
+    content: escapeHtml(subBody),
+    fontSize: 12,
+    fontFamily: 'Inter',
+    color: '#334155',
+    bgColor: '#f8fafc',
+    borderColor: '#cbd5e1',
+    textAlign: 'left'
+  });
+
+  page.type = 'freeform';
+  selectedElementId = page.elements[page.elements.length - 1].id;
+  renderAll();
+  saveAllChangesToServer();
+  showToast("✨ Şablon öğeleri bağımsız taşınabilir nesnelere dönüştürüldü!");
+}
+
+// Eleman Ekleme Motoru (Metin, Renkli Çerçeve, Soru Kutusu, Resim, Video, Tablo, Şekil, Buton, Sıcak Nokta, Ses, Slayt, Harita)
 function addCanvasElement(type, data = {}) {
   const page = magazineData.pages[selectedEditIndex];
   if (!page) {
@@ -1496,25 +2307,34 @@ function addCanvasElement(type, data = {}) {
   let newEl = {
     id: newId,
     type,
-    x: 15,
-    y: 20,
+    x: 14,
+    y: 18,
     width: 55,
     height: 22,
     rotate: 0,
     zIndex: 25,
+    opacity: 100,
+    borderRadius: 12,
+    letterSpacing: 0,
+    lineHeight: 1.32,
+    paragraphSpacing: 0,
+    actionTrigger: 'click',
+    actionType: 'none',
+    actionValue: '',
     ...data
   };
 
   if (type === 'text') {
     newEl = {
       ...newEl,
-      content: "<strong>Yeni Başlık / Metin Kutusu</strong><br>Tıklayarak doğrudan yazınızı yazabilir, üst çubuktan yazı tipini ve çerçeve rengini değiştirebilirsiniz.",
+      content: "<strong>Yeni Başlık / Metin Kutusu</strong><br>Tıklayarak doğrudan yazınızı yazabilir, sağdaki Ayarlar panelinden satır aralığı, gölge ve çerçeve rengini ayarlayabilirsiniz.",
       fontSize: 14,
       fontFamily: "Inter",
       color: "#0f172a",
       bgColor: "#ffffff",
       borderColor: "#cbd5e1",
-      textAlign: "left"
+      textAlign: "left",
+      ...data
     };
   } else if (type === 'card') {
     newEl = {
@@ -1530,7 +2350,8 @@ function addCanvasElement(type, data = {}) {
       color: "#ffffff",
       bgColor: `linear-gradient(135deg, ${accent}, #1e1b4b)`,
       borderColor: "rgba(255,255,255,0.28)",
-      textAlign: "left"
+      textAlign: "left",
+      ...data
     };
   } else if (type === 'qbox') {
     newEl = {
@@ -1546,7 +2367,103 @@ function addCanvasElement(type, data = {}) {
       color: "#0f172a",
       bgColor: "#f8fafc",
       borderColor: "#cbd5e1",
-      textAlign: "left"
+      textAlign: "left",
+      ...data
+    };
+  } else if (type === 'table') {
+    newEl = {
+      ...newEl,
+      x: 8,
+      y: 52,
+      width: 84,
+      height: 32,
+      headerBg: accent || '#7f1d1d',
+      rows: [
+        ['ÖZELLİK / KONU', 'AÇIKLAMA & DETAY'],
+        ['Proje Adı', 'Okul Kültür & Bilim Dosyası'],
+        ['Kategori', 'Edebiyat ve Sanat'],
+        ['Dönem', '2026 - 2027 Eğitim Yılı'],
+        ['Katılımcılar', 'Tüm Sınıflar & Yayın Kulübü']
+      ],
+      ...data
+    };
+  } else if (type === 'shape') {
+    newEl = {
+      ...newEl,
+      x: 25,
+      y: 25,
+      width: data.shapeType === 'line' ? 60 : 28,
+      height: data.shapeType === 'line' ? 4 : 20,
+      shapeType: data.shapeType || 'rect',
+      bgColor: data.bgColor || accent || '#881337',
+      borderRadius: data.shapeType === 'circle' ? 999 : 8,
+      ...data
+    };
+  } else if (type === 'button') {
+    newEl = {
+      ...newEl,
+      x: 30,
+      y: 78,
+      width: 40,
+      height: 8,
+      label: data.label || 'DETAYLARI İNCELE',
+      bgColor: data.bgColor || accent || '#7f1d1d',
+      color: data.color || '#ffffff',
+      fontSize: 11,
+      borderRadius: 999,
+      actionType: data.actionType || 'popup',
+      popupTitle: 'Detaylı Bilgi',
+      popupText: 'Bu butona tıklandığında açılan bilgilendirme penceresi.',
+      ...data
+    };
+  } else if (type === 'hotspot') {
+    newEl = {
+      ...newEl,
+      x: 45,
+      y: 45,
+      width: 9,
+      height: 7,
+      bgColor: data.bgColor || '#e11d48',
+      actionType: 'popup',
+      popupTitle: data.popupTitle || 'Önemli Detay Noktası',
+      popupText: data.popupText || 'Okuyucu bu sıcak noktaya tıkladığında bu açıklama penceresi açılır.',
+      ...data
+    };
+  } else if (type === 'audio') {
+    newEl = {
+      ...newEl,
+      x: 12,
+      y: 72,
+      width: 76,
+      height: 15,
+      title: 'Okul Radyosu / Şiir Dinletisi',
+      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      ...data
+    };
+  } else if (type === 'slideshow') {
+    newEl = {
+      ...newEl,
+      x: 12,
+      y: 20,
+      width: 76,
+      height: 44,
+      activeSlide: 0,
+      slides: [
+        'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
+        'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80'
+      ],
+      ...data
+    };
+  } else if (type === 'map') {
+    newEl = {
+      ...newEl,
+      x: 15,
+      y: 30,
+      width: 70,
+      height: 36,
+      locationTitle: magazineData.schoolName || 'Okul Kampüsü Konumu',
+      ...data
     };
   }
 
@@ -1554,12 +2471,56 @@ function addCanvasElement(type, data = {}) {
   selectedElementId = newId;
   activeInlineElement = null;
   activeInlineFieldKey = null;
-  renderMagazineViewport();
+  renderAll();
   setTimeout(() => {
     selectCanvasElement(newId);
+    renderRightEditorPanel();
   }, 40);
   saveAllChangesToServer();
-  showToast("Kutu sayfaya eklendi! Kenarından tutup taşıyabilir veya içine tıklayıp yazabilirsiniz.");
+  showToast("✨ Öğe sayfaya eklendi! Sağ panelden Ayarlar ve Eylemlerini düzenleyebilirsiniz.");
+}
+
+function updateTableCell(elId, rIdx, cIdx, val) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el || !el.rows || !el.rows[rIdx]) return;
+  el.rows[rIdx][cIdx] = val;
+  saveAllChangesToServer();
+}
+
+function addTableRow(elId) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el) return;
+  if (!el.rows) el.rows = [['BAŞLIK 1', 'BAŞLIK 2']];
+  el.rows.push(['Yeni Madde', 'Detay Bilgisi']);
+  renderAllElementsForCurrentPage();
+  saveAllChangesToServer();
+}
+
+function removeTableRow(elId) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el || !el.rows || el.rows.length <= 2) return;
+  el.rows.pop();
+  renderAllElementsForCurrentPage();
+  saveAllChangesToServer();
+}
+
+function stepElementSlideshow(elId, dir) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el || !el.slides || !el.slides.length) return;
+  el.activeSlide = ((el.activeSlide || 0) + dir + el.slides.length) % el.slides.length;
+  renderAllElementsForCurrentPage();
+}
+
+function updateElementPropById(elId, prop, val) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el) return;
+  el[prop] = val;
+  saveAllChangesToServer();
 }
 
 async function handleCanvasImageUpload(event) {
@@ -1610,19 +2571,133 @@ async function handleCanvasVideoUpload(event) {
 }
 
 function initGlobalCanvasEvents() {
+  window.addEventListener('click', (ev) => {
+    if (!ev.target.closest('#morePopupMenu') && !ev.target.closest('#railBtn_more')) {
+      closeMorePopupMenu();
+    }
+  });
+
+  // El Aracı (Pan Modu) ile Tuvali Sürükleme
+  const ws = document.getElementById('mainCanvasWorkspace');
+  if (ws) {
+    ws.addEventListener('mousedown', (e) => {
+      if (!isPanMode) return;
+      isPanningWorkspace = true;
+      panStartX = e.clientX;
+      panStartY = e.clientY;
+      panScrollLeft = ws.scrollLeft;
+      panScrollTop = ws.scrollTop;
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanningWorkspace || !ws) return;
+      ws.scrollLeft = panScrollLeft - (e.clientX - panStartX);
+      ws.scrollTop = panScrollTop - (e.clientY - panStartY);
+    });
+    window.addEventListener('mouseup', () => {
+      isPanningWorkspace = false;
+    });
+  }
+
   window.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement;
+    const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable);
+
+    // Ctrl+Z (Geri Al) & Ctrl+Y (İleri Al)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !isTyping) {
+      e.preventDefault();
+      undoAction();
+      return;
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !isTyping) {
+      e.preventDefault();
+      redoAction();
+      return;
+    }
+    // Ctrl+D (Çoğalt)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd' && !isTyping && selectedElementId) {
+      e.preventDefault();
+      duplicateSelectedCanvasElement();
+      return;
+    }
+
     if (e.key === 'Delete' || e.key === 'Backspace') {
-      const activeEl = document.activeElement;
-      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) return;
+      if (isTyping) return;
       if (selectedElementId) {
         deleteSelectedCanvasElement();
       }
     }
     if (e.key === 'Escape') {
       selectedElementId = null;
+      activeInlineElement = null;
+      activeInlineFieldKey = null;
       hideFloatingRichTextBar();
       renderAllElementsForCurrentPage();
+      renderRightEditorPanel();
     }
+
+    // Seçili öğeyi yön tuşlarıyla hassas kaydırma
+    if (!isTyping && selectedElementId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      const page = magazineData.pages[selectedEditIndex];
+      const el = (page?.elements || []).find(x => x.id === selectedElementId);
+      if (el) {
+        const step = e.shiftKey ? 2.5 : 0.5;
+        if (e.key === 'ArrowLeft') el.x = Math.round((el.x - step) * 10) / 10;
+        if (e.key === 'ArrowRight') el.x = Math.round((el.x + step) * 10) / 10;
+        if (e.key === 'ArrowUp') el.y = Math.round((el.y - step) * 10) / 10;
+        if (e.key === 'ArrowDown') el.y = Math.round((el.y + step) * 10) / 10;
+        renderAllElementsForCurrentPage();
+        renderRightEditorPanel();
+        debouncedSave();
+      }
+    }
+  });
+}
+
+function showKeyboardShortcutsToast() {
+  showToast("⌨️ Kısayollar: Ctrl+Z (Geri Al), Ctrl+Y (İleri Al), Ctrl+D (Çoğalt), Delete (Sil), Yön Tuşları (Hassas Taşı)");
+}
+
+function openAiHelperModal() {
+  openModal('aiHelperModal');
+}
+
+function generateAiSnippet(kind) {
+  const box = document.getElementById('aiOutputBox');
+  if (!box) return;
+  const school = magazineData?.schoolName || 'Okulumuz';
+  const snippets = {
+    headline: `GELECEĞİ TASARLAYAN NESİL: ${school.toUpperCase()} BİLİM VE SANAT DOSYASI\nMerak eden, araştıran ve üreten gençlerin gözünden yeni yüzyılın trendleri.`,
+    editorial: `Sevgili Okurlarımız,\n${school} ailesi olarak bu sayımızda edebiyattan bilime, sanattan spora uzanan çok sesli bir yolculuğa çıkıyoruz. Her sayfasında öğrencilerimizin emeği ve heyecanı bulunan dergimizin keyifle okunmasını dileriz.`,
+    interview: `S1: Öğrencilik yıllarınızda hayatınıza yön veren en önemli dönüm noktası neydi?\nS2: Gençlerin okuma, yazma ve üretme tutkusunu canlı tutmak için neler önerirsiniz?\nS3: Dergimiz okurlarına ve geleceğin yazarlarına son mesajınız nedir?`,
+    article: `Dijitalleşen dünyada sanat ve bilimin kesişim noktası her geçen gün genişliyor. ${school} proje atölyelerinde yürütülen çalışmalar, disiplinlerarası düşüncenin yaratıcılığı nasıl beslediğini çarpıcı örneklerle ortaya koyuyor.`
+  };
+  box.value = snippets[kind] || snippets.article;
+}
+
+function insertAiOutputToCanvas() {
+  const box = document.getElementById('aiOutputBox');
+  const text = box ? box.value.trim() : '';
+  if (!text) {
+    showToast("Lütfen önce bir metin oluşturun.");
+    return;
+  }
+  closeModal('aiHelperModal');
+  if (selectedElementId) {
+    const page = magazineData.pages[selectedEditIndex];
+    const el = (page?.elements || []).find(x => x.id === selectedElementId);
+    if (el && (el.type === 'text' || el.type === 'card' || el.type === 'qbox')) {
+      el.content = text.replace(/\n/g, '<br>');
+      renderAll();
+      saveAllChangesToServer();
+      showToast("✨ AI metni seçili kutuya aktarıldı!");
+      return;
+    }
+  }
+  addCanvasElement('text', {
+    content: text.replace(/\n/g, '<br>'),
+    width: 72,
+    height: 26
   });
 }
 
@@ -2386,33 +3461,94 @@ function renderTemplateHTML(page, pageIndex) {
     `;
   }
 
+  // 12. KATALOG & PROJE / ÜRÜN ÖZETİ (FlipHTML5 Görsel 1 & 7 Birebir)
+  if (page.type === 'catalog') {
+    const pageBg = page.bgColor || '#f7f4f0';
+    return `
+      <div class="p-6 flex flex-col justify-between h-full overflow-hidden select-none" style="background:${pageBg}; color:#1c1917;">
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            ${makeInlineEditable(pageIndex, 'title', page.title || 'Project & Product Overview', 'h2', 'font-serif font-bold text-xl tracking-tight text-stone-900')}
+            <span class="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase text-white" style="background:${accent}">SPEC SHEET</span>
+          </div>
+          ${makeInlineEditable(pageIndex, 'content', page.content || 'Modern tasarım ilkeleri ve zarif detaylarla hazırlanan bu özel dosya; estetik, işlevsellik ve yenilikçi malzeme kullanımını bir araya getiriyor.', 'p', 'text-[10.5px] text-stone-600 leading-relaxed mb-3')}
+
+          <!-- 3'lü Dikey Görsel Vitrini (Görsel 1 Sağ Üst) -->
+          <div class="grid grid-cols-3 gap-2.5 h-44 mb-3">
+            ${makeInlineImage(pageIndex, 'image', page.image, 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=500&q=80', 'w-full h-full object-cover', 'rounded-xl overflow-hidden shadow border border-stone-200 h-full', 'Görsel 1')}
+            ${makeInlineImage(pageIndex, 'image2', page.image2, 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&w=500&q=80', 'w-full h-full object-cover', 'rounded-xl overflow-hidden shadow border border-stone-200 h-full', 'Görsel 2')}
+            ${makeInlineImage(pageIndex, 'image3', page.image3, 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=500&q=80', 'w-full h-full object-cover', 'rounded-xl overflow-hidden shadow border border-stone-200 h-full', 'Görsel 3')}
+          </div>
+        </div>
+
+        <!-- Alt Bilgi Tablosu (Görsel 1: Product Information ITEM | SPECIFICATION) -->
+        <div class="bg-white/90 rounded-xl border border-stone-200 overflow-hidden shadow-sm">
+          <div class="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white flex justify-between" style="background:${accent || '#7f1d1d'}">
+            <span>BAŞLIK / ÖZELLİK</span>
+            <span>DETAY & SPESİFİKASYON</span>
+          </div>
+          <div class="divide-y divide-stone-200 text-[10.5px]">
+            <div class="px-3 py-1.5 flex justify-between">
+              <strong class="text-stone-700">Proje / Eser Adı</strong>
+              ${makeInlineEditable(pageIndex, 'spec1', page.spec1 || 'Özel Tasarım Koleksiyonu', 'span', 'text-stone-600')}
+            </div>
+            <div class="px-3 py-1.5 flex justify-between bg-stone-50/60">
+              <strong class="text-stone-700">Kategori & Alan</strong>
+              ${makeInlineEditable(pageIndex, 'spec2', page.spec2 || 'Görsel Sanatlar & Tasarım', 'span', 'text-stone-600')}
+            </div>
+            <div class="px-3 py-1.5 flex justify-between">
+              <strong class="text-stone-700">Dönem / Sezon</strong>
+              ${makeInlineEditable(pageIndex, 'spec3', page.spec3 || '2026 - 2027 Bahar Dönemi', 'span', 'text-stone-600')}
+            </div>
+            <div class="px-3 py-1.5 flex justify-between bg-stone-50/60">
+              <strong class="text-stone-700">Hazırlayan Ekip</strong>
+              ${makeInlineEditable(pageIndex, 'author', page.author || 'Tasarım & Kültür Atölyesi', 'span', 'text-stone-600')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   return `<div class="p-6">Sayfa</div>`;
 }
 
 // ==========================================
-// 7. SAĞ PANEL (CANLI FORM VE İÇERİK EDİTÖRÜ)
+// 7. BAĞLAMA DUYARLI AKILLI SAĞ PANEL: AYARLAR | EYLEMLER | SAYFA METİNLERİ (FAZ 4 & FAZ 5)
 // ==========================================
 function renderRightEditorPanel() {
   const container = document.getElementById('editorFormContainer');
+  const settingsContainer = document.getElementById('rightInspector_settings');
+  const actionsContainer = document.getElementById('rightInspector_actions');
   const badge = document.getElementById('editingPageBadge');
-  const page = magazineData.pages[selectedEditIndex];
+  const page = magazineData?.pages?.[selectedEditIndex];
   if (!page) return;
 
   const isEditable = canUserEditPage(page);
   const lockBanner = document.getElementById('pageLockBanner');
   const pageActions = document.getElementById('pageActionFooter');
 
-  badge.textContent = `Sayfa ${selectedEditIndex + 1} (${getTemplateLabel(page.type)})`;
+  if (badge) badge.textContent = `Sayfa ${selectedEditIndex + 1} • ${getTemplateLabel(page.type)}`;
 
   if (!isEditable) {
-    lockBanner.classList.remove('hidden');
+    if (lockBanner) lockBanner.classList.remove('hidden');
     if (pageActions) pageActions.classList.add('hidden');
   } else {
-    lockBanner.classList.add('hidden');
+    if (lockBanner) lockBanner.classList.add('hidden');
     if (pageActions) pageActions.classList.remove('hidden');
   }
 
   renderStatusControl(page);
+
+  // 1. BAĞLAMA DUYARLI "AYARLAR" SEKMESİNİ RENDER ET (Görsel 1, 2, 3, 5, 6)
+  if (settingsContainer) {
+    renderContextSettingsInspector(page, isEditable, settingsContainer);
+  }
+
+  // 2. "EYLEMLER (ACTIONS)" SEKMESİNİ RENDER ET (Görsel 4 & 7)
+  if (actionsContainer) {
+    renderContextActionsInspector(page, isEditable, actionsContainer);
+  }
 
   const assignWrapper = document.getElementById('assignEditorWrapper');
   const selectEditor = document.getElementById('selectAssignedEditor');
@@ -2578,6 +3714,18 @@ function renderRightEditorPanel() {
       ${createTextareaField('Şiir veya Edebi Metin', 'poemText', page.poemText, 6, isEditable)}
       ${createInputField('Alt Bilgi Notu', 'bottomNote', page.bottomNote, isEditable)}
     `;
+  } else if (page.type === 'catalog') {
+    fieldsHtml += `
+      ${createInputField('Katalog / Proje Başlığı', 'title', page.title, isEditable)}
+      ${createTextareaField('Üst Tanıtım Özeti', 'content', page.content, 3, isEditable)}
+      ${createImageField('1. Dikey Vitrin Görseli', 'image', page.image, isEditable)}
+      ${createImageField('2. Dikey Vitrin Görseli', 'image2', page.image2, isEditable)}
+      ${createImageField('3. Dikey Vitrin Görseli', 'image3', page.image3, isEditable)}
+      ${createInputField('Tablo Satır 1 (Proje Adı)', 'spec1', page.spec1, isEditable)}
+      ${createInputField('Tablo Satır 2 (Kategori)', 'spec2', page.spec2, isEditable)}
+      ${createInputField('Tablo Satır 3 (Dönem)', 'spec3', page.spec3, isEditable)}
+      ${createInputField('Tablo Satır 4 (Ekip)', 'author', page.author, isEditable)}
+    `;
   } else if (page.type === 'quiz') {
     const opts = page.options || ["", "", "", ""];
     fieldsHtml += `
@@ -2608,7 +3756,652 @@ function renderRightEditorPanel() {
     `;
   }
 
-  container.innerHTML = fieldsHtml;
+  if (container) container.innerHTML = fieldsHtml;
+}
+
+// ==========================================
+// FAZ 4: BAĞLAMA DUYARLI "AYARLAR" PANELİ (Görsel 1, 2, 3, 5, 6 Birebir)
+// ==========================================
+function renderContextSettingsInspector(page, isEditable, targetDom) {
+  const el = selectedElementId ? (page.elements || []).find(x => x.id === selectedElementId) : null;
+
+  // DURUM 1: HİÇBİR SERBEST ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (Görsel 1 Birebir)
+  if (!el) {
+    targetDom.innerHTML = `
+      <!-- Sayfa Boyutu (Görsel 1: G 794, Y 1123) -->
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white flex items-center gap-1">Sayfa Boyutu <i class="ph ph-info text-slate-400"></i></span>
+          <span class="text-[10px] text-slate-400">A4 Dergi</span>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-semibold">G</span>
+            <span class="text-white font-mono">794</span>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+            <span class="text-slate-400 font-semibold">Y</span>
+            <span class="text-white font-mono">1123</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Renk Şemaları / Tema Paletleri (Görsel 1 Birebir: Gök mavisi, Fern Green, Sıcak Kahverengi, Gece yarısı) -->
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white flex items-center gap-1">Renk şemaları <i class="ph ph-info text-slate-400"></i></span>
+        </div>
+        <div class="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1.5">
+          <i class="ph ph-check-circle-fill text-emerald-400"></i>
+          <span>Tema renkleri algılandı</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          ${FLIP_COLOR_SCHEMES.map(sc => `
+            <button onclick="applyColorSchemeToPage('${sc.id}')" class="p-2.5 rounded-xl border text-left transition hover:scale-[1.02] ${page.accentColor === sc.accent ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-slate-700/80'}" style="background:${sc.bg}; color:${sc.text};">
+              <div class="font-bold text-xs leading-tight" style="color:${sc.accent}">Başlık</div>
+              <div class="text-[10px] opacity-80 mb-1.5">Metin</div>
+              <div class="flex items-center gap-0.5 h-2.5 rounded overflow-hidden">
+                ${sc.palette.map(hex => `<span class="flex-1 h-full" style="background:${hex}"></span>`).join('')}
+              </div>
+              <div class="text-[10px] font-semibold mt-1.5 truncate opacity-90">${escapeHtml(sc.name)}</div>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Arka Plan (Görsel 1: Görüntü | Renk) -->
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+        <span class="text-xs font-bold text-white block">Arka Plan</span>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-slate-300">Bir Renk Seçin</span>
+          <input type="color" value="${page.bgColor || '#ffffff'}" onchange="updatePageField('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border border-slate-700 bg-transparent">
+        </div>
+        <div class="pt-1 border-t border-slate-800 flex items-center justify-between gap-2">
+          <button onclick="switchRightInspectorTab('content')" class="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition">
+            <i class="ph ph-textbox"></i> Şablon Metinleri
+          </button>
+          <button onclick="convertTemplateToFreeformObjects()" class="flex-1 py-2 px-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[11px] font-bold flex items-center justify-center gap-1 transition" title="Şablondaki tüm başlık ve fotoğrafları serbest taşınabilir nesnelere dönüştür">
+            <i class="ph ph-bounding-box"></i> Serbestleştir
+          </button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // ORTAK ÜST KISIM: BOYUT & KONUM (Hizalama İkonları + X, Y, G, Y Kutuları - Görsel 2 & 5)
+  const posBoxHtml = `
+    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-white">Boyut & Konum</span>
+        <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">${escapeHtml(el.type)}</span>
+      </div>
+      <!-- 8'li Hizalama Barı (Görsel 2 & 5) -->
+      <div class="grid grid-cols-6 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
+        <button onclick="alignSelectedElement('left')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Sola Hizala"><i class="ph ph-align-left text-sm"></i></button>
+        <button onclick="alignSelectedElement('center-x')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Yatay Ortala"><i class="ph ph-align-center-horizontal text-sm"></i></button>
+        <button onclick="alignSelectedElement('right')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Sağa Hizala"><i class="ph ph-align-right text-sm"></i></button>
+        <button onclick="alignSelectedElement('top')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Üste Hizala"><i class="ph ph-align-top text-sm"></i></button>
+        <button onclick="alignSelectedElement('center-y')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Dikey Ortala"><i class="ph ph-align-center-vertical text-sm"></i></button>
+        <button onclick="alignSelectedElement('bottom')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Alta Hizala"><i class="ph ph-align-bottom text-sm"></i></button>
+      </div>
+      <!-- X, Y, G, Y Koordinat Kutuları (Görsel 2 & 5) -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-400 font-semibold">X</span>
+          <input type="number" value="${Math.round(el.x || 0)}" oninput="updateSelectedElementNumeric('x', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-400 font-semibold">Y</span>
+          <input type="number" value="${Math.round(el.y || 0)}" oninput="updateSelectedElementNumeric('y', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-400 font-semibold">G</span>
+          <input type="number" value="${Math.round(el.width || 30)}" oninput="updateSelectedElementNumeric('width', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        </div>
+        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-400 font-semibold">Y</span>
+          <input type="number" value="${Math.round(el.height || 20)}" oninput="updateSelectedElementNumeric('height', this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+        </div>
+      </div>
+    </div>
+  `;
+
+  // DURUM 2: METİN / KART / SORU KUTUSU SEÇİLİYSE (Görsel 2 & 3 Birebir)
+  if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
+    targetDom.innerHTML = posBoxHtml + `
+      <!-- Metin Tipografi Kutusu (Görsel 2) -->
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+        <span class="text-xs font-bold text-white block">Metin</span>
+        <select onchange="applyTextStyle('fontFamily', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+          <option value="Inter" ${el.fontFamily === 'Inter' ? 'selected' : ''}>Inter-Regular</option>
+          <option value="'Playfair Display', serif" ${el.fontFamily?.includes('Playfair') ? 'selected' : ''}>Playfair Display</option>
+          <option value="'Cinzel', serif" ${el.fontFamily?.includes('Cinzel') ? 'selected' : ''}>Cinzel Decorative</option>
+          <option value="'Merriweather', serif" ${el.fontFamily?.includes('Merriweather') ? 'selected' : ''}>Merriweather Serif</option>
+          <option value="'Plus Jakarta Sans', sans-serif" ${el.fontFamily?.includes('Jakarta') ? 'selected' : ''}>Plus Jakarta Sans</option>
+          <option value="'Caveat', cursive" ${el.fontFamily?.includes('Caveat') ? 'selected' : ''}>Caveat Handwriting</option>
+          <option value="monospace" ${el.fontFamily === 'monospace' ? 'selected' : ''}>Monospace Code</option>
+        </select>
+
+        <!-- Renk + Punto + (- / +) Butonları (Görsel 2) -->
+        <div class="flex items-center gap-2">
+          <input type="color" value="${(el.color && el.color.startsWith('#')) ? el.color : '#0f172a'}" onchange="applyTextStyle('color', this.value)" class="w-9 h-8 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0">
+          <input type="number" value="${el.fontSize || 14}" oninput="applyTextStyle('fontSize', Number(this.value))" class="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono text-center">
+          <button onclick="applyTextStyle('fontSize', Math.max(8, (Number(el.fontSize)||14) - 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">−</button>
+          <button onclick="applyTextStyle('fontSize', Math.min(96, (Number(el.fontSize)||14) + 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">+</button>
+        </div>
+
+        <!-- B, I, U, S, Aa, AA, aa (Görsel 2) -->
+        <div class="grid grid-cols-7 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs text-slate-200">
+          <button onclick="applyTextFormat('bold')" class="py-1.5 rounded hover:bg-slate-800 font-bold">B</button>
+          <button onclick="applyTextFormat('italic')" class="py-1.5 rounded hover:bg-slate-800 italic font-serif">I</button>
+          <button onclick="applyTextFormat('underline')" class="py-1.5 rounded hover:bg-slate-800 underline">U</button>
+          <button onclick="applyTextFormat('strikeThrough')" class="py-1.5 rounded hover:bg-slate-800 line-through">S</button>
+          <button onclick="setSelectedTextTransform('capitalize')" class="py-1.5 rounded hover:bg-slate-800 font-semibold">Aa</button>
+          <button onclick="setSelectedTextTransform('uppercase')" class="py-1.5 rounded hover:bg-slate-800 font-semibold">AA</button>
+          <button onclick="setSelectedTextTransform('lowercase')" class="py-1.5 rounded hover:bg-slate-800 font-semibold">aa</button>
+        </div>
+
+        <!-- Paragraf Hizalama (Sol, Orta, Sağ, İki Yana) -->
+        <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
+          <button onclick="applyTextStyle('textAlign', 'left')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-left"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'center')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-center"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'right')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-right"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'justify')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-justify"></i></button>
+        </div>
+
+        <button onclick="applyBulkFontToPage(el?.fontFamily || 'Inter')" class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition">
+          Toplu Yazı Tipi Ayarı (Tüm Sayfaya Uygula)
+        </button>
+      </div>
+
+      <!-- Aralık Slider'ları: Harf Aralığı, Satır Aralığı, Paragraf Aralığı (Görsel 3 Birebir) -->
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3 text-xs">
+        <span class="font-bold text-white block">Aralık</span>
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Harf Aralığı</span>
+            <span class="font-mono text-white">${el.letterSpacing || 0}px</span>
+          </div>
+          <input type="range" min="-2" max="15" step="0.5" value="${el.letterSpacing || 0}" oninput="updateSelectedElementStyleLive('letterSpacing', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+        </div>
+        <div class="space-y-1">
+          <div class="flex justify-between text-[11px] text-slate-300">
+            <span>Satır Aralığı</span>
+            <span class="font-mono text-white">${el.lineHeight || 1.32}</span>
+          </div>
+          <input type="range" min="0.9" max="2.6" step="0.05" value="${el.lineHeight || 1.32}" oninput="updateSelectedElementStyleLive('lineHeight', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+        </div>
+      </div>
+
+      <!-- Aç/Kapat Anahtarları: Arka Plan, Sütun Düzeni, Kaydırma Çubuğu, Gölge, Kontur (Görsel 3 Birebir) -->
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
+        <div class="space-y-2 pb-2 border-b border-slate-800">
+          <span class="text-slate-200 font-semibold block">Arka Plan & Renkli Çerçeve</span>
+          <select onchange="applyTextStyle('bgColor', this.value)" class="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-semibold">
+            <option value="transparent" ${(!el.bgColor || el.bgColor === 'transparent') ? 'selected' : ''}>Şeffaf (Çerçevesiz)</option>
+            <option value="linear-gradient(135deg, #d97706, #1e1b4b)">🟠 Ayın Konuğu Degrade</option>
+            <option value="linear-gradient(135deg, #4f46e5, #1e1b4b)">🟣 İndigo-Gece Degrade</option>
+            <option value="linear-gradient(135deg, #059669, #064e3b)">🟢 Zümrüt Degrade</option>
+            <option value="linear-gradient(135deg, #e11d48, #4c0519)">🔴 Yakut-Bordo Degrade</option>
+            <option value="#ffffff">⬜ Beyaz Kart</option>
+            <option value="#f8fafc">⚪ Gri Soru Kutusu</option>
+            <option value="#0f172a">⬛ Koyu Lacivert Kutu</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-between py-1">
+          <span class="text-slate-200">2 Sütunlu Gazete Düzeni</span>
+          <label class="studio-switch">
+            <input type="checkbox" ${Number(el.columns) > 1 ? 'checked' : ''} onchange="updateSelectedElementStyleLive('columns', this.checked ? 2 : 1)">
+            <span class="studio-switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between py-1">
+          <span class="text-slate-200">Kaydırma Çubuğu</span>
+          <label class="studio-switch">
+            <input type="checkbox" ${el.scrollable ? 'checked' : ''} onchange="updateSelectedElementStyleLive('scrollable', this.checked)">
+            <span class="studio-switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between py-1">
+          <span class="text-slate-200">Gölge</span>
+          <label class="studio-switch">
+            <input type="checkbox" ${el.hasShadow ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasShadow', this.checked)">
+            <span class="studio-switch-slider"></span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between py-1">
+          <span class="text-slate-200">Kontur (Kenar Çizgisi)</span>
+          <label class="studio-switch">
+            <input type="checkbox" ${el.hasStroke ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasStroke', this.checked)">
+            <span class="studio-switch-slider"></span>
+          </label>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  // DURUM 3: GÖRÜNTÜ / ŞEKİL / TABLO / BUTON SEÇİLİYSE (Görsel 5 & 6 Birebir)
+  targetDom.innerHTML = posBoxHtml + `
+    ${el.type === 'image' ? `
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2">
+        <label class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-white flex items-center justify-center gap-2 cursor-pointer transition">
+          <i class="ph ph-arrows-left-right"></i> Değiştir / Resim Yükle
+          <input type="file" accept="image/*" onchange="uploadCanvasElementImage(event, '${el.id}')" class="hidden">
+        </label>
+        <button onclick="toggleImageFitMode('${el.id}')" class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 flex items-center justify-center gap-2 transition">
+          <i class="ph ph-crop"></i> Kırp / Sığdırma Modu (${el.objectFit === 'contain' ? 'Tam Sığdır' : 'Kutuyu Doldur'})
+        </button>
+        <button onclick="setElementImageAsPageBg('${el.id}')" class="w-full py-2 px-3 rounded-xl bg-blue-600/15 hover:bg-blue-600/30 border border-blue-500/30 text-xs font-semibold text-blue-300 flex items-center justify-center gap-2 transition">
+          <i class="ph ph-frame-corners"></i> Arka Plan Olarak Ayarla
+        </button>
+      </div>
+    ` : ''}
+
+    ${el.type === 'table' ? `
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs">
+        <span class="font-bold text-white block">Tablo Ayarları</span>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-300">Başlık Çubuğu Rengi</span>
+          <input type="color" value="${el.headerBg || '#7f1d1d'}" onchange="updateSelectedElementStyleLive('headerBg', this.value)" class="w-8 h-7 rounded cursor-pointer border-0 bg-transparent">
+        </div>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="addTableRow('${el.id}')" class="py-1.5 px-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-bold">+ Satır Ekle</button>
+          <button onclick="removeTableRow('${el.id}')" class="py-1.5 px-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold">− Satır Sil</button>
+        </div>
+      </div>
+    ` : ''}
+
+    ${(el.type === 'shape' || el.type === 'button' || el.type === 'hotspot') ? `
+      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs">
+        <span class="font-bold text-white block">Renk & Etiket</span>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-300">Dolgu Rengi</span>
+          <input type="color" value="${(el.bgColor && el.bgColor.startsWith('#')) ? el.bgColor : '#881337'}" onchange="updateSelectedElementStyleLive('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border-0 bg-transparent">
+        </div>
+        ${el.type === 'button' ? `
+          <div>
+            <span class="text-slate-300 block mb-1">Düğme Metni</span>
+            <input type="text" value="${escapeAttr(el.label || 'İNCELE')}" oninput="updateSelectedElementStyleLive('label', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-white">
+          </div>
+        ` : ''}
+      </div>
+    ` : ''}
+
+    <!-- Görsel 6: Yarıçap, Katman Maskesi, Saydamlık, Dönme, Gölge -->
+    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3 text-xs">
+      <div class="space-y-1">
+        <div class="flex justify-between text-slate-300">
+          <span>Yarıçap (Köşe Yuvarlatma)</span>
+          <span class="font-mono text-white">${el.borderRadius !== undefined ? el.borderRadius : 12}px</span>
+        </div>
+        <input type="range" min="0" max="120" value="${el.borderRadius !== undefined ? el.borderRadius : 12}" oninput="updateSelectedElementStyleLive('borderRadius', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+      </div>
+
+      ${el.type === 'image' ? `
+        <div class="flex items-center justify-between">
+          <span class="text-slate-300">Katman Maskesi</span>
+          <select onchange="updateSelectedElementStyleLive('mask', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-white">
+            <option value="none" ${(!el.mask || el.mask === 'none') ? 'selected' : ''}>Yok (Normal)</option>
+            <option value="circle" ${el.mask === 'circle' ? 'selected' : ''}>⬤ Daire Maske</option>
+            <option value="ellipse" ${el.mask === 'ellipse' ? 'selected' : ''}>⬭ Elips Maske</option>
+            <option value="triangle" ${el.mask === 'triangle' ? 'selected' : ''}>▲ Üçgen Maske</option>
+            <option value="diamond" ${el.mask === 'diamond' ? 'selected' : ''}>◆ Elmas Maske</option>
+            <option value="hexagon" ${el.mask === 'hexagon' ? 'selected' : ''}>⬡ Altıgen Maske</option>
+          </select>
+        </div>
+      ` : ''}
+
+      <div class="space-y-1">
+        <div class="flex justify-between text-slate-300">
+          <span>Saydamlık (Opacity)</span>
+          <span class="font-mono text-white">${el.opacity !== undefined ? el.opacity : 100}%</span>
+        </div>
+        <input type="range" min="10" max="100" value="${el.opacity !== undefined ? el.opacity : 100}" oninput="updateSelectedElementStyleLive('opacity', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+      </div>
+
+      <div class="space-y-1">
+        <div class="flex justify-between text-slate-300">
+          <span>Dönme (Açı)</span>
+          <span class="font-mono text-white">${el.rotate || 0}°</span>
+        </div>
+        <input type="range" min="0" max="360" value="${el.rotate || 0}" oninput="updateSelectedElementStyleLive('rotate', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+      </div>
+
+      <div class="flex items-center justify-between pt-1">
+        <span class="text-slate-200">Gölge (Drop Shadow)</span>
+        <label class="studio-switch">
+          <input type="checkbox" ${el.hasShadow ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasShadow', this.checked)">
+          <span class="studio-switch-slider"></span>
+        </label>
+      </div>
+
+      <button onclick="syncElementAcrossAllPages('${el.id}')" class="w-full py-1.5 px-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[11px] font-semibold text-slate-300 transition">
+        Çoklu Sayfa Senkronizasyonu (Tüm Sayfalara Kopyala)
+      </button>
+    </div>
+  `;
+}
+
+// ==========================================
+// FAZ 5: "EYLEMLER (ACTIONS)" ETKİLEŞİM PANELİ & MOTORU (Görsel 4 & 7 Birebir)
+// ==========================================
+const STUDIO_ACTION_TYPES = [
+  { id: 'link', name: 'Bağlantıyı Aç', icon: 'ph-link' },
+  { id: 'gotoPage', name: 'Sayfaya Git', icon: 'ph-arrow-square-in' },
+  { id: 'call', name: 'Ara', icon: 'ph-phone-call' },
+  { id: 'effect', name: 'Oynatma Efektleri', icon: 'ph-sparkle' },
+  { id: 'popup', name: 'Açılır Pencere', icon: 'ph-app-window' },
+  { id: 'lightbox', name: 'Açılır Resim', icon: 'ph-image-square' },
+  { id: 'message', name: 'Açılır Mesaj', icon: 'ph-envelope-open' },
+  { id: 'toggleTarget', name: 'Göster/Gizle', icon: 'ph-eye' },
+  { id: 'video', name: 'Video Aç', icon: 'ph-play-circle' }
+];
+
+function renderContextActionsInspector(page, isEditable, targetDom) {
+  const el = selectedElementId ? (page.elements || []).find(x => x.id === selectedElementId) : null;
+
+  if (!el) {
+    targetDom.innerHTML = `
+      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center space-y-2.5">
+        <i class="ph ph-cursor-click text-3xl text-blue-400"></i>
+        <div class="text-xs font-bold text-white">Etkileşim Atamak İçin Bir Öğe Seçin</div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">Sayfa üzerindeki bir metin kutusuna, resme, düğmeye veya sıcak noktaya tıklayarak ona <strong>Bağlantı Aç, Sayfaya Git, Açılır Pencere, Açılır Resim</strong> veya <strong>Video Aç</strong> eylemi verebilirsiniz.</p>
+        <div class="pt-1 flex gap-2 justify-center">
+          <button onclick="addCanvasElement('button')" class="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold">+ Düğme Ekle</button>
+          <button onclick="addCanvasElement('hotspot')" class="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold">+ Sıcak Nokta</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const currentAct = el.actionType || 'none';
+
+  targetDom.innerHTML = `
+    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-bold text-white">Bir Eylem Seçin</span>
+        ${currentAct !== 'none' ? `<button onclick="setElementActionType('none')" class="text-[10.5px] text-rose-400 hover:underline flex items-center gap-1"><i class="ph ph-trash"></i> Temizle</button>` : ''}
+      </div>
+
+      <!-- Tetikleyici Türü (Görsel 4: Tıklandığında Tetikle) -->
+      <select onchange="updateSelectedElementStyleLive('actionTrigger', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-semibold">
+        <option value="click" ${(!el.actionTrigger || el.actionTrigger === 'click') ? 'selected' : ''}>Tıklandığında Tetikle</option>
+        <option value="hover" ${el.actionTrigger === 'hover' ? 'selected' : ''}>Üzerine Gelindiğinde Tetikle</option>
+      </select>
+
+      <!-- 9 Eylem Kartı Grid (Görsel 4 & 7 Birebir) -->
+      <div class="grid grid-cols-2 gap-2">
+        ${STUDIO_ACTION_TYPES.map(act => `
+          <button onclick="setElementActionType('${act.id}')" class="p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition relative ${currentAct === act.id ? 'bg-blue-600/25 border-blue-500 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'}">
+            <span class="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[8px]">♛</span>
+            <i class="ph ${act.icon} text-xl ${currentAct === act.id ? 'text-blue-400' : 'text-slate-300'}"></i>
+            <span class="text-[11px] font-semibold text-center leading-tight">${escapeHtml(act.name)}</span>
+          </button>
+        `).join('')}
+      </div>
+
+      <!-- Seçilen Eylemin Detay Ayar Kutusu -->
+      ${renderActionDetailConfigHTML(el)}
+    </div>
+  `;
+}
+
+function renderActionDetailConfigHTML(el) {
+  const act = el.actionType || 'none';
+  if (act === 'none') {
+    return `<div class="text-[11px] text-slate-400 text-center py-2">Yukarıdaki 9 eylemden birine tıklayarak etkileşimi aktif edin.</div>`;
+  }
+
+  let configFields = '';
+  if (act === 'link') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Hedef Web Adresi (URL)</label>
+      <input type="text" value="${escapeAttr(el.actionValue || 'https://')}" placeholder="https://..." oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+    `;
+  } else if (act === 'gotoPage') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Gidilecek Sayfa Numarası</label>
+      <select onchange="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+        ${(magazineData.pages || []).map((p, idx) => `
+          <option value="${idx + 1}" ${Number(el.actionValue || 1) === idx + 1 ? 'selected' : ''}>Sayfa ${idx + 1} — ${escapeHtml(p.navTitle || '')}</option>
+        `).join('')}
+      </select>
+    `;
+  } else if (act === 'call') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Telefon veya E-Posta</label>
+      <input type="text" value="${escapeAttr(el.actionValue || '0212 000 00 00')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+    `;
+  } else if (act === 'popup' || act === 'message') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açılır Pencere Başlığı</label>
+      <input type="text" value="${escapeAttr(el.popupTitle || 'Detaylı Bilgi')}" oninput="updateSelectedElementStyleLive('popupTitle', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white mb-2">
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açılır Mesaj / İçerik Metni</label>
+      <textarea rows="3" oninput="updateSelectedElementStyleLive('popupText', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">${escapeHtml(el.popupText || 'Okuyucu tıkladığında gösterilecek detaylı bilgi metni.')}</textarea>
+    `;
+  } else if (act === 'lightbox') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Büyütülecek Görsel URL</label>
+      <input type="text" value="${escapeAttr(el.actionValue || el.url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1000&q=80')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+    `;
+  } else if (act === 'video') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açılacak Video (MP4 URL)</label>
+      <input type="text" value="${escapeAttr(el.actionValue || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+    `;
+  } else if (act === 'effect') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Oynatma / Vurgu Animasyonu</label>
+      <select onchange="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+        <option value="pulse" ${el.actionValue === 'pulse' ? 'selected' : ''}>Nabız Vurgusu (Pulse)</option>
+        <option value="bounce" ${el.actionValue === 'bounce' ? 'selected' : ''}>Zıplama (Bounce)</option>
+        <option value="zoom" ${el.actionValue === 'zoom' ? 'selected' : ''}>Yakınlaşma (Zoom)</option>
+      </select>
+    `;
+  } else if (act === 'toggleTarget') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açıklama</label>
+      <div class="text-[11px] text-slate-400">Tıklandığında bilgi kutusunu gösterir/gizler.</div>
+    `;
+  }
+
+  return `
+    <div class="pt-3 border-t border-slate-800 space-y-2.5">
+      ${configFields}
+      <button onclick="triggerElementActionById('${el.id}')" class="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition">
+        <i class="ph ph-play-fill"></i> + Eylemi Şimdi Test Et
+      </button>
+    </div>
+  `;
+}
+
+function setElementActionType(actType) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === selectedElementId);
+  if (!el) return;
+  el.actionType = actType;
+  if (actType === 'gotoPage' && !el.actionValue) el.actionValue = '2';
+  if (actType === 'link' && !el.actionValue) el.actionValue = 'https://meb.gov.tr';
+  renderAllElementsForCurrentPage();
+  renderRightEditorPanel();
+  saveAllChangesToServer();
+  showToast(actType === 'none' ? "Eylem kaldırıldı" : "⚡ Eylem atandı!");
+}
+
+function triggerElementActionById(elId) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (el) triggerElementAction(el);
+}
+
+function triggerElementAction(el) {
+  if (!el) return;
+  const act = el.actionType || (el.type === 'hotspot' ? 'popup' : 'none');
+  if (act === 'link') {
+    const url = el.actionValue || 'https://dergimiz.com.tr';
+    window.open(url, '_blank');
+  } else if (act === 'gotoPage') {
+    const targetIdx = Math.max(0, Math.min(magazineData.pages.length - 1, (Number(el.actionValue) || 1) - 1));
+    selectPageForEdit(targetIdx);
+    showToast(`📄 Sayfa ${targetIdx + 1}'e gidildi`);
+  } else if (act === 'call') {
+    showToast(`📞 İletişim: ${el.actionValue || ''}`);
+  } else if (act === 'popup' || act === 'message' || act === 'toggleTarget') {
+    const titleEl = document.getElementById('actionPopupTitle');
+    const bodyEl = document.getElementById('actionPopupBody');
+    if (titleEl) titleEl.textContent = el.popupTitle || el.label || 'Detaylı Bilgi';
+    if (bodyEl) bodyEl.innerHTML = `<p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line">${escapeHtml(el.popupText || 'Detay açıklaması.')}</p>`;
+    openModal('actionPopupModal');
+  } else if (act === 'lightbox') {
+    const imgUrl = el.actionValue || el.url || '';
+    const titleEl = document.getElementById('actionPopupTitle');
+    const bodyEl = document.getElementById('actionPopupBody');
+    if (titleEl) titleEl.textContent = 'Görsel İnceleme';
+    if (bodyEl) bodyEl.innerHTML = `<img src="${escapeHtml(imgUrl)}" class="w-full max-h-[65vh] object-contain rounded-2xl shadow-xl mx-auto">`;
+    openModal('actionPopupModal');
+  } else if (act === 'video') {
+    const vidUrl = el.actionValue || el.url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+    const titleEl = document.getElementById('actionPopupTitle');
+    const bodyEl = document.getElementById('actionPopupBody');
+    if (titleEl) titleEl.textContent = 'Video Oynatıcı';
+    if (bodyEl) bodyEl.innerHTML = `<video controls autoplay class="w-full rounded-2xl shadow-xl"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+    openModal('actionPopupModal');
+  } else if (act === 'effect') {
+    const dom = document.getElementById(`elDom_${el.id}`);
+    if (dom) {
+      dom.classList.add('animate-bounce');
+      setTimeout(() => dom.classList.remove('animate-bounce'), 1400);
+    }
+  }
+}
+
+// Sağ Panel Yardımcı Güncelleme Fonksiyonları
+function applyColorSchemeToPage(schemeId) {
+  const sc = FLIP_COLOR_SCHEMES.find(s => s.id === schemeId);
+  const page = magazineData.pages[selectedEditIndex];
+  if (!sc || !page || !canUserEditPage(page)) return;
+  page.accentColor = sc.accent;
+  page.bgColor = sc.bg;
+  // Sayfadaki mevcut serbest kutuların/tabloların da vurgu renklerini uyumlu hale getir
+  (page.elements || []).forEach(el => {
+    if (el.type === 'table') el.headerBg = sc.accent;
+    if (el.type === 'button') el.bgColor = sc.accent;
+  });
+  renderAll();
+  saveAllChangesToServer();
+  showToast(`🎨 "${sc.name}" renk şeması sayfaya uygulandı!`);
+}
+
+function alignSelectedElement(dir) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === selectedElementId);
+  if (!el) return;
+  if (dir === 'left') el.x = 5;
+  if (dir === 'center-x') el.x = Math.round((100 - (el.width || 30)) / 2);
+  if (dir === 'right') el.x = Math.round(95 - (el.width || 30));
+  if (dir === 'top') el.y = 5;
+  if (dir === 'center-y') el.y = Math.round((100 - (el.height || 20)) / 2);
+  if (dir === 'bottom') el.y = Math.round(95 - (el.height || 20));
+  renderAllElementsForCurrentPage();
+  renderRightEditorPanel();
+  saveAllChangesToServer();
+}
+
+function updateSelectedElementNumeric(prop, val) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === selectedElementId);
+  if (!el) return;
+  el[prop] = Number(val) || 0;
+  renderAllElementsForCurrentPage();
+  debouncedSave();
+}
+
+function updateSelectedElementStyleLive(prop, val) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === selectedElementId);
+  if (!el) return;
+  el[prop] = val;
+  renderAllElementsForCurrentPage();
+  renderRightEditorPanel();
+  debouncedSave();
+}
+
+function setSelectedTextTransform(mode) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === selectedElementId);
+  const elDom = document.getElementById(`elDom_${selectedElementId}`);
+  if (el && elDom) {
+    el.textTransform = mode;
+    elDom.style.textTransform = mode;
+    saveAllChangesToServer();
+  }
+}
+
+function applyBulkFontToPage(fontFam) {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page) return;
+  (page.elements || []).forEach(el => {
+    if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
+      el.fontFamily = fontFam;
+    }
+  });
+  if (!page.fieldStyles) page.fieldStyles = {};
+  ['magazineName', 'mainHeadline', 'subHeadline', 'title', 'content', 'headerText', 'subText', 'interviewee', 'q1', 'a1', 'q2', 'a2', 'q3', 'a3', 'poemText'].forEach(k => {
+    if (!page.fieldStyles[k]) page.fieldStyles[k] = {};
+    page.fieldStyles[k].fontFamily = fontFam;
+  });
+  renderAll();
+  saveAllChangesToServer();
+  showToast("🔤 Seçili yazı tipi sayfadaki tüm metinlere uygulandı!");
+}
+
+function toggleImageFitMode(elId) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el) return;
+  el.objectFit = el.objectFit === 'contain' ? 'cover' : 'contain';
+  renderAllElementsForCurrentPage();
+  renderRightEditorPanel();
+  saveAllChangesToServer();
+}
+
+function setElementImageAsPageBg(elId) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el || !el.url) return;
+  el.x = 0;
+  el.y = 0;
+  el.width = 100;
+  el.height = 100;
+  el.zIndex = 1;
+  el.borderRadius = 0;
+  renderAllElementsForCurrentPage();
+  renderRightEditorPanel();
+  saveAllChangesToServer();
+  showToast("🖼️ Görsel tam sayfa arka plan olarak ayarlandı!");
+}
+
+function syncElementAcrossAllPages(elId) {
+  const page = magazineData.pages[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el) return;
+  magazineData.pages.forEach((p, idx) => {
+    if (idx === selectedEditIndex) return;
+    if (!p.elements) p.elements = [];
+    const copy = JSON.parse(JSON.stringify(el));
+    copy.id = 'el-sync-' + Date.now() + '-' + idx;
+    p.elements.push(copy);
+  });
+  saveAllChangesToServer();
+  showToast("🔁 Bu öğe dergideki tüm sayfalara senkronize edildi!");
 }
 
 function changePageLayout(layout) {
@@ -2617,10 +4410,10 @@ function changePageLayout(layout) {
   page.layout = layout;
   if (!page.subHeadline) page.subHeadline = 'Kapak konusu ve özel dosya detayları.';
   if (!page.highlights) page.highlights = 'Özel Dosya\nAyın Röportajı\nGeleceğin Trendleri';
-  renderCanvas();
+  renderMagazineViewport();
   renderRightEditorPanel();
-  triggerAutoSave();
-  showToast(`Mizanpaj ekolü "${layout.toUpperCase()}" olarak güncellendi`, 'success');
+  debouncedSave();
+  showToast(`Mizanpaj ekolü "${layout.toUpperCase()}" olarak güncellendi`);
 }
 
 function renderStatusControl(page) {
@@ -2967,6 +4760,18 @@ function addNewPage(templateType, layout) {
       navTitle: "Serbest Mizanpaj",
       elements: []
     };
+  } else if (templateType === 'catalog') {
+    newPage = {
+      ...newPage,
+      navTitle: "Ürün / Proje Kataloğu",
+      accentColor: "#68181f",
+      catTag: "PROJE & ÜRÜN TANITIMI",
+      title: "PROJE GENEL BAKIŞ",
+      desc: "Projemiz en güncel bilimsel yöntemler ve estetik tasarım ilkeleriyle geliştirilmiştir. Sağ panelden veya tablodan tüm teknik detayları inceleyebilirsiniz.",
+      image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80",
+      specTitle: "TEKNİK ÖZELLİKLER TABLOSU",
+      elements: []
+    };
   } else if (templateType === 'article') {
     newPage = {
       ...newPage,
@@ -3016,8 +4821,12 @@ function deleteCurrentPage() {
 // ==========================================
 // 9. SUNUCUYA KAYIT
 // ==========================================
-async function saveAllChangesToServer() {
+async function saveAllChangesToServer(silent = false) {
   if (!currentIssue || !magazineData) return;
+  const ind = document.getElementById('saveStatusIndicator');
+  if (ind) {
+    ind.innerHTML = `<i class="ph ph-spinner animate-spin text-amber-400"></i><span>Kaydediliyor...</span>`;
+  }
   try {
     const res = await fetch(`/api/issues/${currentIssue.id}`, {
       method: 'PUT',
@@ -3032,10 +4841,18 @@ async function saveAllChangesToServer() {
       })
     });
     if (res.ok) {
-      showToast("💾 Değişiklikler sunucuya kaydedildi!");
+      if (ind) {
+        ind.innerHTML = `<i class="ph ph-check-circle text-emerald-400"></i><span>Değişiklikler kaydedildi</span>`;
+      }
+      if (!silent) {
+        showToast("💾 Değişiklikler sunucuya kaydedildi!");
+      }
     }
   } catch (err) {
     console.warn("Sunucuya kaydedilemedi:", err);
+    if (ind) {
+      ind.innerHTML = `<i class="ph ph-warning-circle text-rose-400"></i><span>Kayıt hatası</span>`;
+    }
   }
 }
 
@@ -3464,6 +5281,7 @@ function getTemplateLabel(type) {
     k3: 'K3 Künye',
     k4: 'K4 Arka Kapak',
     freeform: 'Serbest Tuval',
+    catalog: 'Katalog',
     video: 'Video Köşesi',
     toc: 'İçindekiler',
     article: 'Makale',
@@ -3558,5 +5376,52 @@ window.applyConceptToCurrentPage = applyConceptToCurrentPage;
 window.addConceptAsNewPage = addConceptAsNewPage;
 window.convertCurrentPageToTemplate = convertCurrentPageToTemplate;
 window.handleInlineTextFocus = handleInlineTextFocus;
+// FlipHTML5 v2 Faz 1-5 Yeni Global Fonksiyonlar
+window.switchLeftTab = switchLeftTab;
+window.toggleLeftDrawerCollapse = toggleLeftDrawerCollapse;
+window.toggleMorePopupMenu = toggleMorePopupMenu;
+window.closeMorePopupMenu = closeMorePopupMenu;
+window.setCanvasZoom = setCanvasZoom;
+window.stepCanvasZoom = stepCanvasZoom;
+window.togglePanMode = togglePanMode;
+window.switchRightInspectorTab = switchRightInspectorTab;
+window.toggleLayersPopover = toggleLayersPopover;
+window.renderLayersPopover = renderLayersPopover;
+window.addAiGeneratedBlock = addAiGeneratedBlock;
+window.undoAction = undoAction;
+window.redoAction = redoAction;
+window.openQuickTemplateForPage = openQuickTemplateForPage;
+window.duplicatePage = duplicatePage;
+window.insertPageAfter = insertPageAfter;
+window.addSpreadPages = addSpreadPages;
+window.deletePageAtIndex = deletePageAtIndex;
+window.goToLastPage = goToLastPage;
+window.convertTemplateToFreeformObjects = convertTemplateToFreeformObjects;
+window.updateTableCellLive = updateTableCellLive;
+window.addTableRow = addTableRow;
+window.removeTableRow = removeTableRow;
+window.stepSlide = stepSlide;
+window.addSlideshowImagePrompt = addSlideshowImagePrompt;
+window.triggerElementActionById = triggerElementActionById;
+window.triggerElementAction = triggerElementAction;
+window.setElementActionType = setElementActionType;
+window.applyColorSchemeToPage = applyColorSchemeToPage;
+window.alignSelectedElement = alignSelectedElement;
+window.updateSelectedElementNumeric = updateSelectedElementNumeric;
+window.updateSelectedElementStyleLive = updateSelectedElementStyleLive;
+window.setSelectedTextTransform = setSelectedTextTransform;
+window.applyBulkFontToPage = applyBulkFontToPage;
+window.toggleImageFitMode = toggleImageFitMode;
+window.setElementImageAsPageBg = setElementImageAsPageBg;
+window.syncElementAcrossAllPages = syncElementAcrossAllPages;
+window.stepSelectedFontSize = stepSelectedFontSize;
+window.toggleSelectedStyleFormat = toggleSelectedStyleFormat;
+window.setSelectedTextAlign = setSelectedTextAlign;
+window.applyFloatingColor = applyFloatingColor;
+window.applyFloatingBgColor = applyFloatingBgColor;
+window.duplicateSelectedCanvasElement = duplicateSelectedCanvasElement;
+window.selectCanvasElement = selectCanvasElement;
+window.deselectAllElements = deselectAllElements;
+
 
 

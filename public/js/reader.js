@@ -116,10 +116,10 @@ function createPageDOM(page, pageIndex, position, heightClass) {
 
   const bodyHtml = renderTemplateHTML(page, pageIndex);
 
-  // Sayfa üzerine eklenmiş serbest elemanlar (Metin, Resim, Video)
+  // Sayfa üzerine eklenmiş serbest elemanlar (Metin, Resim, Video, Tablo, Buton, Sıcak Nokta vb.)
   let elementsHtml = '';
   if (page.elements && page.elements.length > 0) {
-    elementsHtml = page.elements.map(el => renderReaderElement(el)).join('');
+    elementsHtml = page.elements.map(el => renderReaderElement(el, pageIndex)).join('');
   }
 
   const isCoverSurface = page.type === 'cover' || page.type === 'k1' || page.type === 'k4';
@@ -144,20 +144,44 @@ function createPageDOM(page, pageIndex, position, heightClass) {
   return wrapper;
 }
 
-function renderReaderElement(el) {
+function getReaderMaskClipPath(mask) {
+  if (!mask || mask === 'none') return '';
+  const map = {
+    circle: 'circle(50% at 50% 50%)',
+    ellipse: 'ellipse(48% 36% at 50% 50%)',
+    triangle: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+    diamond: 'polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)',
+    hexagon: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)'
+  };
+  return map[mask] ? `clip-path:${map[mask]};` : '';
+}
+
+function renderReaderElement(el, pageIndex) {
   const x = el.x || 10;
   const y = el.y || 10;
   const w = el.width || 30;
   const h = el.height || 20;
   const rot = el.rotate || 0;
   const z = el.zIndex || 10;
+  const opacity = (el.opacity !== undefined ? el.opacity : 100) / 100;
+  const radius = el.borderRadius !== undefined ? el.borderRadius : 12;
+  const shadowCss = el.hasShadow ? 'box-shadow: 0 12px 28px rgba(0,0,0,0.35);' : '';
+  const clipCss = getReaderMaskClipPath(el.mask);
 
-  const style = `left:${x}%; top:${y}%; width:${w}%; height:${h}%; transform:rotate(${rot}deg); z-index:${z};`;
+  const hasAction = (el.actionType && el.actionType !== 'none') || el.type === 'hotspot';
+  const actionAttr = hasAction
+    ? (el.actionTrigger === 'hover'
+        ? `onmouseenter="triggerReaderElementAction(${pageIndex}, '${el.id}')" style="cursor:pointer;`
+        : `onclick="triggerReaderElementAction(${pageIndex}, '${el.id}')" style="cursor:pointer;`)
+    : `style="`;
+
+  const style = `left:${x}%; top:${y}%; width:${w}%; height:${h}%; transform:rotate(${rot}deg); z-index:${z}; opacity:${opacity};`;
 
   if (el.type === 'image') {
+    const fit = el.objectFit || 'cover';
     return `
-      <div class="canvas-element pointer-events-none" style="${style}">
-        <img src="${escapeHtml(el.url)}" class="w-full h-full object-cover rounded-xl shadow-md" alt="">
+      <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}">
+        <img src="${escapeHtml(el.url)}" class="w-full h-full shadow-md" style="object-fit:${fit}; border-radius:${radius}px; ${shadowCss} ${clipCss}" alt="">
       </div>
     `;
   }
@@ -165,7 +189,7 @@ function renderReaderElement(el) {
   if (el.type === 'video') {
     return `
       <div class="canvas-element" style="${style}">
-        <div class="magazine-video-container">
+        <div class="magazine-video-container" style="border-radius:${radius}px; overflow:hidden; ${shadowCss}">
           <video controls preload="metadata" poster="${escapeHtml(el.poster || '')}">
             <source src="${escapeHtml(el.url)}" type="video/mp4">
           </video>
@@ -174,11 +198,121 @@ function renderReaderElement(el) {
     `;
   }
 
+  if (el.type === 'audio') {
+    return `
+      <div class="canvas-element" style="${style}">
+        <div class="w-full h-full bg-slate-900/95 border border-slate-700 rounded-2xl px-3 py-2 flex items-center gap-2.5 shadow-xl text-white">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-music-notes text-base"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="text-[10px] font-bold text-emerald-300 truncate">${escapeHtml(el.title || 'Ses Kaydı')}</div>
+            <audio controls preload="none" class="w-full h-6 mt-0.5" src="${escapeHtml(el.url || '')}"></audio>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (el.type === 'table') {
+    const rows = Array.isArray(el.rows) ? el.rows : [['Özellik', 'Değer'], ['Satır 1', 'Detay']];
+    const headerBg = el.headerBg || '#68181f';
+    return `
+      <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}">
+        <div class="w-full h-full overflow-auto rounded-lg border border-slate-300 bg-white shadow-md">
+          <table class="w-full h-full border-collapse text-[10px] text-slate-800">
+            <tbody>
+              ${rows.map((r, rIdx) => `
+                <tr class="${rIdx === 0 ? 'font-bold text-white' : (rIdx % 2 === 1 ? 'bg-stone-100/90' : 'bg-white')}" style="${rIdx === 0 ? `background-color:${headerBg};` : ''}">
+                  ${r.map(cell => `<td class="border border-slate-300/80 px-2 py-1">${escapeHtml(cell)}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  if (el.type === 'shape') {
+    const sh = el.shapeType || 'rect';
+    const fill = el.bgColor || '#2563eb';
+    const stroke = el.borderColor || '#1e40af';
+    if (sh === 'circle') {
+      return `<div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}"><div class="w-full h-full rounded-full" style="background:${fill}; border:2px solid ${stroke}; ${shadowCss}"></div></div>`;
+    }
+    if (sh === 'triangle') {
+      return `<div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}"><div class="w-full h-full" style="background:${fill}; clip-path:polygon(50% 0%, 0% 100%, 100% 100%);"></div></div>`;
+    }
+    if (sh === 'line') {
+      return `<div class="canvas-element pointer-events-none" style="${style}"><div class="w-full h-full flex items-center"><div class="w-full" style="height:4px; background:${fill}; border-radius:4px;"></div></div></div>`;
+    }
+    return `<div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}"><div class="w-full h-full" style="background:${fill}; border:2px solid ${stroke}; border-radius:${radius}px; ${shadowCss}"></div></div>`;
+  }
+
+  if (el.type === 'button') {
+    const bg = el.bgColor || '#2563eb';
+    const col = el.color || '#ffffff';
+    return `
+      <div class="canvas-element" ${actionAttr}${style}">
+        <div class="w-full h-full flex items-center justify-center gap-1.5 font-bold px-3 shadow-lg transition hover:brightness-110" style="background:${bg}; color:${col}; border-radius:${radius}px; font-size:${el.fontSize || 12}px;">
+          <span>${escapeHtml(el.label || 'Detayları İncele')}</span>
+          <i class="ph ph-arrow-up-right font-bold"></i>
+        </div>
+      </div>
+    `;
+  }
+
+  if (el.type === 'hotspot') {
+    const bg = el.bgColor || '#e11d48';
+    return `
+      <div class="canvas-element" ${actionAttr}${style}">
+        <div class="w-full h-full flex items-center justify-center">
+          <div class="w-9 h-9 rounded-full text-white flex items-center justify-center hotspot-pulse shadow-lg" style="background:${bg}">
+            <i class="ph ph-hand-tap text-lg"></i>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (el.type === 'slideshow') {
+    const imgs = Array.isArray(el.images) && el.images.length ? el.images : ['https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=800&q=80'];
+    const idx = Number(el.activeSlide || 0) % imgs.length;
+    return `
+      <div class="canvas-element" style="${style}">
+        <div class="w-full h-full relative rounded-2xl overflow-hidden shadow-lg border border-slate-300 bg-slate-900">
+          <img src="${escapeHtml(imgs[idx])}" class="w-full h-full object-cover" alt="Slayt">
+          <div class="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2 flex items-center justify-between text-white text-[10px]">
+            <button onclick="stepReaderSlide(${pageIndex}, '${el.id}', -1)" class="px-2 py-0.5 rounded bg-white/20 hover:bg-white/40">◀</button>
+            <span class="font-bold">Galeri (${idx + 1}/${imgs.length})</span>
+            <button onclick="stepReaderSlide(${pageIndex}, '${el.id}', 1)" class="px-2 py-0.5 rounded bg-white/20 hover:bg-white/40">▶</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (el.type === 'map') {
+    const loc = encodeURIComponent(el.location || 'Ankara, Türkiye');
+    return `
+      <div class="canvas-element" style="${style}">
+        <div class="w-full h-full rounded-2xl overflow-hidden border-2 border-slate-300 shadow-md bg-slate-100 relative">
+          <iframe src="https://maps.google.com/maps?q=${loc}&t=&z=13&ie=UTF8&iwloc=&output=embed" class="w-full h-full border-0"></iframe>
+        </div>
+      </div>
+    `;
+  }
+
   if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
     const rawBg = el.bgColor || 'transparent';
     const bgStyle = rawBg.startsWith('linear-gradient') ? `background:${rawBg};` : `background-color:${rawBg};`;
+    const letterSp = el.letterSpacing ? `letter-spacing:${el.letterSpacing}px;` : '';
+    const lineHt = el.lineHeight ? `line-height:${el.lineHeight};` : '';
+    const colsCss = Number(el.columns) === 2 ? 'columns: 2; column-gap: 14px;' : '';
+    const strokeCss = el.hasStroke ? '-webkit-text-stroke: 0.6px currentColor;' : '';
     return `
-      <div class="canvas-element pointer-events-none p-3 rounded-2xl border leading-relaxed overflow-hidden shadow-sm" style="${style} ${bgStyle} border-color:${el.borderColor || 'transparent'}; font-family:${el.fontFamily || 'inherit'}; font-size:${el.fontSize || 12}px; color:${el.color || '#0f172a'}; text-align:${el.textAlign || 'left'};">
+      <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'} p-3 border leading-relaxed overflow-hidden shadow-sm" ${actionAttr}${style} ${bgStyle} border-color:${el.borderColor || 'transparent'}; border-radius:${radius}px; font-family:${el.fontFamily || 'inherit'}; font-size:${el.fontSize || 12}px; color:${el.color || '#0f172a'}; text-align:${el.textAlign || 'left'}; ${letterSp} ${lineHt} ${colsCss} ${strokeCss} ${shadowCss}">
         ${el.content || ''}
       </div>
     `;
@@ -186,6 +320,43 @@ function renderReaderElement(el) {
 
   return '';
 }
+
+window.stepReaderSlide = function(pageIndex, elId, dir) {
+  const page = magazineData.pages[pageIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el || !Array.isArray(el.images) || !el.images.length) return;
+  el.activeSlide = ((el.activeSlide || 0) + dir + el.images.length) % el.images.length;
+  renderMagazine();
+};
+
+window.triggerReaderElementAction = function(pageIndex, elId) {
+  const page = magazineData.pages[pageIndex];
+  const el = (page?.elements || []).find(x => x.id === elId);
+  if (!el) return;
+  const act = el.actionType || (el.type === 'hotspot' ? 'popup' : 'none');
+  if (act === 'link') {
+    window.open(el.actionValue || 'https://dergimiz.com.tr', '_blank');
+  } else if (act === 'gotoPage') {
+    const targetIdx = Math.max(0, Math.min(magazineData.pages.length - 1, (Number(el.actionValue) || 1) - 1));
+    goToPage(targetIdx);
+  } else if (act === 'call') {
+    showToast(`📞 İletişim: ${el.actionValue || ''}`);
+  } else if (act === 'popup' || act === 'message' || act === 'toggleTarget') {
+    document.getElementById('readerPopupTitle').textContent = el.popupTitle || el.label || 'Detaylı Bilgi';
+    document.getElementById('readerPopupBody').innerHTML = `<p class="whitespace-pre-line">${escapeHtml(el.popupText || 'Detay açıklaması.')}</p>`;
+    document.getElementById('readerActionPopupModal').classList.remove('hidden');
+  } else if (act === 'lightbox') {
+    const imgUrl = el.actionValue || el.url || '';
+    document.getElementById('readerPopupTitle').textContent = 'Görsel İnceleme';
+    document.getElementById('readerPopupBody').innerHTML = `<img src="${escapeHtml(imgUrl)}" class="w-full max-h-[60vh] object-contain rounded-2xl mx-auto">`;
+    document.getElementById('readerActionPopupModal').classList.remove('hidden');
+  } else if (act === 'video') {
+    const vidUrl = el.actionValue || el.url || '';
+    document.getElementById('readerPopupTitle').textContent = 'Video Oynatıcı';
+    document.getElementById('readerPopupBody').innerHTML = `<video controls autoplay class="w-full rounded-2xl"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+    document.getElementById('readerActionPopupModal').classList.remove('hidden');
+  }
+};
 
 // Şablon Render Fonksiyonu (K1, K2, K3, K4, Video ve Klasik Şablonlar)
 function renderTemplateHTML(page, pageIndex) {
@@ -779,6 +950,67 @@ function renderTemplateHTML(page, pageIndex) {
             <span class="font-semibold text-rose-600 shrink-0">Film:</span>
             <span class="truncate">${escapeHtml(page.movieRec || '')}</span>
           </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // 10B. KATALOG & ÜRÜN / PROJE TABLOSU SAYFASI (Görsel 1 & 7)
+  if (page.type === 'catalog') {
+    const catColor = page.accentColor || '#68181f';
+    return `
+      <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto bg-[#faf8f6] text-slate-900 font-sans select-none">
+        <div>
+          <div class="flex items-center justify-between border-b-2 pb-2 mb-3" style="border-color: ${catColor}">
+            <span class="px-3 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest text-white" style="background-color: ${catColor}">
+              ${escapeHtml(page.catTag || 'PROJE & ÜRÜN KATALOĞU')}
+            </span>
+            <span class="text-[10px] font-mono font-bold text-slate-400">TEKNİK DOSYA</span>
+          </div>
+
+          <h2 class="font-display font-black text-2xl text-slate-900 tracking-tight uppercase mb-1.5" style="color: ${catColor}">
+            ${escapeHtml(page.title || 'PROJE GENEL BAKIŞ')}
+          </h2>
+
+          <p class="text-xs text-slate-600 leading-relaxed mb-3">
+            ${escapeHtml(page.desc || '')}
+          </p>
+
+          <div class="relative rounded-xl overflow-hidden mb-3 bg-stone-200 border border-stone-300 shadow h-40">
+            <img src="${escapeHtml(page.image || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=900&q=80')}" class="w-full h-full object-cover" alt="Katalog">
+          </div>
+
+          <div class="rounded-xl overflow-hidden border border-stone-300 shadow-sm bg-white">
+            <div class="px-3 py-1.5 text-white font-bold text-[11px] uppercase tracking-wider flex justify-between items-center" style="background-color: ${catColor}">
+              <span>${escapeHtml(page.specTitle || 'TEKNİK ÖZELLİKLER TABLOSU')}</span>
+              <i class="ph ph-table"></i>
+            </div>
+            <table class="w-full text-[10.5px] text-left border-collapse">
+              <tbody>
+                <tr class="border-b border-stone-200 bg-stone-100/80">
+                  <td class="py-1.5 px-2.5 font-bold text-slate-700 w-2/5">${escapeHtml(page.specKey1 || 'Kategori / Alan')}</td>
+                  <td class="py-1.5 px-2.5 text-slate-800">${escapeHtml(page.specVal1 || 'Bilim, Teknoloji & Tasarım')}</td>
+                </tr>
+                <tr class="border-b border-stone-200">
+                  <td class="py-1.5 px-2.5 font-bold text-slate-700">${escapeHtml(page.specKey2 || 'Proje Ekibi')}</td>
+                  <td class="py-1.5 px-2.5 text-slate-800">${escapeHtml(page.specVal2 || 'Okul AR-GE ve İnovasyon Kulübü')}</td>
+                </tr>
+                <tr class="border-b border-stone-200 bg-stone-100/80">
+                  <td class="py-1.5 px-2.5 font-bold text-slate-700">${escapeHtml(page.specKey3 || 'Materyal & Yöntem')}</td>
+                  <td class="py-1.5 px-2.5 text-slate-800">${escapeHtml(page.specVal3 || 'Özgün Prototip & Dijital Modelleme')}</td>
+                </tr>
+                <tr>
+                  <td class="py-1.5 px-2.5 font-bold text-slate-700">${escapeHtml(page.specKey4 || 'Durum / Sonuç')}</td>
+                  <td class="py-1.5 px-2.5 font-semibold" style="color:${catColor}">${escapeHtml(page.specVal4 || 'Tamamlandı • Sergiye Hazır')}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pt-2 border-t border-stone-300 flex justify-between items-center text-[10px] text-slate-500">
+          <span>${escapeHtml(magazineData.schoolName || '')}</span>
+          <span>${renderBarcodeSvg(catColor)}</span>
         </div>
       </div>
     `;
