@@ -1235,38 +1235,61 @@
     </div>
   </div>
 
-  <!-- MODAL 8: AI METİN & TASARIM ASİSTANI (Görsel 1, 2, 9) -->
-  <div id="aiHelperModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-flip select-text">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80">
+  <!-- MODAL 8: AI METİN & TASARIM ASİSTANI (DEEPSEEK + GEMINI VISION) -->
+  <div id="aiHelperModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-flip select-text">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80 shrink-0">
         <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
-          <i class="ph ph-sparkle text-indigo-400 text-xl"></i> AI Dergi & Metin Asistanı
+          <i class="ph ph-sparkle text-amber-400 text-xl"></i>
+          <span>Akıllı Yapay Zekâ Asistanı</span>
         </h3>
         <button onclick="closeModal('aiHelperModal')" class="text-slate-400 hover:text-white p-1">
           <i class="ph ph-x text-xl"></i>
         </button>
       </div>
-      <div class="p-5 space-y-3.5">
-        <p class="text-xs text-slate-400">Hangi konuda başlık, röportaj sorusu, şiir veya makale metni oluşturmak istersiniz?</p>
-        <div class="grid grid-cols-2 gap-2">
-          <button onclick="generateAiSnippet('headline')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-            ✨ Etkileyici Kapak Manşeti
-          </button>
-          <button onclick="generateAiSnippet('editorial')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-            ✍️ Editörden Sunuş Yazısı
-          </button>
-          <button onclick="generateAiSnippet('interview')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-            🎙️ 3 Röportaj Sorusu Üret
-          </button>
-          <button onclick="generateAiSnippet('article')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-            📰 Bilim & Kültür Makalesi
-          </button>
+      <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+        <!-- 1. Seçili Öğeye Komut Verme Bölümü -->
+        <div id="aiModalTargetSection" class="bg-indigo-950/40 border border-indigo-500/40 rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-amber-300 flex items-center gap-1.5">
+              <i class="ph ph-magic-wand text-base"></i> Seçili Tuval Öğesine Komut Ver
+            </span>
+            <span id="aiModalElementBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 font-mono font-bold">Sayfa</span>
+          </div>
+          <div class="flex gap-1.5">
+            <input id="aiModalCustomCommand" type="text" placeholder="Örn: sağa çevir, siyah beyaz yap, ortala, imla hatalarını düzelt, resmi dile çevir..." class="flex-1 bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+            <button onclick="runAiModalCommand()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shrink-0 transition shadow">
+              <i class="ph ph-sparkle"></i> Uygula
+            </button>
+          </div>
+          <div id="aiModalQuickChips" class="flex flex-wrap gap-1 pt-1">
+            <!-- JS ile seçili öğeye göre butonlar dolar -->
+          </div>
         </div>
-        <textarea id="aiOutputBox" rows="4" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Yukarıdan bir şablon seçin, üretilen metin burada belirecek..."></textarea>
-        <div class="flex justify-end gap-2">
-          <button onclick="insertAiOutputToCanvas()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
-            <i class="ph ph-plus-circle"></i> Seçili Kutuya / Sayfaya Aktar
-          </button>
+
+        <!-- 2. Sıfırdan Dergi İçeriği Üretme (DeepSeek Ana Motor) -->
+        <div class="space-y-2">
+          <span class="font-bold text-slate-200 block text-xs">Yeni Dergi İçeriği & Makale Üret (DeepSeek):</span>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="generateAiSnippet('headline')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
+              ✨ Etkileyici Kapak Manşeti
+            </button>
+            <button onclick="generateAiSnippet('editorial')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
+              ✍️ Editörden Sunuş Yazısı
+            </button>
+            <button onclick="generateAiSnippet('interview')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
+              🎙️ 3 Röportaj Sorusu Üret
+            </button>
+            <button onclick="generateAiSnippet('article')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
+              📰 Bilim & Kültür Makalesi
+            </button>
+          </div>
+          <textarea id="aiOutputBox" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Üretilen dergi metni burada belirecek..."></textarea>
+          <div class="flex justify-end gap-2">
+            <button onclick="insertAiOutputToCanvas()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
+              <i class="ph ph-plus-circle"></i> Seçili Kutuya / Sayfaya Aktar
+            </button>
+          </div>
         </div>
       </div>
     </div>

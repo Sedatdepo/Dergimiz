@@ -1283,11 +1283,16 @@ window.runSmartElementAICommand = async function(rawPrompt, forceMode = 'auto') 
     renderRightEditorPanel();
 
     const finalMsg = resObj.summary || (localApplied.length ? localApplied.join(' • ') : 'AI komutu başarıyla uygulandı!');
-    setStatus(`✨ [${data.engine || 'DeepSeek'}] ${finalMsg}`, false);
+    // Yeniden render edildikten sonra güncel statusBox DOM öğesini bul
+    const newStatusBox = document.getElementById('inlineAiStatusBox');
+    if (newStatusBox) {
+      newStatusBox.classList.remove('hidden');
+      newStatusBox.innerHTML = `<span class="flex items-center gap-1.5"><i class="ph ph-check-circle text-emerald-400"></i> ✨ [${data.engine || 'DeepSeek'}] ${finalMsg}</span>`;
+    }
     showToast(`✨ ${finalMsg}`);
   } catch (err) {
     console.warn('AI Komut Hatası:', err);
-    setStatus('⚠️ İşlem tamamlandı.', false);
+    showToast('⚠️ AI komutu işlenirken hata oluştu.');
   }
 };
 
@@ -1295,10 +1300,68 @@ window.runSmartElementAICommand = async function(rawPrompt, forceMode = 'auto') 
 window.renderUpgradedAiModalContext = function() {
   const fCanvas = getCurrentFabricCanvas();
   const active = fCanvas ? fCanvas.getActiveObject() : null;
+  const badge = document.getElementById('aiModalElementBadge');
+  const chipsContainer = document.getElementById('aiModalQuickChips');
+  const inp = document.getElementById('aiModalCustomCommand');
   const outBox = document.getElementById('aiOutputBox');
-  if (active && (active.type === 'textbox' || active.type === 'i-text') && outBox && !outBox.value) {
-    outBox.value = active.text || '';
+
+  if (active) {
+    const isImg = active.type === 'image';
+    const isTxt = active.type === 'textbox' || active.type === 'i-text';
+    if (badge) {
+      badge.textContent = isImg ? '🖼️ Seçili Görsel' : (isTxt ? '🔤 Seçili Metin' : '📦 Seçili Şekil');
+      badge.className = isImg ? 'text-[10px] px-2 py-0.5 rounded-full bg-sky-500/30 text-sky-200 font-bold' : 'text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 font-bold';
+    }
+    if (inp) {
+      inp.placeholder = isImg ? 'Örn: sağa çevir, siyah beyaz yap, aynala, fotoğrafa altyazı yaz...' : 'Örn: ortala, aralıkları artır, imla hatalarını düzelt, resmi dile çevir...';
+    }
+    if (isTxt && outBox && !outBox.value) {
+      outBox.value = active.text || '';
+    }
+
+    if (chipsContainer) {
+      const chips = isImg ? [
+        { l: '↻ Sağa 90° Çevir', c: 'sağa 90 derece çevir' },
+        { l: '⚫ Siyah-Beyaz', c: 'siyah beyaz yap' },
+        { l: '🎞️ Sepya', c: 'sepya yap' },
+        { l: '↔️ Aynala', c: 'yatay aynala' },
+        { l: '⭕ Daire Maske', c: 'daire içine al' },
+        { l: '▢ Köşeleri Yuvarlat', c: 'köşelerini yuvarlat' },
+        { l: '👁️ Fotoğrafa Altyazı Yaz (Gemini Vision)', c: 'Bu fotoğrafı analiz et ve altına uygun dergi açıklaması yaz', vision: true }
+      ] : [
+        { l: '✅ İmla Hatalarını Düzelt', c: 'İmla ve noktalama hatalarını düzelt' },
+        { l: '🏛️ Resmi Dile Çevir', c: 'Bu metni resmi ve kurumsal dile çevir' },
+        { l: '🪶 Edebi / Şiirsel Yaz', c: 'Bu metni daha edebi ve etkileyici bir dergi üslubuyla yeniden yaz' },
+        { l: '✂️ Kısalt / Özetle', c: 'Metni daha öz ve vurucu şekilde kısalt' },
+        { l: '≡ Ortala', c: 'metni ortala' },
+        { l: '↕️ Aralıkları Aç', c: 'satır ve harf aralıklarını artır' },
+        { l: '⇥ Paragraf Girintisi', c: 'paragraf başlarına girinti yap' }
+      ];
+
+      chipsContainer.innerHTML = chips.map(ch => `
+        <button onclick="runSmartElementAICommand('${ch.c.replace(/'/g, "\\'")}', '${ch.vision ? 'vision' : 'deepseek'}'); closeModal('aiHelperModal');" class="px-2 py-1 rounded-lg text-[10px] font-semibold transition ${ch.vision ? 'bg-amber-500/20 hover:bg-amber-500 text-amber-200 hover:text-slate-950 border border-amber-500/40' : 'bg-slate-900 hover:bg-indigo-600 text-slate-300 hover:text-white border border-slate-700'}">
+          ${ch.l}
+        </button>
+      `).join('');
+    }
+  } else {
+    if (badge) {
+      badge.textContent = `Sayfa ${selectedEditIndex + 1} (Genel)`;
+      badge.className = 'text-[10px] px-2 py-0.5 rounded-full bg-slate-700 text-slate-300 font-bold';
+    }
+    if (chipsContainer) chipsContainer.innerHTML = '';
   }
+};
+
+window.runAiModalCommand = function() {
+  const inp = document.getElementById('aiModalCustomCommand');
+  const val = inp ? inp.value : '';
+  if (!val) {
+    showToast('Lütfen bir komut yazın.');
+    return;
+  }
+  closeModal('aiHelperModal');
+  runSmartElementAICommand(val);
 };
 
 const _origGenerateAiSnippet = window.generateAiSnippet;

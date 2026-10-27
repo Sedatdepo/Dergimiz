@@ -354,16 +354,29 @@ function attachFabricCanvasEvents(fCanvas, page, pageIndex) {
   });
 
   fCanvas.on('selection:created', () => {
+    selectedEditIndex = pageIndex;
     window.activeFabricCanvas = fCanvas;
     window.activeFabricPageIndex = pageIndex;
+    // Diğer açık tuvallerdeki aktif seçimleri temizle (Çift sayfa modunda çakışmayı önle)
+    Object.keys(window.fabricCanvases).forEach(pIdx => {
+      if (Number(pIdx) !== pageIndex && window.fabricCanvases[pIdx]) {
+        try { window.fabricCanvases[pIdx].discardActiveObject(); window.fabricCanvases[pIdx].requestRenderAll(); } catch(e){}
+      }
+    });
     updateActiveSelectionBadge(fCanvas);
     renderRightEditorPanel();
     if (typeof renderLayersPopover === 'function') renderLayersPopover();
   });
 
   fCanvas.on('selection:updated', () => {
+    selectedEditIndex = pageIndex;
     window.activeFabricCanvas = fCanvas;
     window.activeFabricPageIndex = pageIndex;
+    Object.keys(window.fabricCanvases).forEach(pIdx => {
+      if (Number(pIdx) !== pageIndex && window.fabricCanvases[pIdx]) {
+        try { window.fabricCanvases[pIdx].discardActiveObject(); window.fabricCanvases[pIdx].requestRenderAll(); } catch(e){}
+      }
+    });
     updateActiveSelectionBadge(fCanvas);
     renderRightEditorPanel();
     if (typeof renderLayersPopover === 'function') renderLayersPopover();
@@ -1554,6 +1567,9 @@ function buildFabricObjectsForTemplatePage(page, pageIndex, fCanvas, onComplete)
 // 6. SOL PANELDEN YENİ ÖĞE EKLEME, KATMAN, HİZALAMA, GRUPLAMA, KIRPMA & FİLTRELER
 // ============================================================================
 function getCurrentFabricCanvas() {
+  if (window.activeFabricCanvas && window.activeFabricCanvas.getActiveObject()) {
+    return window.activeFabricCanvas;
+  }
   return window.fabricCanvases[selectedEditIndex] || window.activeFabricCanvas || null;
 }
 

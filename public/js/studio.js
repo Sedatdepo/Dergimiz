@@ -1202,7 +1202,11 @@ function switchLeftTab(tabName) {
   }
 
   if (tabName === 'templates') {
-    renderDrawerTemplatesList();
+    if (typeof renderSmartLeftDrawerTemplates === 'function') {
+      renderSmartLeftDrawerTemplates();
+    } else {
+      renderDrawerTemplatesList();
+    }
   }
   closeMorePopupMenu();
 }
