@@ -1179,7 +1179,7 @@ function toggleCanvasActionBar() {
   if (!bar) return;
   const isHidden = bar.classList.toggle('hidden');
   if (txt) {
-    txt.textContent = isHidden ? 'Üst Araçları Aç ▾' : 'Üst Araçları Kapat ▴';
+    txt.textContent = isHidden ? 'Aç ▾' : 'Daralt ▴';
   }
 }
 
@@ -2339,25 +2339,9 @@ function showFloatingRichTextBar(elDom, el) {
     if (bgEl) bgEl.value = el.bgColor || 'transparent';
   }
 
-  // FlipHTML5 v2 Görsel 2: Seçili öğenin tam üstünde açılan beyaz yüzen araç çubuğu
+  // Tuval üzerinde yüzen araç çubuğu kapatıldı (tüm araçlar sağ yan panele taşındı)
   const floatBar = document.getElementById('floatingContextToolbar');
-  if (floatBar && elDom && appMode === 'edit') {
-    const rect = elDom.getBoundingClientRect();
-    floatBar.classList.remove('hidden');
-    const topPos = Math.max(58, rect.top - 48);
-    const leftPos = Math.max(80, Math.min(window.innerWidth - 460, rect.left));
-    floatBar.style.top = `${topPos}px`;
-    floatBar.style.left = `${leftPos}px`;
-
-    const fFont = document.getElementById('floatFontFamily');
-    const fSize = document.getElementById('floatFontSize');
-    const fColor = document.getElementById('floatTextColor');
-    if (el) {
-      if (fFont) fFont.value = el.fontFamily || 'Inter';
-      if (fSize) fSize.value = el.fontSize || 14;
-      if (fColor && el.color && el.color.startsWith('#')) fColor.value = el.color;
-    }
-  }
+  if (floatBar) floatBar.classList.add('hidden');
 }
 
 function hideFloatingRichTextBar() {
@@ -2389,14 +2373,9 @@ function handleInlineTextFocus(pageIndex, key, domEl) {
   if (colEl && fs.color && fs.color.startsWith('#')) colEl.value = fs.color;
   if (bgEl) bgEl.value = fs.bgColor || 'transparent';
 
-  // Yüzen beyaz çubuğu şablon içi yazının da tam üstünde göster (Görsel 2)
+  // Tuval üzerinde yüzen çubuk yerine sağ yan paneldeki hızlı araçlar kullanılır
   const floatBar = document.getElementById('floatingContextToolbar');
-  if (floatBar && domEl && appMode === 'edit') {
-    const rect = domEl.getBoundingClientRect();
-    floatBar.classList.remove('hidden');
-    floatBar.style.top = `${Math.max(58, rect.top - 46)}px`;
-    floatBar.style.left = `${Math.max(80, Math.min(window.innerWidth - 460, rect.left))}px`;
-  }
+  if (floatBar) floatBar.classList.add('hidden');
   renderRightEditorPanel();
 }
 
@@ -5782,6 +5761,8 @@ window.toggleRightSidebarCollapse = toggleRightSidebarCollapse;
 window.toggleCanvasActionBar = toggleCanvasActionBar;
 window.toggleTopToolbarCollapse = toggleTopToolbarCollapse;
 window.toggleZenCanvasMode = toggleZenCanvasMode;
+window.cycleTextAlign = cycleTextAlign;
+window.cycleTextCase = cycleTextCase;
 
 
 
