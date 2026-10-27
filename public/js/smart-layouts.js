@@ -38,11 +38,13 @@ window.SMART_LAYOUT_CATALOG = {
   ],
 
   // ==========================================================================
-  // 2. K2 • ÖN KAPAK İÇİ MİZANPAJLARI (10 MODEL)
+  // 2. K2 • ÖN KAPAK İÇİ, TÜRK BAYRAĞI, İSTİKLAL MARŞI & ATATÜRK (12 MODEL)
   // ==========================================================================
   k2: [
+    { id: 'k2_bayrak_mars', name: 'Türk Bayrağı & İstiklal Marşı', tag: 'Resmi Sabit (Sayfa 2)', icon: '🇹🇷', desc: 'Şanlı Türk Bayrağımız, İstiklal Marşı kıtaları ve Mehmet Akif Ersoy imzası.' },
+    { id: 'k2_ataturk', name: 'Atatürk Portresi & Gençliğe Hitabe', tag: 'Resmi Sabit (Sayfa 3)', icon: '⭐', desc: 'Gazi Mustafa Kemal Atatürk portresi, vecizesi ve Gençliğe Hitabe.' },
+    { id: 'k2_bayrak_ataturk_birlikte', name: 'Bayrak, İstiklal Marşı & Atatürk Bir Arada', tag: 'Birleşik', icon: '🏛️', desc: 'Üstte Türk Bayrağı ve Atatürk portresi, altta İstiklal Marşı ve Hitabe.' },
     { id: 'k2_classic', name: 'Klasik Portre & Sunuş', tag: 'Popüler', icon: '🎙️', desc: 'Ortada yönetici/editör portresi, italik sunuş yazısı ve imza.' },
-    { id: 'k2_ataturk', name: 'Atatürk & Cumhuriyet Köşesi', tag: 'Okul Klasiği', icon: '🇹🇷', desc: 'Altın çerçeveli Atatürk portresi, vecize ve Gençliğe Hitabe.' },
     { id: 'k2_manifesto', name: 'Tam Sayfa Görsel Manifesto', tag: 'Sinematik', icon: '🌟', desc: 'Tam boy fotoğraf üzerinde yarı saydam vizyon ve kuruluş manifestosu.' },
     { id: 'k2_split_corp', name: 'Çift Sütun Kurumsal Sunuş', tag: 'Kurumsal', icon: '🏢', desc: 'Sol yarı boydan boya kurum/kampüs görseli, sağ yarı vizyon yazısı.' },
     { id: 'k2_showcase4', name: 'Bu Sayıda 4 Öne Çıkan Vitrin', tag: 'Görsel Özet', icon: '🖼️', desc: 'Sayının 4 ana dosyasının fotoğraflı önizleme kartları ve sunuş.' },
@@ -447,27 +449,84 @@ window.buildFabricObjectsForTemplatePage = function(page, pageIndex, fCanvas, on
   }
 
   // --------------------------------------------------------------------------
-  // B. K2 • ÖN KAPAK İÇİ (SUNUŞ, ATATÜRK KÖŞESİ, VİZYON) — 9 EKSTRA MİZANPAJ
+  // B. K2 • ÖN KAPAK İÇİ (TÜRK BAYRAĞI, İSTİKLAL MARŞI, ATATÜRK KÖŞESİ & SUNUŞ)
   // --------------------------------------------------------------------------
   if (sec === 'k2') {
-    if (layout === 'k2_ataturk') {
+    if (layout === 'k2_bayrak_mars' || page.subType === 'bayrak') {
+      fCanvas.setBackgroundColor('#0f172a', fCanvas.renderAll.bind(fCanvas));
+      addFabRect(fCanvas, { name: 'Dış Kırmızı-Altın Çerçeve', left: 20, top: 20, width: 510, height: 738, rx: 14, fill: 'transparent', stroke: '#dc2626', strokeWidth: 3 });
+      addFabRect(fCanvas, { name: 'İç Altın Çerçeve', left: 28, top: 28, width: 494, height: 722, rx: 10, fill: 'transparent', stroke: '#f59e0b', strokeWidth: 1.5 });
+      addFabText(fCanvas, 'TÜRK BAYRAĞI VE İSTİKLAL MARŞI', {
+        name: 'Üst Başlık', left: 44, top: 44, width: 462, fontSize: 12.5, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
+      });
+      queueImg(page.image && page.image.includes('bayra') ? page.image : '/img/turk-bayragi.svg', '/img/turk-bayragi.svg', {
+        name: 'Türk Bayrağı', fieldKey: 'image', left: 155, top: 72, width: 240, height: 160, radius: 12, stroke: '#fbbf24', strokeWidth: 3, shadow: true
+      });
+      addFabText(fCanvas, page.headerText || 'İSTİKLAL MARŞI', {
+        name: 'İstiklal Marşı Başlığı', fieldKey: 'headerText', left: 48, top: 246, width: 454, fontSize: 24, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#ffffff'
+      });
+      addFabRect(fCanvas, { name: 'İstiklal Marşı Kartı', left: 44, top: 286, width: 462, height: 398, rx: 16, fill: '#1e293b', stroke: '#f59e0b', strokeWidth: 1.5, shadow: true });
+      const marsDefault = "Korkma, sönmez bu şafaklarda yüzen al sancak;\nSönmeden yurdumun üstünde tüten en son ocak.\nO benim milletimin yıldızıdır, parlayacak;\nO benimdir, o benim milletimindir ancak.\n\nÇatma, kurban olayım, çehreni ey nazlı hilâl!\nKahraman ırkıma bir gül! Ne bu şiddet, bu celâl?\nSana olmaz dökülen kanlarımız sonra helâl...\nHakkıdır, Hakk'a tapan, milletimin istiklâl!";
+      addFabText(fCanvas, (page.subText && page.subText.includes('Korkma')) ? page.subText : marsDefault, {
+        name: 'İstiklal Marşı Kıtaları', fieldKey: 'subText', left: 62, top: 312, width: 426, fontSize: 14.5, fontFamily: 'Playfair Display', fontStyle: 'italic', textAlign: 'center', fill: '#f8fafc', lineHeight: 1.72
+      });
+      addFabText(fCanvas, page.author || 'Mehmet Akif ERSOY', {
+        name: 'Şair İmzası', fieldKey: 'author', left: 48, top: 702, width: 454, fontSize: 15, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
+      });
+      checkDone();
+      return;
+    }
+
+    if (layout === 'k2_bayrak_ataturk_birlikte') {
+      fCanvas.setBackgroundColor('#0f172a', fCanvas.renderAll.bind(fCanvas));
+      addFabRect(fCanvas, { name: 'Altın Varak Çerçeve', left: 22, top: 22, width: 506, height: 734, rx: 12, fill: 'transparent', stroke: '#f59e0b', strokeWidth: 2.5 });
+      addFabText(fCanvas, 'İSTİKLAL MARŞI VE ATATÜRK KÖŞESİ', {
+        name: 'Üst Başlık', left: 40, top: 38, width: 470, fontSize: 12, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
+      });
+      queueImg('/img/turk-bayragi.svg', '/img/turk-bayragi.svg', {
+        name: 'Türk Bayrağı', left: 42, top: 68, width: 220, height: 150, radius: 10, stroke: '#dc2626', strokeWidth: 2, shadow: true
+      });
+      queueImg('/img/ataturk.jpg', '/img/ataturk.jpg', {
+        name: 'Atatürk Portresi', fieldKey: 'image', left: 288, top: 68, width: 220, height: 150, radius: 10, stroke: '#fbbf24', strokeWidth: 2, shadow: true
+      });
+      // Sol Sütun: İstiklal Marşı
+      addFabRect(fCanvas, { name: 'İstiklal Marşı Kutusu', left: 38, top: 235, width: 228, height: 470, rx: 14, fill: '#1e293b', stroke: '#dc2626', strokeWidth: 1.5 });
+      addFabText(fCanvas, 'İSTİKLAL MARŞI', { name: 'Marş Başlığı', left: 48, top: 252, width: 208, fontSize: 14, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24' });
+      addFabText(fCanvas, "Korkma, sönmez bu şafaklarda yüzen al sancak;\nSönmeden yurdumun üstünde tüten en son ocak.\nO benim milletimin yıldızıdır, parlayacak;\nO benimdir, o benim milletimindir ancak.\n\nÇatma, kurban olayım, çehreni ey nazlı hilâl!\nKahraman ırkıma bir gül! Ne bu şiddet, bu celâl?\nSana olmaz dökülen kanlarımız sonra helâl...\nHakkıdır, Hakk'a tapan, milletimin istiklâl!\n\nMehmet Akif ERSOY", {
+        name: 'İstiklal Marşı Metni', left: 48, top: 282, width: 208, fontSize: 11.5, fontFamily: 'Playfair Display', fontStyle: 'italic', textAlign: 'center', fill: '#f8fafc', lineHeight: 1.58
+      });
+      // Sağ Sütun: Gençliğe Hitabe
+      addFabRect(fCanvas, { name: 'Gençliğe Hitabe Kutusu', left: 284, top: 235, width: 228, height: 470, rx: 14, fill: '#1e293b', stroke: '#f59e0b', strokeWidth: 1.5 });
+      addFabText(fCanvas, 'GENÇLİĞE HİTABE', { name: 'Hitabe Başlığı', left: 294, top: 252, width: 208, fontSize: 14, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24' });
+      addFabText(fCanvas, "Ey Türk Gençliği!\n\nBirinci vazifen; Türk istiklâlini, Türk Cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir. Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir.\n\nMuhtaç olduğun kudret, damarlarındaki asil kanda mevcuttur!\n\nMustafa Kemal ATATÜRK", {
+        name: 'Gençliğe Hitabe Metni', left: 294, top: 282, width: 208, fontSize: 11.5, fontFamily: 'Merriweather', textAlign: 'center', fill: '#f8fafc', lineHeight: 1.58
+      });
+      checkDone();
+      return;
+    }
+
+    if (layout === 'k2_ataturk' || page.subType === 'ataturk') {
       fCanvas.setBackgroundColor('#0f172a', fCanvas.renderAll.bind(fCanvas));
       addFabRect(fCanvas, { name: 'Altın Varak Çerçeve', left: 24, top: 24, width: 502, height: 730, rx: 12, fill: 'transparent', stroke: '#f59e0b', strokeWidth: 2.5 });
-      addFabText(fCanvas, 'CUMHURİYET VE BİLİM KÖŞESİ', {
+      addFabText(fCanvas, 'ATATÜRK VE CUMHURİYET KÖŞESİ', {
         name: 'Üst Başlık', left: 44, top: 44, width: 462, fontSize: 12, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
       });
-      queueImg(page.image, 'https://upload.wikimedia.org/wikipedia/commons/a/a8/Ataturk1930s.jpg', {
-        name: 'Atatürk Portresi', fieldKey: 'image', left: 175, top: 76, width: 200, height: 235, radius: 16, stroke: '#fbbf24', strokeWidth: 3, shadow: true
+      const ataUrl = (page.image && (page.image.includes('ataturk') || page.image.startsWith('/uploads'))) ? page.image : '/img/ataturk.jpg';
+      queueImg(ataUrl, '/img/ataturk.jpg', {
+        name: 'Atatürk Portresi', fieldKey: 'image', left: 175, top: 74, width: 200, height: 235, radius: 16, stroke: '#fbbf24', strokeWidth: 3, shadow: true
       });
       addFabText(fCanvas, page.headerText || '"Hayatta en hakiki mürşit ilimdir, fendir."', {
-        name: 'Atatürk Vecizesi', fieldKey: 'headerText', left: 48, top: 330, width: 454, fontSize: 22, fontFamily: 'Playfair Display', fontStyle: 'italic', fontWeight: 'bold', textAlign: 'center', fill: '#ffffff'
+        name: 'Atatürk Vecizesi', fieldKey: 'headerText', left: 48, top: 326, width: 454, fontSize: 20, fontFamily: 'Playfair Display', fontStyle: 'italic', fontWeight: 'bold', textAlign: 'center', fill: '#ffffff'
       });
-      addFabRect(fCanvas, { name: 'Hitabe Kartı', left: 44, top: 395, width: 462, height: 295, rx: 14, fill: '#1e293b', stroke: '#f59e0b', strokeWidth: 1.5 });
-      addFabText(fCanvas, page.subText || 'Ey Türk Gençliği!\n\nBirinci vazifen; Türk istiklalini, Türk Cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir. Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir.', {
-        name: 'Gençliğe Hitabe / Metin', fieldKey: 'subText', left: 64, top: 418, width: 422, fontSize: 13.5, fontFamily: 'Merriweather', textAlign: 'center', fill: '#f8fafc', lineHeight: 1.6
+      addFabRect(fCanvas, { name: 'Hitabe Kartı', left: 44, top: 388, width: 462, height: 300, rx: 14, fill: '#1e293b', stroke: '#f59e0b', strokeWidth: 1.5 });
+      addFabText(fCanvas, 'ATATÜRK\'ÜN GENÇLİĞE HİTABESİ', {
+        name: 'Hitabe Alt Başlığı', left: 64, top: 406, width: 422, fontSize: 13, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
       });
-      addFabText(fCanvas, page.author || 'Mustafa Kemal ATATÜRK', {
-        name: 'İmza', fieldKey: 'author', left: 48, top: 706, width: 454, fontSize: 15, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
+      addFabText(fCanvas, page.subText || 'Ey Türk Gençliği!\n\nBirinci vazifen; Türk istiklâlini, Türk Cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir. Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir.\n\nMuhtaç olduğun kudret, damarlarındaki asil kanda mevcuttur!', {
+        name: 'Gençliğe Hitabe / Metin', fieldKey: 'subText', left: 64, top: 434, width: 422, fontSize: 13, fontFamily: 'Merriweather', textAlign: 'center', fill: '#f8fafc', lineHeight: 1.58
+      });
+      addFabText(fCanvas, page.author || 'Gazi Mustafa Kemal ATATÜRK', {
+        name: 'İmza', fieldKey: 'author', left: 48, top: 704, width: 454, fontSize: 15, fontFamily: 'Cinzel', fontWeight: 'bold', textAlign: 'center', fill: '#fbbf24'
       });
       checkDone();
       return;
@@ -1359,6 +1418,121 @@ window.switchRightInspectorTab = function(tabName) {
   if (oldContent) oldContent.classList.add('hidden');
 };
 
+// Tüm Şablonlarda ve Kayıtlı Dergilerde Resmi Sabit Sayfaları (K1 Kapak -> K2 Türk Bayrağı & İstiklal Marşı -> Atatürk & Gençliğe Hitabe -> Editörden & İçindekiler -> İç Sayfalar -> K3 Künye -> K4 Arka Kapak) Otomatik Garanti Altına Al
+function ensureOfficialBackbonePages(forceRebuild = false) {
+  if (!window.magazineData || !Array.isArray(magazineData.pages) || magazineData.pages.length === 0) return;
+
+  const pages = magazineData.pages;
+  const school = magazineData.schoolName || 'Okul & Kültür Dergisi';
+  const accent = pages[0]?.accentColor || '#4f46e5';
+
+  // 1. Türk Bayrağı & İstiklal Marşı sayfası var mı kontrol et
+  const hasFlagPage = pages.some(p => p.layout === 'k2_bayrak_mars' || p.subType === 'bayrak' || (p.navTitle && p.navTitle.includes('İstiklal')));
+  // 2. Atatürk & Gençliğe Hitabe sayfası var mı kontrol et
+  const hasAtaturkPage = pages.some(p => p.layout === 'k2_ataturk' || p.subType === 'ataturk' || (p.navTitle && p.navTitle.includes('Atatürk')));
+  // 3. K3 Künye sayfası var mı kontrol et
+  const hasK3Page = pages.some(p => p.type === 'k3');
+
+  let modified = false;
+
+  // Eğer eski 6 sayfalık veya Bayrak/Atatürk eksik bir sayı ise otomatik olarak resmi sırayla tamamla
+  if (!hasFlagPage || forceRebuild) {
+    const flagPage = {
+      id: 'p-flag-' + Date.now(),
+      type: 'k2',
+      layout: 'k2_bayrak_mars',
+      isFixedBackbone: true,
+      navTitle: 'K2 • Türk Bayrağı & İstiklal Marşı',
+      accentColor: '#dc2626',
+      status: 'approved',
+      headerText: 'İSTİKLAL MARŞI',
+      subText: "Korkma, sönmez bu şafaklarda yüzen al sancak;\nSönmeden yurdumun üstünde tüten en son ocak.\nO benim milletimin yıldızıdır, parlayacak;\nO benimdir, o benim milletimindir ancak.\n\nÇatma, kurban olayım, çehreni ey nazlı hilâl!\nKahraman ırkıma bir gül! Ne bu şiddet, bu celâl?\nSana olmaz dökülen kanlarımız sonra helâl...\nHakkıdır, Hakk'a tapan, milletimin istiklâl!",
+      author: 'Mehmet Akif ERSOY',
+      image: '/img/turk-bayragi.svg',
+      elements: []
+    };
+    if (!hasFlagPage) {
+      pages.splice(1, 0, flagPage);
+      modified = true;
+    }
+  }
+
+  if (!hasAtaturkPage) {
+    const ataPage = {
+      id: 'p-ata-' + Date.now(),
+      type: 'k2',
+      layout: 'k2_ataturk',
+      isFixedBackbone: true,
+      navTitle: 'Atatürk & Gençliğe Hitabe',
+      accentColor: '#d97706',
+      status: 'approved',
+      headerText: '"Hayatta en hakiki mürşit ilimdir, fendir."',
+      subText: "Ey Türk Gençliği!\n\nBirinci vazifen; Türk istiklâlini, Türk Cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir. Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir.",
+      author: 'Gazi Mustafa Kemal ATATÜRK',
+      image: '/img/ataturk.jpg',
+      elements: []
+    };
+    pages.splice(2, 0, ataPage);
+    modified = true;
+  } else {
+    // Mevcut Atatürk sayfasının layout ve görselini garantiye al
+    pages.forEach(p => {
+      if (p.subType === 'ataturk' || (p.navTitle && p.navTitle.includes('Atatürk'))) {
+        if (!p.layout || p.layout === 'k2_classic') p.layout = 'k2_ataturk';
+        if (!p.image || p.image.includes('unsplash.com')) {
+          p.image = '/img/ataturk.jpg';
+          delete p.fabricJSON;
+        }
+        p.isFixedBackbone = true;
+      }
+    });
+  }
+
+  if (!hasK3Page) {
+    const k3Page = {
+      id: 'p-k3-' + Date.now(),
+      type: 'k3',
+      layout: 'k3_classic',
+      isFixedBackbone: true,
+      navTitle: 'K3 • Arka Kapak İçi (Künye)',
+      accentColor: accent,
+      status: 'approved',
+      boardTitle: `${school.toUpperCase()} YAYIN KÜNYESİ`,
+      publisher: `${school} Müdürlüğü`,
+      editorInChief: 'Genel Yayın Yönetmeni',
+      advisor: 'Kültür, Sanat & Edebiyat Zümresi',
+      editorialTeam: 'Öğrenci Yayın ve Mizanpaj Kurulu',
+      contactInfo: 'dergimiz.com.tr',
+      nextIssueTeaserTitle: 'GELECEK SAYIDA NELER VAR?',
+      nextIssueText: '• Özel Bilim ve Teknoloji Dosyası\n• Yılın Kültür ve Sanat Röportajları\n• Ödüllü Tasarım ve Fotoğraf Seçkisi',
+      elements: []
+    };
+    const insertIdx = Math.max(1, pages.length - 1);
+    pages.splice(insertIdx, 0, k3Page);
+    modified = true;
+  }
+
+  // Sabit omurga bayraklarını işaretle
+  pages.forEach((p, idx) => {
+    if (p.type === 'cover' || p.type === 'k1' || p.type === 'k2' || p.type === 'toc' || p.type === 'k3' || p.type === 'k4' || p.type === 'back') {
+      p.isFixedBackbone = true;
+    }
+  });
+
+  if (modified && typeof debouncedSave === 'function' && window.currentIssue) {
+    debouncedSave();
+  }
+}
+
+const _origRenderAll = window.renderAll;
+if (typeof _origRenderAll === 'function') {
+  window.renderAll = function() {
+    ensureOfficialBackbonePages(false);
+    return _origRenderAll();
+  };
+}
+
+window.ensureOfficialBackbonePages = ensureOfficialBackbonePages;
 window.changeSmartPageSection = changeSmartPageSection;
 window.selectSmartPageLayout = selectSmartPageLayout;
 window.renderSmartLeftDrawerTemplates = renderSmartLeftDrawerTemplates;

@@ -241,7 +241,7 @@ app.delete('/api/auth/keys/:code', (req, res) => {
 });
 
 // ==========================================
-// YARDIMCI: YENİ OKUL İÇİN 10 SAYFALIK STANDART ŞABLON
+// YARDIMCI: YENİ OKUL İÇİN 10 SAYFALIK STANDART RESMİ OMURGA ŞABLONU
 // ==========================================
 function createDefault10Pages(mag) {
   const name = mag.name || 'DERGİ';
@@ -254,7 +254,8 @@ function createDefault10Pages(mag) {
       id: "p1",
       type: "cover",
       layout: layout,
-      navTitle: "K1 • Ön Dış Kapak",
+      isFixedBackbone: true,
+      navTitle: "01 • K1 Ön Dış Kapak",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
@@ -263,76 +264,81 @@ function createDefault10Pages(mag) {
       price: "OKUL E-DERGİSİ",
       mainHeadline: `${school} Dijital Yayın Hayatına Başlıyor!`,
       subHeadline: "Öğrencilerimizin, öğretmenlerimizin ve kulüplerimizin ortak emeğiyle hazırlanan ilk sayımız.",
-      coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
-      highlights: "Okul Müdürümüzün Açılış Mesajı\nÖzel Etkinlik ve Tiyatro Gösterisi\nÖğrenci Şiirleri ve Edebi Köşe\nÖdüllü Okul Quiz Köşesi",
+      coverImage: mag.coverThumb || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+      highlights: "Türk Bayrağı ve İstiklal Marşı\nAtatürk Köşesi ve Gençliğe Hitabe\nEditörden ve İçindekiler\nÖzel Dosya, Söyleşi ve Edebiyat",
       elements: []
     },
     {
       id: "p2",
       type: "k2",
-      subType: "ataturk",
-      navTitle: "K2 • Ön Kapak İçi (Atatürk)",
-      accentColor: accent,
+      layout: "k2_bayrak_mars",
+      isFixedBackbone: true,
+      navTitle: "02 • K2 Türk Bayrağı & İstiklal Marşı",
+      accentColor: "#dc2626",
       assignedEditor: "ADMIN-2026",
       status: "approved",
-      headerText: "TÜRK GENÇLİĞİNE HİTABE",
-      subText: "Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti'ni, ilelebet muhafaza ve müdafaa etmektir.",
-      author: "Gazi Mustafa Kemal Atatürk",
-      image: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80",
-      quote: "Bütün ümidim gençliktedir.",
+      headerText: "İSTİKLAL MARŞI",
+      subText: "Korkma, sönmez bu şafaklarda yüzen al sancak;\nSönmeden yurdumun üstünde tüten en son ocak.\nO benim milletimin yıldızıdır, parlayacak;\nO benimdir, o benim milletimindir ancak.\n\nÇatma, kurban olayım, çehreni ey nazlı hilâl!\nKahraman ırkıma bir gül! Ne bu şiddet, bu celâl?\nSana olmaz dökülen kanlarımız sonra helâl...\nHakkıdır, Hakk'a tapan, milletimin istiklâl!",
+      author: "Mehmet Akif ERSOY",
+      image: "/img/turk-bayragi.svg",
       elements: []
     },
     {
       id: "p3",
+      type: "k2",
+      layout: "k2_ataturk",
+      isFixedBackbone: true,
+      navTitle: "03 • Atatürk & Gençliğe Hitabe",
+      accentColor: "#d97706",
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      headerText: "\"Hayatta en hakiki mürşit ilimdir, fendir.\"",
+      subText: "Ey Türk Gençliği!\n\nBirinci vazifen; Türk istiklâlini, Türk Cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir. Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir.",
+      author: "Gazi Mustafa Kemal ATATÜRK",
+      image: "/img/ataturk.jpg",
+      quote: "Bütün ümidim gençliktedir.",
+      elements: []
+    },
+    {
+      id: "p4",
       type: "toc",
-      navTitle: "Editörden & İçindekiler",
+      layout: "toc_classic",
+      isFixedBackbone: true,
+      navTitle: "04 • Editörden & İçindekiler",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
       editorTitle: `Yeni Bir Soluk: ${name}`,
       editorName: "Yayın Kurulu Başkanı",
       editorImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
-      editorIntro: "Büyük bir heyecanla hazırladığımız ilk sayımızla karşınızdayız. Dergimiz okulumuzun tüm seslerini ve yeteneklerini bir araya getiriyor.",
+      editorQuote: "Her dergi sayfası, bilimin ve sanatın ışığında yarına bırakılan kalıcı bir izdir.",
+      editorText: "Büyük bir heyecanla hazırladığımız sayımızla karşınızdayız. Dergimiz okulumuzun tüm seslerini, projelerini ve edebi yeteneklerini bir araya getiriyor.",
       editorialBoard: `${school} Kültür ve Edebiyat Kulübü Tarafından Hazırlanmıştır.`,
       elements: []
     },
     {
-      id: "p4",
-      type: "article",
-      navTitle: "Bilim & Teknoloji",
-      accentColor: accent,
-      assignedEditor: "ADMIN-2026",
-      status: "approved",
-      category: "BİLİM & TEKNOLOJİ",
-      author: "Proje Ekibi",
-      title: "Geleceğin Teknolojileri ve Okulumuz",
-      spot: "Öğrencilerimizin geliştirdiği projeler ve teknoloji kulübü çalışmaları.",
-      image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=900&q=80",
-      imageCaption: "Laboratuvar ve robotik çalışmaları",
-      content: "Okulumuzda yürütülen bilimsel çalışmalar ve proje yarışmaları hız kesmeden devam ediyor. Gençlerimiz bilim yolunda üretmeye ve araştırmaya devam ediyor.",
-      pullQuote: "Bilim ve akıl, geleceğe açılan en aydınlık kapımızdır.",
-      elements: []
-    },
-    {
       id: "p5",
-      type: "video",
-      navTitle: "Etkinlik & Video",
+      type: "article",
+      layout: "art_classic",
+      navTitle: "05 • Özel Dosya & Makale",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
-      author: "Tiyatro ve Gösteri Kulübü",
-      title: "Okul Gösterisi ve Sahne Performansı",
-      subTitle: "Sahnede devleşen öğrencilerimizin performansı",
-      videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
-      videoPoster: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=900&q=80",
-      caption: "Etkinlikten en güzel anlar",
-      notes: "Tüm velilerimizin ve öğretmenlerimizin katıldığı organizasyonda öğrencilerimiz unutulmaz anlar yaşattı.",
+      category: "BİLİM & KÜLTÜR DOSYASI",
+      author: "Araştırma & Proje Ekibi",
+      title: "Geleceğin Teknolojileri ve Okulumuz",
+      spot: "Öğrencilerimizin geliştirdiği projeler ve kulüp çalışmaları.",
+      image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=900&q=80",
+      imageCaption: "Laboratuvar ve proje atölyesi çalışmaları",
+      content: "Okulumuzda yürütülen bilimsel çalışmalar, kültür-sanat etkinlikleri ve proje yarışmaları hız kesmeden devam ediyor. Gençlerimiz bilim yolunda üretmeye ve araştırmaya devam ediyor.",
+      pullQuote: "Bilim ve akıl, geleceğe açılan en aydınlık kapımızdır.",
       elements: []
     },
     {
       id: "p6",
       type: "interview",
-      navTitle: "Ayın Söyleşisi",
+      layout: "int_classic",
+      navTitle: "06 • Ayın Söyleşisi",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
@@ -352,11 +358,12 @@ function createDefault10Pages(mag) {
     {
       id: "p7",
       type: "literature",
-      navTitle: "Edebiyat & Şiir",
+      layout: "lit_classic",
+      navTitle: "07 • Edebiyat & Şiir",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
-      header: "GENÇ KALEMLER",
+      header: "GENÇ KALEMLER & ŞİİR",
       title: "Bir Umut Masalı",
       author: "Okul Şiir Topluluğu",
       bgImage: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80",
@@ -366,52 +373,56 @@ function createDefault10Pages(mag) {
     },
     {
       id: "p8",
-      type: "quiz",
-      navTitle: "Quiz & Tavsiyeler",
+      type: "catalog",
+      layout: "cat_classic",
+      navTitle: "08 • Proje & Sergi Vitrini",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
-      title: "ETKİLEŞİMLİ KÖŞE",
-      questionTitle: "Ayın Edebiyat Sorusu",
-      questionText: "Türk edebiyatının ilk yerli romanı olarak kabul edilen 'Taaşşuk-ı Tal'at ve Fitnat' kime aittir?",
-      options: ["Şemsettin Sami", "Namık Kemal", "Recaizade Mahmut Ekrem", "Ahmet Mithat Efendi"],
-      correctIndex: 0,
-      explanation: "Taaşşuk-ı Tal'at ve Fitnat, Şemsettin Sami tarafından 1872-1873 yıllarında yazılmıştır.",
-      bookRec: "Beyaz Gemi — Cengiz Aytmatov",
-      movieRec: "Ölü Ozanlar Derneği",
+      title: "Proje & Tasarım Koleksiyonu",
+      content: "Dönem boyunca atölyelerimizde ve kulüplerimizde geliştirilen öne çıkan öğrenci çalışmaları ve sergi seçkisi.",
+      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=600&q=80",
+      spec1: "Bilim ve Teknoloji Projeleri",
+      spec2: "Görsel Sanatlar ve Resim Sergisi",
+      spec3: "2026 - 2027 Eğitim Dönemi",
+      author: `${school} Proje Masası`,
       elements: []
     },
     {
       id: "p9",
       type: "k3",
-      navTitle: "K3 • Arka Kapak İçi (Künye)",
+      layout: "k3_classic",
+      isFixedBackbone: true,
+      navTitle: "09 • K3 Arka Kapak İçi (Künye)",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
-      boardTitle: `${name.toUpperCase()} YAYIN KURULU`,
+      boardTitle: `${name.toUpperCase()} YAYIN KÜNYESİ`,
       publisher: `${school} Müdürlüğü`,
       editorInChief: "Genel Yayın Yönetmeni",
       advisor: "Kültür & Edebiyat Danışmanı",
       editorialTeam: "Öğrenci Yayın ve Mizanpaj Kurulu",
       contactInfo: `İletişim: iletisim@dergimiz.com.tr • ${school}`,
       nextIssueTeaserTitle: "GELECEK SAYIDA NELER VAR?",
-      nextIssueText: "Özel bilim söyleşileri, resim sergisi ve okul içi yarışma sonuçları...",
+      nextIssueText: "• Özel Bilim ve Teknoloji Söyleşileri\n• Yılın Resim ve Fotoğraf Sergisi\n• Ödüllü Okul Yarışması Sonuçları",
       elements: []
     },
     {
       id: "p10",
       type: "k4",
-      navTitle: "K4 • Arka Dış Kapak",
+      layout: "k4_classic",
+      isFixedBackbone: true,
+      navTitle: "10 • K4 Arka Dış Kapak",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
       schoolName: school,
-      motto: "Bilgi, Sevgi ve Gelecek",
+      motto: "Bilgi, Sanat ve Gelecek Işığında",
       coverImage: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=80",
       qrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr",
       qrText: "Dergimizi çevrim içi okumak ve yeni sayıları takip etmek için karekodu okutun.",
-      social: "@okuldergimiz • dergimiz.com.tr",
-      closingQuote: "Bir sonraki sayıda buluşmak dileğiyle...",
+      social: "@dergimiz • dergimiz.com.tr",
+      closingQuote: "\"Hayata ve geleceğe değer katan genç kalemler.\"",
       elements: []
     }
   ];
@@ -578,39 +589,52 @@ app.post('/api/issues', (req, res) => {
   if (!isAdmin(authHeader, authData)) return res.status(403).json({ error: 'Yalnızca Admin yeni sayı oluşturabilir.' });
 
   const issues = readJSON(ISSUES_FILE, []);
-  const newNumber = issues.length + 1;
+  const magazines = readJSON(MAGAZINES_FILE, []);
+  const magId = req.body.magazineId || '';
+  const targetMag = magazines.find(m => m.id === magId) || {
+    name: req.body.magazineName || 'DERGİMİZ',
+    schoolName: req.body.schoolName || 'E-DERGİ TASARIM STÜDYOSU',
+    themeColor: '#4f46e5',
+    layout: 'minimalist'
+  };
+
+  const magIssues = issues.filter(i => i.magazineId === magId);
+  const newNumber = magIssues.length + 1;
   const newId = 'sayi-' + Date.now();
+
+  let defaultPages = createDefault10Pages(targetMag);
+  defaultPages[0].issueTag = `SAYI 0${newNumber} • ${(req.body.issueMonth || 'YENİ SAYI').toUpperCase()}`;
+
+  // Eğer bu derginin önceki bir sayısı varsa Sabit Omurga sayfalarını (Bayrak/Marş, Atatürk, Editör/İçindekiler, K3 Künye, K4 Arka Kapak) koru
+  const prevIssue = magIssues[magIssues.length - 1];
+  if (prevIssue && Array.isArray(prevIssue.pages)) {
+    const prevK3 = prevIssue.pages.find(p => p.type === 'k3');
+    const prevK4 = prevIssue.pages.find(p => p.type === 'k4' || p.type === 'back');
+    const prevToc = prevIssue.pages.find(p => p.type === 'toc');
+    if (prevK3) defaultPages[8] = { ...JSON.parse(JSON.stringify(prevK3)), id: 'p9' };
+    if (prevK4) defaultPages[9] = { ...JSON.parse(JSON.stringify(prevK4)), id: 'p10' };
+    if (prevToc) {
+      defaultPages[3].editorName = prevToc.editorName || defaultPages[3].editorName;
+      defaultPages[3].editorImage = prevToc.editorImage || defaultPages[3].editorImage;
+      defaultPages[3].editorialBoard = prevToc.editorialBoard || defaultPages[3].editorialBoard;
+      defaultPages[3].layout = prevToc.layout || defaultPages[3].layout;
+    }
+  }
 
   const newIssue = {
     id: newId,
-    title: req.body.title || `Sayı #${newNumber}`,
-    magazineId: req.body.magazineId || '',
-    schoolName: req.body.schoolName || "E-DERGİ TASARIM STÜDYOSU",
+    title: req.body.title || `${targetMag.name} • Sayı #${newNumber}`,
+    magazineId: magId,
+    schoolName: targetMag.schoolName || req.body.schoolName || "E-DERGİ TASARIM STÜDYOSU",
     issueNumber: newNumber,
-    issueMonth: req.body.issueMonth || "Yeni Sayı",
+    issueMonth: req.body.issueMonth || `${newNumber}. Sayı`,
     releaseDate: new Date().toISOString().split('T')[0],
     status: "draft",
     views: 0,
     likes: 0,
     description: req.body.description || "Yeni sayı hazırlık aşamasında.",
-    coverThumb: req.body.coverThumb || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
-    pages: req.body.pages || [
-      {
-        id: "p1",
-        type: "cover",
-        navTitle: "Kapak",
-        accentColor: "#d97706",
-        assignedEditor: authData.adminKey,
-        status: "approved",
-        adminNote: "",
-        magazineName: "KAMER",
-        issueTag: `SAYI 0${newNumber} • YENİ SAYI`,
-        mainHeadline: "Güçlü Kadın Lider",
-        subHeadline: "Kapak hikayesi için destek metni buraya girilecektir.",
-        coverImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=900&q=80",
-        highlights: "Moda Sektöründe\nRenkleri Kendinize Uyarlayın\nSezonun En İyi Görünümleri"
-      }
-    ]
+    coverThumb: req.body.coverThumb || targetMag.coverThumb || "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+    pages: req.body.pages || defaultPages
   };
 
   issues.push(newIssue);
