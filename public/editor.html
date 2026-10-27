@@ -10,7 +10,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20261027_11">
+  <!-- Fabric.js 5.3.0 Profesyonel Tuval Motoru -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+  <link rel="stylesheet" href="/css/style.css?v=20261027_12">
   <script>
     tailwind.config = {
       theme: {
@@ -594,7 +596,7 @@
     <!-- 5. SAĞ PANEL: BAĞLAMA DUYARLI DENETÇİ & YAN PANELE TAŞINAN HIZLI ARAÇLAR -->
     <aside id="rightSidebar" class="w-80 md:w-[340px] bg-slate-950 border-l border-slate-800 flex flex-col z-20 shrink-0 transition-all duration-300 select-text">
 
-      <!-- Üst Sekmeler: Ayarlar | Eylemler | Şablon Formu + Sağ Paneli Kapat Butonu -->
+      <!-- Üst Sekmeler: Ayarlar | Eylemler + Sağ Paneli Kapat Butonu -->
       <div class="border-b border-slate-800 bg-slate-900/90 px-2 pt-2 flex items-center justify-between gap-1">
         <div class="flex items-center gap-1 flex-1">
           <button id="rightTabBtn_settings" onclick="switchRightInspectorTab('settings')" class="flex-1 pb-2 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition text-center">
@@ -603,7 +605,7 @@
           <button id="rightTabBtn_actions" onclick="switchRightInspectorTab('actions')" class="flex-1 pb-2 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition text-center">
             Eylemler
           </button>
-          <button id="rightTabBtn_content" onclick="switchRightInspectorTab('content')" class="flex-1 pb-2 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition text-center">
+          <button id="rightTabBtn_content" onclick="switchRightInspectorTab('content')" class="hidden">
             Sayfa Metinleri
           </button>
         </div>
@@ -618,7 +620,7 @@
           <span id="editingPageBadge" class="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold">
             Sayfa 1
           </span>
-          <span id="activeSelectionBadge" class="text-[10px] text-amber-400 font-mono font-bold truncate max-w-[110px]">Hazır</span>
+          <span id="activeSelectionBadge" class="text-[10px] text-amber-400 font-mono font-bold truncate max-w-[130px]">Hazır</span>
         </div>
         <div class="flex items-center gap-1">
           <span id="pageReviewBadge" class="hidden">Onaylandı</span>
@@ -627,8 +629,8 @@
         </div>
       </div>
 
-      <!-- YAN PANELE TAŞINAN HIZLI EKLEME & YAZI / ÇERÇEVE ARAÇLARI KUTUSU (Daraltılabilir) -->
-      <div class="border-b border-slate-800 bg-slate-900/80 px-3 py-2 space-y-2 select-none">
+      <!-- Eski Mükerrer Üst Bar Gizlendi (Tüm kontroller Ayarlar sekmesinde tek merkezde birleştirildi) -->
+      <div class="hidden">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold text-amber-400 flex items-center gap-1">
             <i class="ph ph-magic-wand"></i> Hızlı Araçlar & Yazı Stili
@@ -1282,6 +1284,7 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261027_11"></script>
+  <script src="/js/studio.js?v=20261027_12"></script>
+  <script src="/js/fabric-engine.js?v=20261027_12"></script>
 </body>
 </html>
