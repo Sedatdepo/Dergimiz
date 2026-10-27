@@ -1,0 +1,30 @@
+{
+  "name": "dergimiz",
+  "version": "1.0.0",
+  "description": "🌐 **Alan Adı:** [dergimiz.com.tr](https://dergimiz.com.tr)   🚀 **Sunucu:** Keyubu VDS (`179.61.147.252`) - Nginx Web Server   📁 **Sunucu Dizini:** `/var/www/dergimiz`   🔒 **SSL:** Cloudflare & Nginx SSL",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "node deploy.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sedatdepo/Dergimiz.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Sedatdepo/Dergimiz/issues"
+  },
+  "homepage": "https://github.com/Sedatdepo/Dergimiz#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "multer": "^2.5.0",
+    "ssh2": "^1.17.0"
+  }
+}

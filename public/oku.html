@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dergimiz • E-Dergi Okuyucu</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="/css/style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              900: '#1e1b4b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden select-none">
+
+  <!-- OKUYUCU ÜST BAR -->
+  <header class="bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-2.5 flex items-center justify-between z-30 shrink-0">
+    <div class="flex items-center gap-3">
+      <a href="/" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition flex items-center gap-1.5 text-xs font-semibold" title="Kitaplığa Dön">
+        <i class="ph ph-arrow-left text-base"></i>
+        <span class="hidden sm:inline">Kitaplık</span>
+      </a>
+
+      <div class="h-4 w-px bg-slate-800"></div>
+
+      <div>
+        <div class="flex items-center gap-2">
+          <h1 id="readerMagTitle" class="font-display font-bold text-sm sm:text-base text-white tracking-wide truncate max-w-[200px] sm:max-w-md">UFUK ANADOLU LİSESİ</h1>
+          <span id="readerIssueBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Sayı #1</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sağ Araçlar -->
+    <div class="flex items-center gap-2">
+      <!-- Ses Efekti Aç/Kapat -->
+      <button onclick="toggleAudio()" id="btnAudioToggle" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-400 border border-slate-800 text-xs transition" title="Sayfa Çevirme Sesi">
+        <i class="ph ph-speaker-high text-lg" id="audioIcon"></i>
+      </button>
+
+      <!-- Çift / Tek Sayfa -->
+      <button onclick="toggleSpreadMode()" id="btnSpreadToggle" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-slate-800 transition" title="Görünüm Değiştir">
+        <i class="ph ph-columns text-base"></i>
+        <span id="spreadToggleText" class="hidden md:inline">Çift Sayfa</span>
+      </button>
+
+      <!-- İçindekiler -->
+      <button onclick="openTocModal()" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-slate-800 transition" title="İçindekiler">
+        <i class="ph ph-list-bullets text-base text-indigo-400"></i>
+        <span class="hidden sm:inline">İçindekiler</span>
+      </button>
+
+      <!-- Paylaş -->
+      <button onclick="shareMagazine()" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs transition" title="Bağlantıyı Paylaş">
+        <i class="ph ph-share-network text-lg"></i>
+      </button>
+
+      <!-- Tam Ekran -->
+      <button onclick="toggleFullScreen()" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs transition" title="Tam Ekran">
+        <i class="ph ph-corners-out text-lg" id="fsIcon"></i>
+      </button>
+
+      <!-- Editör Masasına Geç -->
+      <a id="btnGoToStudio" href="/editor" class="p-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition" title="Editör Masası">
+        <i class="ph ph-pencil-simple text-lg"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- DERGİ OKUMA TUVALİ -->
+  <main class="flex-1 bg-slate-900/90 flex flex-col items-center justify-between p-3 sm:p-5 overflow-y-auto relative">
+    
+    <!-- Orta Dergi Alanı (Flipbook) -->
+    <div class="my-auto flex items-center justify-center w-full py-2">
+      <!-- Sol Ok -->
+      <button onclick="prevPage()" id="btnPrev" class="p-3 sm:p-4 rounded-full bg-slate-950/80 hover:bg-indigo-600 text-white shadow-2xl border border-slate-700/80 transition mr-2 sm:mr-6 disabled:opacity-20 disabled:pointer-events-none hover:scale-105 active:scale-95" title="Önceki Sayfa (Sol Ok Tuşu)">
+        <i class="ph ph-caret-left text-xl sm:text-2xl"></i>
+      </button>
+
+      <!-- Dergi Sayfaları Konteyneri -->
+      <div id="magazineViewport" class="magazine-spread flex items-center justify-center">
+        <!-- JS ile sayfalar render edilir -->
+      </div>
+
+      <!-- Sağ Ok -->
+      <button onclick="nextPage()" id="btnNext" class="p-3 sm:p-4 rounded-full bg-slate-950/80 hover:bg-indigo-600 text-white shadow-2xl border border-slate-700/80 transition ml-2 sm:mr-6 disabled:opacity-20 disabled:pointer-events-none hover:scale-105 active:scale-95" title="Sonraki Sayfa (Sağ Ok Tuşu)">
+        <i class="ph ph-caret-right text-xl sm:text-2xl"></i>
+      </button>
+    </div>
+
+    <!-- Alt Navigasyon Çubuğu -->
+    <div class="flex items-center gap-4 bg-slate-950/90 px-5 py-2.5 rounded-2xl border border-slate-800 shadow-2xl mt-2 backdrop-blur-md">
+      <button onclick="goToPage(0)" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition" title="Kapağa Git">
+        <i class="ph ph-skip-back"></i> Kapak
+      </button>
+      <div class="h-4 w-px bg-slate-800"></div>
+      <div id="pageIndicatorText" class="text-xs sm:text-sm font-semibold text-slate-200 min-w-[120px] text-center font-display">
+        Sayfa 1 / 6
+      </div>
+      <div class="h-4 w-px bg-slate-800"></div>
+      <button onclick="openTocModal()" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold flex items-center gap-1 transition">
+        <i class="ph ph-list-bullets text-base"></i> İçindekiler
+      </button>
+    </div>
+
+  </main>
+
+  <!-- İÇİNDEKİLER MODALI -->
+  <div id="tocModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full overflow-hidden shadow-2xl animate-flip">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+          <i class="ph ph-list-bullets text-indigo-400"></i> İçindekiler
+        </h3>
+        <button onclick="closeTocModal()" class="text-slate-400 hover:text-white p-1">
+          <i class="ph ph-x text-xl"></i>
+        </button>
+      </div>
+      <div id="tocModalList" class="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
+        <!-- JS ile dolar -->
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST BİLDİRİMİ -->
+  <div id="toastBox" class="fixed bottom-6 right-6 bg-indigo-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold transform translate-y-20 opacity-0 transition-all duration-300 z-50 pointer-events-none">
+    <i class="ph ph-check-circle text-lg"></i>
+    <span id="toastMessage">Bildirim mesajı</span>
+  </div>
+
+  <script src="/js/reader.js"></script>
+</body>
+</html>
