@@ -247,17 +247,20 @@ function createDefault10Pages(mag) {
   const name = mag.name || 'DERGİ';
   const school = mag.schoolName || 'Okul Adı';
   const accent = mag.themeColor || '#4f46e5';
+  const layout = mag.layout || 'minimalist';
 
   return [
     {
       id: "p1",
       type: "cover",
+      layout: layout,
       navTitle: "K1 • Ön Dış Kapak",
       accentColor: accent,
       assignedEditor: "ADMIN-2026",
       status: "approved",
       magazineName: name.toUpperCase(),
       issueTag: "SAYI 01 • İLK SAYI • E-DERGİ",
+      price: "OKUL E-DERGİSİ",
       mainHeadline: `${school} Dijital Yayın Hayatına Başlıyor!`,
       subHeadline: "Öğrencilerimizin, öğretmenlerimizin ve kulüplerimizin ortak emeğiyle hazırlanan ilk sayımız.",
       coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
@@ -455,6 +458,7 @@ app.post('/api/magazines', (req, res) => {
     period: period || 'Aylık',
     themeColor: themeColor || '#4f46e5',
     description: description || `${schoolName} resmi e-dergisi.`,
+    layout: req.body.layout || 'minimalist',
     logo: '',
     coverThumb: coverThumb || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80',
     createdAt: new Date().toISOString().split('T')[0]

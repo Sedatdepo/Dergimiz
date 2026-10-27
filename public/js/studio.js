@@ -33,6 +33,44 @@ const colorSwatches = [
   { name: "Koyu Gri", hex: "#1e293b" }
 ];
 
+function renderBarcodeSvg(color = '#000000') {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="inline-block opacity-75"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>`;
+}
+
+const MAGAZINE_PRESETS = [
+  { id: 1, name: 'Kamer', category: 'Moda & Kültür', layout: 'minimalist', accent: '#d97706', title: 'KAMER', headline: 'Güçlü Kadın Lider', desc: 'Kapak hikayesi için destek metni buraya girilecektir.', subs: ['Moda Sektöründe', 'Renkleri Kendinize Uyarlayın', 'Sezonun En İyi Görünümleri'] },
+  { id: 2, name: 'Yeni (Resimlik)', category: 'Popüler Kültür & Gençlik', layout: 'brutalist', accent: '#facc15', title: 'RESİMLİK', headline: 'YENİ GÖRÜNÜMLER', desc: 'LİT POPÜLER KÜLTÜR DOSYASI', subs: ['Mavi Sarı Kırmızı Trend', 'Brütalist Stilde Moda', 'Kapak Hikayesi Destek'] },
+  { id: 3, name: 'Konak', category: 'Mimari & Mekan', layout: 'modular', accent: '#0f172a', title: 'KONAK', headline: 'TARZ DENEYİMLERİ', desc: 'TASARIM ÖDÜLLERİ VE YAŞAM ALANLARI', subs: ['Yeni Renkler', 'Çağdaş Stiller', 'Taze Perspektifler'] },
+  { id: 4, name: 'Doğal', category: 'Doğa & Yaşam', layout: 'fullscreen', accent: '#10b981', title: 'DOĞAL', headline: 'VAHŞİ YAŞAMIN BÜYÜSÜ', desc: 'Gezegenin Paydaşları ve Korunan Alanlar', subs: ['Ormanın Derinlikleri', 'Nesli Tükenenler', 'Yaban Hayatı Korumak'] },
+  { id: 5, name: 'Kapital', category: 'İş & Ekonomi', layout: 'modular', accent: '#1d4ed8', title: 'KAPİTAL', headline: 'KÜRESEL PİYASALAR', desc: 'Yatırımcılar ve geleceğin şirketleri için yeni vizyon.', subs: ['Borsa Analizleri', 'Geleceğin Şirketleri', 'Kripto Dünyası'] },
+  { id: 6, name: 'Siber', category: 'Karanlık Teknoloji', layout: 'brutalist', accent: '#22c55e', title: 'SİBER_AĞ', headline: 'YAPAY ZEKA DEVRİMİ', desc: 'Makineler ne zaman hissedecek ve düşünecek?', subs: ['Kuantum İşlemciler', 'Siber Güvenlik', 'Web 3.0 & Yapay Zeka'] },
+  { id: 7, name: 'Damak', category: 'Gastronomi & Gurme', layout: 'minimalist', accent: '#ea580c', title: 'DAMAK', headline: 'ÇİKOLATALI LEZZETLER', desc: 'Mutfak sanatında ustalaşın. Görsel bir ziyafet.', subs: ['Sokak Lezzetleri', 'Şefin Sırrı', 'Mevsim Yeşillikleri'] },
+  { id: 8, name: 'Bilim', category: 'Modern Keşif', layout: 'fullscreen', accent: '#06b6d4', title: 'BİLİM', headline: 'EVRENİN DERİNLİKLERİ', desc: 'Laboratuvardan derin uzaya uzanan bilim serüveni.', subs: ['James Webb Teleskobu', 'Genom Projeleri', 'Füzyon Enerjisi'] },
+  { id: 9, name: 'Sinema', category: 'Vintage Noir', layout: 'brutalist', accent: '#f43f5e', title: 'SİNEVİZYON', headline: 'BEYAZ PERDE BÜYÜSÜ', desc: 'Klasik yönetmenler ve modern bağımsız sinema.', subs: ['Yönetmenin Vizyonu', 'Festivaller & Ödüller', 'Film Müziği'] },
+  { id: 10, name: 'Spor', category: 'Dinamik Enerji', layout: 'modular', accent: '#ef4444', title: 'DİNAMİK', headline: 'ŞAMPİYONLARIN İZİNDE', desc: 'Zirveye giden yol disiplin ve tutkudan geçer.', subs: ['Antrenman Günlüğü', 'Zihinsel Dayanıklılık', 'Genç Yetenekler'] },
+  { id: 11, name: 'Gezgin', category: 'Macera & Rota', layout: 'fullscreen', accent: '#f97316', title: 'PUSULA', headline: 'BİLİNMEYEN ROTALAR', desc: 'Kültürleri keşfetmek ve sınırların ötesine yolculuk.', subs: ['Sırt Çantalılar', 'Tarihi Şehirler', 'Doğa Yürüyüşleri'] },
+  { id: 12, name: 'Edebiyat', category: 'Klasik Kitap', layout: 'minimalist', accent: '#7c3aed', title: 'SATIR ARASI', headline: 'KELİMELERİN GÜCÜ', desc: 'Şiirin ve düzyazının büyülü evreninde bir yolculuk.', subs: ['Ayın Şairi', 'Unutulmayan Romanlar', 'Kitap İncelemeleri'] },
+  { id: 13, name: 'Müzik', category: 'Neon Ritim', layout: 'brutalist', accent: '#ec4899', title: 'RİTİM', headline: 'SESİN FREKANSI', desc: 'Analog tınılardan elektronik dalgalara müzik tarihi.', subs: ['Plak Kültürü', 'Yeni Çıkan Albümler', 'Konser Notları'] },
+  { id: 14, name: 'Oyun', category: 'Retro Pixel', layout: 'modular', accent: '#8b5cf6', title: 'PİKSEL', headline: 'DİJİTAL DÜNYALAR', desc: 'Oyun tasarımının evrimi ve bağımsız geliştiriciler.', subs: ['İndie Oyunlar', 'Oyun Mekanikleri', 'Espor Arenası'] },
+  { id: 15, name: 'Sanat', category: 'Galeri Çağdaş', layout: 'minimalist', accent: '#6366f1', title: 'GALERİ', headline: 'BİÇİM VE RENK', desc: 'Görsel sanatların dönüştürücü gücü ve yeni sergiler.', subs: ['Atölye Ziyareti', 'Heykel Sanatı', 'Dijital İllüstrasyon'] },
+  { id: 16, name: 'Tarih', category: 'Arşiv Antik', layout: 'modular', accent: '#b45309', title: 'ZAMAN TÜNELİ', headline: 'MEDENİYETİN KÖKLERİ', desc: 'Geçmişin tozlu sayfalarından günümüze ışık tutan belgeler.', subs: ['Antik Kentler', 'Kırılma Noktaları', 'Arşiv Belgeleri'] },
+  { id: 17, name: 'Gençlik', category: 'Canlı Kampüs', layout: 'brutalist', accent: '#e11d48', title: 'KAMPÜS', headline: 'GENÇLİĞİN SESİ', desc: 'Kulüpler, projeler, yarışmalar ve öğrenci başarıları.', subs: ['Münazara Kulübü', 'TÜBİTAK Projeleri', 'Okul Festivali'] },
+  { id: 18, name: 'Uzay', category: 'Derin Kozmos', layout: 'fullscreen', accent: '#38bdf8', title: 'KOZMOS', headline: 'YILDIZLARIN ÖTESİNDE', desc: 'Gezegenler, karadelikler ve geleceğin uzay kolonileri.', subs: ['Mars Görevleri', 'Ötegezegenler', 'Astrofizik Temelleri'] },
+  { id: 19, name: 'Felsefe', category: 'Sade Düşünce', layout: 'minimalist', accent: '#475569', title: 'DÜŞÜNCE', headline: 'SORULARIN PEŞİNDE', desc: 'Varlık, bilgi ve ahlak üzerine derinlikli bir sorgulama.', subs: ['Sokratik Yöntem', 'Zihin Felsefesi', 'Etik Tartışmalar'] },
+  { id: 20, name: 'Doğaüstü', category: 'Gizem & Fenomen', layout: 'fullscreen', accent: '#a855f7', title: 'BİLİNMEYEN', headline: 'GİZEMLİ DÜNYA', desc: 'Evrenin çözülememiş sırları ve bilimin araştırdığı fenomenler.', subs: ['Kriptoloji', 'Derin Deniz Canlıları', 'Tarihin Gizemleri'] }
+];
+
+function applyMagPreset(presetId) {
+  const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId));
+  if (!preset) return;
+  const nameInput = document.getElementById('newMagName');
+  const colorInput = document.getElementById('newMagColor');
+  const descInput = document.getElementById('newMagDesc');
+  if (nameInput) nameInput.value = preset.title;
+  if (colorInput) colorInput.value = preset.accent;
+  if (descInput) descInput.value = `${preset.category} — ${preset.desc}`;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   initUserSession();
   if (window.innerWidth < 1100) spreadMode = false;
@@ -186,6 +224,10 @@ async function createNewMagazineSubmit() {
   const themeColor = document.getElementById('newMagColor').value;
   const description = document.getElementById('newMagDesc').value.trim();
   const createFirstIssue = document.getElementById('newMagFirstIssueCheck').checked;
+  const presetSelect = document.getElementById('newMagPreset');
+  const presetId = presetSelect ? Number(presetSelect.value) : 1;
+  const preset = MAGAZINE_PRESETS.find(p => p.id === presetId);
+  const layout = preset ? preset.layout : 'minimalist';
 
   if (!schoolName || !name) {
     showToast("Lütfen Okul Adı ve Dergi Adı alanlarını doldurun!");
@@ -205,7 +247,8 @@ async function createNewMagazineSubmit() {
         period,
         themeColor,
         description,
-        createFirstIssue
+        createFirstIssue,
+        layout
       })
     });
 
@@ -1266,37 +1309,189 @@ function makeInlineImage(pageIndex, key, currentUrl, fallbackUrl, imgClass = '',
 function renderTemplateHTML(page, pageIndex) {
   const accent = page.accentColor || '#4f46e5';
 
-  // 1. K1 • ÖN DIŞ KAPAK
+  // 1. K1 • ÖN DIŞ KAPAK (4 Mizanpaj Ekolü)
   if (page.type === 'cover' || page.type === 'k1') {
-    const highlights = (page.highlights || '').split('\n').filter(Boolean);
-    return `
-      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950">
-        <div class="absolute inset-0 w-full h-full">
-          ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://placehold.co/800x1100/1e1b4b/ffffff?text=Dergi+Kapagi', 'w-full h-full object-cover opacity-65 scale-105', 'w-full h-full', 'Kapak')}
+    const layout = page.layout || 'minimalist';
+    let highlights = (page.highlights || '').split('\n').filter(Boolean);
+    if (highlights.length === 0) highlights = ['Özel Dosya', 'Ayın Konusu', 'Geleceğin Trendleri'];
+
+    // 1A. MINIMALIST (Kamer Ekolü)
+    if (layout === 'minimalist') {
+      return `
+        <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 bg-[#f4f2ee] text-stone-900 font-serif select-none overflow-hidden">
+          <div class="flex justify-between items-center pb-2 border-b border-stone-300 text-[11px] tracking-widest uppercase font-semibold text-stone-600">
+            ${makeInlineEditable(pageIndex, 'issueTag', page.issueTag || 'SAYI 01 | EKİM 2026', 'span')}
+            ${makeInlineEditable(pageIndex, 'price', page.price || 'OKUL E-DERGİSİ', 'span')}
+          </div>
+
+          <div class="my-auto py-2">
+            ${makeInlineEditable(pageIndex, 'magazineName', page.magazineName || 'KAMER', 'h1', 'text-5xl sm:text-7xl font-serif font-black tracking-tight text-stone-900 uppercase my-3 leading-none')}
+            
+            <div class="flex flex-col sm:flex-row gap-4 h-[380px] sm:h-[420px] mt-2">
+              <!-- Sol Metin Bloğu (Vurgulu Kutu) -->
+              <div class="w-full sm:w-1/2 bg-black text-white p-5 sm:p-6 rounded-2xl flex flex-col justify-between shadow-xl">
+                <div>
+                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider mb-3" style="background-color: ${accent}">KAPAK DOSYASI</span>
+                  ${makeInlineEditable(pageIndex, 'mainHeadline', page.mainHeadline || 'Güçlü Lider', 'h2', 'text-2xl sm:text-3xl font-serif font-bold leading-tight mb-2 text-white')}
+                  ${makeInlineEditable(pageIndex, 'subHeadline', page.subHeadline || 'Kapak hikayesi için destek ve tanıtım metni buraya girilecektir.', 'p', 'text-xs text-stone-300 font-sans leading-relaxed mb-3')}
+                </div>
+                <div class="border-t border-stone-700 pt-3 space-y-1.5 font-sans">
+                  ${highlights.map(h => `
+                    <div class="text-xs text-stone-300 flex items-center gap-2">
+                      <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${accent}"></span>
+                      <span class="truncate">${escapeHtml(h)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Sağ Görsel Bloğu -->
+              <div class="w-full sm:w-1/2 h-full relative rounded-2xl overflow-hidden shadow-lg border-2 border-stone-300/80 bg-stone-200">
+                ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80', 'w-full h-full object-cover', 'w-full h-full', 'Kapak Görseli')}
+                <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded shadow text-stone-800 flex items-center gap-1.5">
+                  ${renderBarcodeSvg('#1c1917')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-2 border-t border-stone-300 text-[10px] font-sans font-semibold text-stone-500 uppercase tracking-widest">
+            <span>${escapeHtml(magazineData.schoolName)}</span>
+            <span>Öğrenci & Yayın Masası</span>
+          </div>
         </div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/70 pointer-events-none"></div>
+      `;
+    }
+
+    // 1B. BRUTALIST (Resimlik Ekolü)
+    if (layout === 'brutalist') {
+      return `
+        <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-7 text-white font-sans overflow-hidden select-none" style="background-color: ${accent || '#2563eb'}">
+          <div class="flex justify-between items-center text-xs font-black uppercase tracking-wider text-white/90 border-b-2 border-white/30 pb-2 z-10">
+            ${makeInlineEditable(pageIndex, 'issueTag', page.issueTag || 'SAYI 04', 'span')}
+            ${makeInlineEditable(pageIndex, 'price', page.price || '2026', 'span')}
+          </div>
+
+          <!-- Arka Plan Büyük Tipografi -->
+          <div class="relative my-auto flex flex-col items-center justify-center">
+            ${makeInlineEditable(pageIndex, 'magazineName', page.magazineName || 'RESİMLİK', 'h1', 'text-6xl sm:text-8xl font-black uppercase tracking-tighter text-center leading-none text-white/90 mix-blend-overlay my-[-10px] select-none')}
+
+            <!-- Eğik Görsel Kartı -->
+            <div class="w-60 sm:w-72 h-64 sm:h-72 my-[-20px] sm:my-[-30px] z-10 transform -rotate-3 border-4 border-white shadow-2xl overflow-hidden rounded-xl bg-white/20 backdrop-blur">
+              ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80', 'w-full h-full object-cover', 'w-full h-full', 'Kapak Görseli')}
+            </div>
+
+            <!-- Eğik Başlık Rozeti -->
+            <div class="z-20 text-center mt-6 inline-block mx-auto px-6 py-2.5 transform rotate-2 bg-yellow-300 text-slate-950 font-black shadow-2xl rounded-lg">
+              ${makeInlineEditable(pageIndex, 'mainHeadline', page.mainHeadline || 'YENİ GÖRÜNÜMLER', 'h2', 'text-2xl sm:text-3xl font-black tracking-tight uppercase')}
+            </div>
+
+            ${makeInlineEditable(pageIndex, 'subHeadline', page.subHeadline || 'LİT POPÜLER KÜLTÜR VE GENÇLİK DOSYASI', 'p', 'mt-3 font-bold text-xs uppercase tracking-widest text-center text-white/95 px-4')}
+          </div>
+
+          <div class="flex justify-between items-center pt-3 border-t-2 border-white/30 text-xs font-bold text-white z-10">
+            <span class="truncate max-w-[200px]">${escapeHtml(highlights[0] || 'Özel Dosya')}</span>
+            <div class="flex items-center gap-2 bg-white/20 px-2 py-0.5 rounded backdrop-blur">
+              ${renderBarcodeSvg('#ffffff')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 1C. MODULAR (Konak Ekolü)
+    if (layout === 'modular') {
+      return `
+        <div class="w-full h-full p-4 sm:p-5 bg-stone-100 text-slate-800 font-sans select-none overflow-hidden">
+          <div class="w-full h-full border-2 border-slate-900 p-4 sm:p-5 flex flex-col justify-between rounded-lg">
+            
+            <div class="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-3">
+              ${makeInlineEditable(pageIndex, 'magazineName', page.magazineName || 'KONAK', 'h1', 'text-4xl sm:text-6xl font-display font-extrabold text-slate-900 tracking-tight leading-none')}
+              <div class="text-right text-xs uppercase font-bold text-slate-700">
+                ${makeInlineEditable(pageIndex, 'price', page.price || 'EV & YAŞAM', 'div')}
+                ${makeInlineEditable(pageIndex, 'issueTag', page.issueTag || 'SAYI 01', 'div', 'text-slate-500 font-mono')}
+              </div>
+            </div>
+
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 my-2 min-h-0">
+              <!-- Sol 2 Kolon: Ana Görsel -->
+              <div class="sm:col-span-2 border-2 border-slate-900 rounded-lg overflow-hidden relative bg-stone-200 min-h-[220px]">
+                ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80', 'w-full h-full object-cover', 'w-full h-full', 'Kapak Görseli')}
+                <div class="absolute bottom-2 left-2 bg-white border border-slate-900 px-2 py-1 text-[10px] font-bold uppercase shadow">
+                  ${makeInlineEditable(pageIndex, 'subHeadline', page.subHeadline || 'TASARIM ÖDÜLLERİ VE YAŞAM ALANLARI', 'span')}
+                </div>
+              </div>
+
+              <!-- Sağ 1 Kolon: Kutu Yığını -->
+              <div class="sm:col-span-1 flex flex-col gap-2.5">
+                <div class="border-2 border-slate-900 p-3 bg-slate-900 text-white rounded-lg flex flex-col justify-center">
+                  <span class="text-[9px] uppercase font-bold tracking-widest text-amber-400 block mb-1">BAŞLIK</span>
+                  ${makeInlineEditable(pageIndex, 'mainHeadline', page.mainHeadline || 'TARZ DENEYİMLERİ', 'h2', 'text-lg sm:text-xl font-bold leading-tight')}
+                </div>
+
+                <div class="border-2 border-slate-900 p-3 bg-white rounded-lg flex-1 flex flex-col justify-around">
+                  ${highlights.map(h => `
+                    <div class="text-[11px] font-bold text-slate-700 pb-1 border-b border-slate-200 flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full" style="background-color: ${accent}"></span>
+                      <span class="truncate">${escapeHtml(h)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+
+                <div class="border-2 border-slate-900 p-2 bg-stone-200 rounded-lg flex items-center justify-between">
+                  ${renderBarcodeSvg('#0f172a')}
+                  <span class="text-[9px] font-mono font-bold text-slate-700 truncate max-w-[100px]">${escapeHtml(magazineData.schoolName)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 border-t-2 border-slate-900 text-[10.5px] font-bold uppercase text-slate-600">
+              <span>${escapeHtml(magazineData.schoolName)}</span>
+              <span>Kültür & Sanat Serisi</span>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    // 1D. FULLSCREEN (Doğal Ekolü - Varsayılan / Tam Ekran)
+    return `
+      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950 font-serif select-none">
+        <div class="absolute inset-0 w-full h-full">
+          ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80', 'w-full h-full object-cover opacity-75 scale-105', 'w-full h-full', 'Kapak')}
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/70 pointer-events-none"></div>
         
         <div class="relative z-10 text-center border-b border-white/25 pb-3">
-          ${makeInlineEditable(pageIndex, 'issueTag', page.issueTag || 'SAYI #1 • EKİM 2026', 'div', 'text-[10px] tracking-[0.25em] uppercase font-semibold text-indigo-300 mb-1')}
-          ${makeInlineEditable(pageIndex, 'magazineName', page.magazineName || 'DERGİ', 'h1', 'font-display font-extrabold text-4xl sm:text-5xl tracking-tighter uppercase text-white drop-shadow-lg')}
+          <div class="flex justify-between items-center text-[10px] tracking-[0.25em] uppercase font-semibold text-indigo-300 mb-1">
+            ${makeInlineEditable(pageIndex, 'issueTag', page.issueTag || 'SAYI #1 • EKİM 2026', 'span')}
+            ${makeInlineEditable(pageIndex, 'price', page.price || 'YAŞAM ALANLARI', 'span')}
+          </div>
+          ${makeInlineEditable(pageIndex, 'magazineName', page.magazineName || 'DOĞAL', 'h1', 'font-display font-extrabold text-4xl sm:text-6xl tracking-tighter uppercase text-white drop-shadow-lg')}
           <div class="text-[11px] font-medium text-slate-300 tracking-widest uppercase mt-0.5">${escapeHtml(magazineData.schoolName)}</div>
         </div>
 
         <div class="relative z-10 space-y-3.5 my-auto pt-8">
-          <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow" style="background-color: ${accent}">
+          <span class="inline-block px-3 py-1 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider text-white shadow" style="background-color: ${accent}">
             AYIN DOSYASI
           </span>
-          ${makeInlineEditable(pageIndex, 'mainHeadline', page.mainHeadline || 'Manşet Başlığı', 'h2', 'font-serif font-bold text-2xl sm:text-3xl leading-tight text-white drop-shadow')}
-          ${makeInlineEditable(pageIndex, 'subHeadline', page.subHeadline || 'Alt manşet açıklaması...', 'p', 'text-xs sm:text-sm text-slate-200 line-clamp-3 font-light leading-relaxed')}
+          ${makeInlineEditable(pageIndex, 'mainHeadline', page.mainHeadline || 'VAHŞİ YAŞAMIN BÜYÜSÜ', 'h2', 'font-serif font-bold text-2xl sm:text-4xl leading-tight text-white drop-shadow')}
+          ${makeInlineEditable(pageIndex, 'subHeadline', page.subHeadline || 'Gezegenin Paydaşları ve Korunan Alanlar...', 'p', 'text-xs sm:text-sm text-slate-200 line-clamp-3 font-light leading-relaxed')}
         </div>
 
-        <div class="relative z-10 pt-3 border-t border-white/20 grid grid-cols-1 gap-1.5">
-          ${highlights.map(h => `
-            <div class="flex items-center gap-2 text-xs text-slate-200 font-medium">
-              <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${accent}"></span>
-              <span class="truncate">${escapeHtml(h)}</span>
-            </div>
-          `).join('')}
+        <div class="relative z-10 pt-3 border-t border-white/20 flex flex-col sm:flex-row justify-between items-center gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+            ${highlights.map(h => `
+              <div class="flex items-center gap-2 text-xs text-slate-200 font-medium">
+                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${accent}"></span>
+                <span class="truncate">${escapeHtml(h)}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="shrink-0 bg-black/40 px-2 py-1 rounded backdrop-blur border border-white/20">
+            ${renderBarcodeSvg('#ffffff')}
+          </div>
         </div>
       </div>
     `;
@@ -1433,29 +1628,38 @@ function renderTemplateHTML(page, pageIndex) {
   }
 
   // 5. K4 • ARKA DIŞ KAPAK
-  if (page.type === 'k4') {
+  if (page.type === 'k4' || page.type === 'back') {
     return `
-      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950">
+      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-neutral-950 font-sans select-none">
         <div class="absolute inset-0 w-full h-full">
-          ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://placehold.co/800x1100/0f172a/ffffff?text=Arka+Kapak', 'w-full h-full object-cover opacity-50 scale-105', 'w-full h-full', 'Arka Kapak')}
+          ${makeInlineImage(pageIndex, 'coverImage', page.coverImage, 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80', 'w-full h-full object-cover opacity-45 scale-105', 'w-full h-full', 'Arka Kapak')}
         </div>
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/80 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-neutral-950/80 pointer-events-none"></div>
 
         <div class="relative z-10 text-center border-b border-white/20 pb-3">
-          ${makeInlineEditable(pageIndex, 'schoolName', page.schoolName || magazineData.schoolName, 'h2', 'font-display font-extrabold text-2xl tracking-wider text-white uppercase')}
-          ${makeInlineEditable(pageIndex, 'motto', page.motto, 'div', 'text-xs italic text-indigo-300 font-serif mt-1')}
+          <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400 block mb-0.5">RESMİ YAYIN KAPANIŞI</span>
+          ${makeInlineEditable(pageIndex, 'schoolName', page.schoolName || magazineData.schoolName, 'h2', 'font-display font-extrabold text-2xl sm:text-3xl tracking-wider text-white uppercase')}
+          ${makeInlineEditable(pageIndex, 'motto', page.motto || 'Eğitimde Öncü, Sanatta ve Bilimde Işık', 'div', 'text-xs italic text-stone-300 font-serif mt-1')}
         </div>
 
-        <div class="relative z-10 my-auto py-4 flex flex-col items-center text-center space-y-3">
-          <div class="w-28 h-28 bg-white p-2 rounded-2xl shadow-2xl">
-            <img src="${escapeHtml(page.qrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr')}" alt="QR Kod" class="w-full h-full object-contain">
+        <div class="relative z-10 my-auto py-4 flex flex-col items-center text-center space-y-4">
+          <!-- Prestij Halka Rozeti -->
+          <div class="w-32 h-32 rounded-full border-4 border-white/30 flex flex-col items-center justify-center bg-white/10 backdrop-blur shadow-2xl relative p-3">
+            <img src="${escapeHtml(page.qrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr')}" alt="QR Kod" class="w-20 h-20 object-contain rounded-lg bg-white p-1 shadow">
           </div>
-          ${makeInlineEditable(pageIndex, 'qrText', page.qrText || 'Dergimizi çevrim içi okumak için karekodu okutun', 'div', 'text-xs text-slate-300 font-medium max-w-xs')}
+
+          <div class="max-w-sm space-y-1.5">
+            ${makeInlineEditable(pageIndex, 'closingQuote', page.closingQuote || '\"Hayata ve geleceğe değer katan tasarımlar.\"', 'div', 'text-sm sm:text-base font-serif italic text-amber-200')}
+            ${makeInlineEditable(pageIndex, 'qrText', page.qrText || 'Dergimizi çevrim içi okumak ve arşivimize ulaşmak için karekodu okutun.', 'div', 'text-xs text-stone-300 font-light')}
+          </div>
         </div>
 
-        <div class="relative z-10 pt-3 border-t border-white/20 text-center space-y-1">
-          ${makeInlineEditable(pageIndex, 'social', page.social, 'div', 'text-[11px] text-slate-400 font-mono')}
-          ${makeInlineEditable(pageIndex, 'closingQuote', page.closingQuote, 'div', 'text-xs font-serif italic text-slate-300 font-semibold')}
+        <div class="relative z-10 pt-3 border-t border-white/20 flex flex-col sm:flex-row justify-between items-center gap-2">
+          ${makeInlineEditable(pageIndex, 'social', page.social || '@dergimiz • dergimiz.com.tr', 'div', 'text-[11px] text-stone-400 font-mono')}
+          <div class="flex items-center gap-3 text-xs font-bold uppercase tracking-widest border border-white/30 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur hover:bg-white hover:text-black transition cursor-pointer">
+            ${renderBarcodeSvg('#ffffff')}
+            <span>DERGİMİZ.COM.TR</span>
+          </div>
         </div>
       </div>
     `;
@@ -1477,7 +1681,7 @@ function renderTemplateHTML(page, pageIndex) {
     `;
   }
 
-  // 7. İÇİNDEKİLER
+  // 7. İÇİNDEKİLER & BAŞYAZI
   if (page.type === 'toc') {
     const tocItems = (magazineData.pages || []).map((p, idx) => ({
       num: idx + 1,
@@ -1485,40 +1689,46 @@ function renderTemplateHTML(page, pageIndex) {
     }));
 
     return `
-      <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
+      <div class="p-6 md:p-8 flex flex-col h-full justify-between overflow-y-auto bg-stone-50 text-slate-900 font-sans select-none">
         <div>
-          <div class="flex items-center justify-between border-b-2 pb-2 mb-3" style="border-color: ${accent}">
+          <div class="flex items-center justify-between border-b-2 pb-2 mb-4" style="border-color: ${accent}">
             <span class="text-xs font-bold tracking-widest uppercase" style="color: ${accent}">EDİTÖRÜN MASASI</span>
-            <span class="text-[11px] text-slate-400 font-medium">BAŞYAZI & İÇİNDEKİLER</span>
+            <span class="text-[11px] text-slate-400 font-medium">İÇİNDEKİLER & BAŞYAZI</span>
           </div>
 
-          ${makeInlineEditable(pageIndex, 'editorTitle', page.editorTitle || 'Başyazı Başlığı', 'h2', 'font-serif font-bold text-xl text-slate-900 mb-2 leading-snug')}
+          ${makeInlineEditable(pageIndex, 'editorTitle', page.editorTitle || 'Bu Sayıya Dair', 'h2', 'font-serif font-bold text-2xl text-slate-900 mb-3 leading-snug')}
 
-          <div class="flex gap-3 mb-3">
-            <div class="w-14 h-14 rounded-xl shrink-0 shadow border border-slate-200 overflow-hidden">
-              ${makeInlineImage(pageIndex, 'editorImage', page.editorImage, 'https://placehold.co/200x200/e2e8f0/475569?text=Editor', 'w-full h-full object-cover', 'w-full h-full', 'Editör')}
+          <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl shrink-0 shadow-md border-2 border-slate-200 overflow-hidden bg-white">
+              ${makeInlineImage(pageIndex, 'editorImage', page.editorImage, 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', 'w-full h-full object-cover', 'w-full h-full', 'Editör')}
             </div>
-            ${makeInlineEditable(pageIndex, 'editorText', page.editorText, 'div', 'text-[11px] text-slate-600 leading-relaxed whitespace-pre-line flex-1')}
+            <div class="flex-1 space-y-2">
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border-l-4 border-amber-500 text-xs italic font-serif text-slate-800">
+                "${makeInlineEditable(pageIndex, 'editorQuote', page.editorQuote || 'Dergimizi hazırlarken ilhamımızı sokaklardan, sanattan ve teknolojiden alıyoruz.', 'span')}"
+              </div>
+              ${makeInlineEditable(pageIndex, 'editorText', page.editorText || 'Editörün mektubu, samimi veya resmi olabilen, çeşitli nedenler için yazılmış bir mesajdır. Okuyucunun belirli bir konunun içeriğini ve kreatif yönünü anlamasına yardımcı olabilir...', 'div', 'text-xs text-slate-600 leading-relaxed whitespace-pre-line')}
+              <div class="text-right text-xs font-bold text-slate-800 pt-1">— ${makeInlineEditable(pageIndex, 'editorName', page.editorName || 'Genel Yayın Yönetmeni', 'span')}</div>
+            </div>
           </div>
-          <div class="text-right text-xs font-semibold text-slate-800 mb-3">— ${makeInlineEditable(pageIndex, 'editorName', page.editorName, 'span')}</div>
         </div>
 
-        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/80 my-auto">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
-            <i class="ph ph-book-open text-sm" style="color: ${accent}"></i> Bu Sayıda Neler Var?
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm my-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-2.5 flex items-center gap-1.5">
+            <i class="ph ph-book-open text-base" style="color: ${accent}"></i> Bu Sayıda Neler Var? (İçindekiler)
           </h3>
-          <div class="space-y-1">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
             ${tocItems.map(item => `
-              <div onclick="goToPage(${item.num - 1})" class="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-indigo-50 cursor-pointer transition">
-                <span class="font-bold text-[10.5px] w-5 h-5 rounded flex items-center justify-center text-white shrink-0" style="background-color: ${accent}">${item.num}</span>
+              <div onclick="goToPage(${item.num - 1})" class="flex items-center gap-2.5 text-xs py-1.5 px-2.5 rounded-xl hover:bg-indigo-50 border border-slate-100 cursor-pointer transition">
+                <span class="font-bold text-[11px] w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm" style="background-color: ${accent}">${item.num}</span>
                 <span class="font-medium text-slate-700 truncate">${escapeHtml(item.title)}</span>
               </div>
             `).join('')}
           </div>
         </div>
 
-        <div class="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 whitespace-pre-line leading-relaxed">
-          <strong class="text-slate-700 uppercase block mb-0.5">Yayın Kurulu Künyesi:</strong>${makeInlineEditable(pageIndex, 'editorialBoard', page.editorialBoard, 'div')}
+        <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-500">
+          <div><strong class="text-slate-700">Yayın Masası:</strong> ${makeInlineEditable(pageIndex, 'editorialBoard', page.editorialBoard || 'Dergimiz Okul Yayın Kurulu', 'span')}</div>
+          <div>${renderBarcodeSvg('#64748b')}</div>
         </div>
       </div>
     `;
@@ -1527,28 +1737,52 @@ function renderTemplateHTML(page, pageIndex) {
   // 8. HABER / MAKALE
   if (page.type === 'article') {
     return `
-      <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
+      <div class="p-6 md:p-8 flex flex-col h-full justify-between overflow-y-auto bg-white text-slate-900 font-sans select-none">
         <div>
-          <div class="flex items-center gap-2 mb-2">
-            ${makeInlineEditable(pageIndex, 'category', page.category || 'HABER', 'span', 'px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white', `background-color: ${accent}`)}
-            ${makeInlineEditable(pageIndex, 'author', page.author, 'span', 'text-[11px] text-slate-400 font-medium')}
+          <!-- Üst Banner & Kategori -->
+          <div class="flex items-center justify-between border-b pb-2 mb-3 border-slate-200">
+            <div class="flex items-center gap-2">
+              ${makeInlineEditable(pageIndex, 'category', page.category || 'ÖZEL DOSYA', 'span', 'px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm', `background-color: ${accent}`)}
+              <span class="text-xs text-slate-400 font-medium">— ${makeInlineEditable(pageIndex, 'author', page.author || 'Yazan: Araştırma Kulübü', 'span')}</span>
+            </div>
+            <span class="text-[10.5px] uppercase font-mono font-semibold text-slate-400">${escapeHtml(magazineData.schoolName)}</span>
           </div>
 
-          ${makeInlineEditable(pageIndex, 'title', page.title, 'h2', 'font-serif font-bold text-xl md:text-2xl text-slate-900 leading-snug mb-3')}
-
-          <div class="relative rounded-xl overflow-hidden mb-3 bg-slate-100 border border-slate-200">
-            ${makeInlineImage(pageIndex, 'image', page.image, 'https://placehold.co/800x450/e2e8f0/475569?text=Haber', 'w-full h-36 md:h-44 object-cover', 'w-full h-36 md:h-44', 'Haber')}
-            ${makeInlineEditable(pageIndex, 'imageCaption', page.imageCaption, 'div', 'bg-slate-900/80 text-white text-[10px] px-3 py-1')}
+          <!-- Başlık Alanı -->
+          <div class="relative mb-4">
+            ${makeInlineEditable(pageIndex, 'title', page.title || 'GELECEĞİN YENİ KURALLARI', 'h2', 'font-serif font-black text-2xl md:text-3xl text-slate-900 leading-tight')}
           </div>
 
-          ${makeInlineEditable(pageIndex, 'content', page.content, 'div', 'text-[11.5px] text-slate-700 leading-relaxed columns-1 sm:columns-2 gap-4 whitespace-pre-line text-justify')}
+          <!-- Geniş Manşet Görseli -->
+          <div class="relative rounded-2xl overflow-hidden mb-4 bg-slate-100 border border-slate-200 shadow-md">
+            ${makeInlineImage(pageIndex, 'image', page.image, 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80', 'w-full h-44 sm:h-52 object-cover', 'w-full h-44 sm:h-52', 'Haber')}
+            <div class="bg-slate-900/90 backdrop-blur text-white text-[10px] px-3 py-1 flex justify-between items-center">
+              <span>${makeInlineEditable(pageIndex, 'imageCaption', page.imageCaption || 'Görsel: Okul kulüplerinin proje atölye çalışmasından bir kare.', 'span')}</span>
+              <span class="opacity-70">${renderBarcodeSvg('#ffffff')}</span>
+            </div>
+          </div>
+
+          <!-- İki Sütunlu Metin & Vurgu Alıntısı -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2 text-xs text-slate-700 leading-relaxed columns-1 sm:columns-2 gap-4 whitespace-pre-line text-justify font-serif">
+              ${makeInlineEditable(pageIndex, 'content', page.content || 'Tasarım ve edebiyat dünyasındaki yenilikler üzerine derinlemesine bir analiz. Metinler rahat okunması adına kolonlara bölünür ve zenginleştirilir.\n\nÖğrencilerimizin hazırladığı bu özel dosyada güncel gelişmeleri ele aldık.', 'div')}
+            </div>
+
+            <div class="sm:col-span-1 space-y-3">
+              <div class="p-3.5 rounded-2xl bg-stone-50 border-l-4 text-xs italic font-serif text-slate-800 shadow-sm" style="border-color: ${accent}">
+                "${makeInlineEditable(pageIndex, 'pullQuote', page.pullQuote || 'Yaratıcılık, sınırları zorlamakla başlar.', 'span')}"
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] text-slate-500 font-sans">
+                <strong>Yazar Notu:</strong> Bu çalışma dergimiz yayın kurulu tarafından hazırlanmıştır.
+              </div>
+            </div>
+          </div>
         </div>
 
-        ${page.pullQuote ? `
-          <div class="mt-3 p-3 rounded-xl bg-slate-50 border-l-4 text-xs italic font-serif text-slate-800" style="border-color: ${accent}">
-            "${makeInlineEditable(pageIndex, 'pullQuote', page.pullQuote, 'span')}"
-          </div>
-        ` : ''}
+        <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
+          <span>Sayfa Özel Dosyası</span>
+          <span>${renderBarcodeSvg('#94a3b8')}</span>
+        </div>
       </div>
     `;
   }
@@ -1721,6 +1955,30 @@ function renderRightEditorPanel() {
   }
 
   let fieldsHtml = `
+    <!-- Mizanpaj Ekolü (Archetype Seçici) -->
+    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2">
+      <div class="flex items-center justify-between">
+        <label class="block text-[11px] font-semibold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+          <i class="ph ph-layout text-sm"></i> Mizanpaj Ekolü
+        </label>
+        <span class="text-[10px] text-amber-300 font-mono uppercase bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20 font-bold">${page.layout || 'minimalist'}</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <button onclick="${isEditable ? `changePageLayout('minimalist')` : ''}" ${!isEditable ? 'disabled' : ''} class="px-2.5 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${(page.layout === 'minimalist' || !page.layout) ? 'bg-amber-600 text-white border-amber-500 shadow-lg' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'}">
+          <span>🏛️ Minimalist</span>
+        </button>
+        <button onclick="${isEditable ? `changePageLayout('brutalist')` : ''}" ${!isEditable ? 'disabled' : ''} class="px-2.5 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${page.layout === 'brutalist' ? 'bg-amber-600 text-white border-amber-500 shadow-lg' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'}">
+          <span>⚡ Brütalist</span>
+        </button>
+        <button onclick="${isEditable ? `changePageLayout('modular')` : ''}" ${!isEditable ? 'disabled' : ''} class="px-2.5 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${page.layout === 'modular' ? 'bg-amber-600 text-white border-amber-500 shadow-lg' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'}">
+          <span>📐 Modüler</span>
+        </button>
+        <button onclick="${isEditable ? `changePageLayout('fullscreen')` : ''}" ${!isEditable ? 'disabled' : ''} class="px-2.5 py-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1.5 ${page.layout === 'fullscreen' ? 'bg-amber-600 text-white border-amber-500 shadow-lg' : 'bg-slate-950 text-slate-300 border-slate-800 hover:border-slate-700'}">
+          <span>🌄 Fullscreen</span>
+        </button>
+      </div>
+    </div>
+
     <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3">
       <div>
         <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Menü / İçindekiler Başlığı</label>
@@ -1742,6 +2000,7 @@ function renderRightEditorPanel() {
     fieldsHtml += `
       ${createInputField('Dergi Adı (Masthead Logo)', 'magazineName', page.magazineName, isEditable)}
       ${createInputField('Üst Sayı Etiketi', 'issueTag', page.issueTag, isEditable)}
+      ${createInputField('Üst Kategori / Fiyat / Etiket', 'price', page.price, isEditable)}
       ${createInputField('Ana Manşet Başlığı', 'mainHeadline', page.mainHeadline, isEditable)}
       ${createTextareaField('Alt Manşet Açıklaması', 'subHeadline', page.subHeadline, 2, isEditable)}
       ${createImageField('Kapak Tam Boy Görseli', 'coverImage', page.coverImage, isEditable)}
@@ -1866,6 +2125,18 @@ function renderRightEditorPanel() {
   }
 
   container.innerHTML = fieldsHtml;
+}
+
+function changePageLayout(layout) {
+  const page = magazineData.pages[selectedEditIndex];
+  if (!page || !canUserEditPage(page)) return;
+  page.layout = layout;
+  if (!page.subHeadline) page.subHeadline = 'Kapak konusu ve özel dosya detayları.';
+  if (!page.highlights) page.highlights = 'Özel Dosya\nAyın Röportajı\nGeleceğin Trendleri';
+  renderCanvas();
+  renderRightEditorPanel();
+  triggerAutoSave();
+  showToast(`Mizanpaj ekolü "${layout.toUpperCase()}" olarak güncellendi`, 'success');
 }
 
 function renderStatusControl(page) {
@@ -2069,7 +2340,7 @@ function goToPage(index) {
   selectPageForEdit(index);
 }
 
-function addNewPage(templateType) {
+function addNewPage(templateType, layout) {
   if (currentUser.role !== 'admin') {
     showToast("Yalnızca Admin yeni sayfa ekleyebilir!");
     return;
@@ -2086,7 +2357,77 @@ function addNewPage(templateType) {
     elements: []
   };
 
-  if (templateType === 'k2') {
+  if (templateType === 'cover') {
+    const arch = layout || 'minimalist';
+    newPage.layout = arch;
+
+    if (arch === 'brutalist') {
+      newPage = {
+        ...newPage,
+        navTitle: "K1 • Brütalist Kapak",
+        accentColor: "#facc15",
+        magazineName: "RESİMLİK",
+        issueTag: "SAYI 04",
+        price: "2026",
+        mainHeadline: "YENİ GÖRÜNÜMLER",
+        subHeadline: "POPÜLER KÜLTÜR VE GENÇLİK DOSYASI",
+        coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80",
+        highlights: "Mavi Sarı Kırmızı Trend\nBrütalist Stilde Moda\nSokak Kültürü"
+      };
+    } else if (arch === 'modular') {
+      newPage = {
+        ...newPage,
+        navTitle: "K1 • Modüler Kapak",
+        accentColor: "#0f172a",
+        magazineName: "KONAK",
+        issueTag: "SAYI 01",
+        price: "MİMARİ & YAŞAM",
+        mainHeadline: "TARZ DENEYİMLERİ",
+        subHeadline: "TASARIM ÖDÜLLERİ VE YAŞAM ALANLARI",
+        coverImage: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80",
+        highlights: "Yeni Renkler\nÇağdaş Stiller\nTaze Perspektifler"
+      };
+    } else if (arch === 'fullscreen') {
+      newPage = {
+        ...newPage,
+        navTitle: "K1 • Fullscreen Kapak",
+        accentColor: "#10b981",
+        magazineName: "DOĞAL",
+        issueTag: "BAHAR 2026",
+        price: "YAŞAM ALANLARI",
+        mainHeadline: "VAHŞİ YAŞAMIN BÜYÜSÜ",
+        subHeadline: "Gezegenin Paydaşları ve Doğanın Ritmi",
+        coverImage: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80",
+        highlights: "Ormanın Derinlikleri\nNesli Tükenenler\nYaban Hayatı Korumak"
+      };
+    } else {
+      newPage = {
+        ...newPage,
+        layout: 'minimalist',
+        navTitle: "K1 • Minimalist Kapak",
+        accentColor: "#d97706",
+        magazineName: "KAMER",
+        issueTag: "SAYI 01 | EKİM 2026",
+        price: "OKUL DERGİSİ",
+        mainHeadline: "GÜÇLÜ KADIN LİDER",
+        subHeadline: "Kapak hikayesi için destek ve tanıtım metni buraya girilecektir.",
+        coverImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80",
+        highlights: "Moda & Kültür Sektöründe\nRenkleri Kendinize Uyarlayın\nSezonun En İyi Görünümleri"
+      };
+    }
+  } else if (templateType === 'toc') {
+    newPage = {
+      ...newPage,
+      navTitle: "İçindekiler & Başyazı",
+      accentColor: "#4f46e5",
+      editorTitle: "Bu Sayıya Dair",
+      editorQuote: "Dergimizi hazırlarken ilhamımızı sokaklardan, sanattan ve teknolojiden alıyoruz.",
+      editorText: "Editörün mektubu, samimi veya resmi olabilen, çeşitli nedenler için yazılmış bir mesajdır. Okuyucunun belirli bir konunun içeriğini ve kreatif yönünü anlamasına yardımcı olabilir...",
+      editorName: "Genel Yayın Yönetmeni",
+      editorImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+      editorialBoard: `${magazineData.schoolName || 'Okul'} Yayın Kurulu`
+    };
+  } else if (templateType === 'k2') {
     newPage = {
       ...newPage,
       subType: 'ataturk',
@@ -2153,17 +2494,6 @@ function addNewPage(templateType) {
       imageCaption: "Laboratuvar çalışmalarından bir kare.",
       content: "Makale metninizi sağ panelden buraya yazabilirsiniz.",
       pullQuote: "Gelecek, merak edenlerin ellerinde şekillenir."
-    };
-  } else if (templateType === 'cover') {
-    newPage = {
-      ...newPage,
-      navTitle: "K1 • Ön Dış Kapak",
-      magazineName: "UFUK",
-      issueTag: "ÖZEL SAYI",
-      mainHeadline: "Yeni Kapak Başlığı",
-      subHeadline: "Alt başlık ve dosya konusu açıklaması",
-      coverImage: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=900&q=80",
-      highlights: "Öne Çıkan Başlık 1\nÖne Çıkan Başlık 2"
     };
   }
 
@@ -2732,6 +3062,8 @@ window.handleInlineTextChange = handleInlineTextChange;
 window.debouncedSave = debouncedSave;
 window.makeInlineEditable = makeInlineEditable;
 window.makeInlineImage = makeInlineImage;
-window.showToast = showToast;
+window.changePageLayout = changePageLayout;
+window.applyMagPreset = applyMagPreset;
+window.renderBarcodeSvg = renderBarcodeSvg;
 window.showToast = showToast;
 

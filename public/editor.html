@@ -402,17 +402,44 @@
         </button>
       </div>
       <div class="p-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 max-h-[70vh] overflow-y-auto">
-        <!-- Şablon 1: K1 Ön Dış Kapak -->
-        <button onclick="addNewPage('cover')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-indigo-600/20 border border-slate-700 hover:border-indigo-500 transition group">
-          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
-            <i class="ph ph-book-bookmark text-xl"></i>
+        <!-- Şablon 1A: Minimalist Kapak -->
+        <button onclick="addNewPage('cover', 'minimalist')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-amber-600/20 border border-slate-700 hover:border-amber-500 transition group">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
+            <i class="ph ph-squares-four text-xl"></i>
           </div>
-          <h4 class="font-bold text-white text-xs mb-1">K1 • Ön Dış Kapak</h4>
-          <p class="text-[10.5px] text-slate-400 leading-snug">Tam boy görsel, dergi logosu (masthead) ve manşet spotları.</p>
+          <h4 class="font-bold text-white text-xs mb-1">🏛️ K1 • Minimalist Kapak</h4>
+          <p class="text-[10.5px] text-slate-400 leading-snug">Kamer Ekolü: Sol siyah özet bloğu, sağ dikey fotoğraf & dikey barkod.</p>
+        </button>
+
+        <!-- Şablon 1B: Brütalist Kapak -->
+        <button onclick="addNewPage('cover', 'brutalist')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-yellow-500/20 border border-slate-700 hover:border-yellow-400 transition group">
+          <div class="w-9 h-9 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
+            <i class="ph ph-lightning text-xl"></i>
+          </div>
+          <h4 class="font-bold text-white text-xs mb-1">⚡ K1 • Brütalist Kapak</h4>
+          <p class="text-[10.5px] text-slate-400 leading-snug">Resimlik Ekolü: Devasa üst üste yazılar, eğik görsel kartı, canlı sarı/mavi.</p>
+        </button>
+
+        <!-- Şablon 1C: Modüler Kapak -->
+        <button onclick="addNewPage('cover', 'modular')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-sky-500/20 border border-slate-700 hover:border-sky-400 transition group">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
+            <i class="ph ph-grid-four text-xl"></i>
+          </div>
+          <h4 class="font-bold text-white text-xs mb-1">📐 K1 • Modüler Kapak</h4>
+          <p class="text-[10.5px] text-slate-400 leading-snug">Konak Ekolü: Net ızgara çerçeveleri, 2 sütunlu ana görsel, 1 sütunlu manşet kutusu.</p>
+        </button>
+
+        <!-- Şablon 1D: Fullscreen Kapak -->
+        <button onclick="addNewPage('cover', 'fullscreen')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-emerald-500/20 border border-slate-700 hover:border-emerald-400 transition group">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
+            <i class="ph ph-image text-xl"></i>
+          </div>
+          <h4 class="font-bold text-white text-xs mb-1">🌄 K1 • Fullscreen Kapak</h4>
+          <p class="text-[10.5px] text-slate-400 leading-snug">Doğal Ekolü: Tam sayfa görsel üzeri edebi tipografi ve yatay alt manşetler.</p>
         </button>
 
         <!-- Şablon 2: K2 Ön Kapak İçi -->
-        <button onclick="addNewPage('k2')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-indigo-600/20 border border-slate-700 hover:border-indigo-500 transition group">
+        <button onclick="addNewPage('k2')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-red-600/20 border border-slate-700 hover:border-red-500 transition group">
           <div class="w-9 h-9 rounded-xl bg-red-500/20 text-red-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
             <i class="ph ph-flag text-xl"></i>
           </div>
@@ -420,8 +447,17 @@
           <p class="text-[10.5px] text-slate-400 leading-snug">Seçenekli: Atatürk & Gençliğe Hitabe / Sunuş / Sanatsal Karşılama.</p>
         </button>
 
+        <!-- Şablon: İçindekiler & Başyazı -->
+        <button onclick="addNewPage('toc')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-indigo-600/20 border border-slate-700 hover:border-indigo-500 transition group">
+          <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
+            <i class="ph ph-list-numbers text-xl"></i>
+          </div>
+          <h4 class="font-bold text-white text-xs mb-1">İçindekiler & Başyazı</h4>
+          <p class="text-[10.5px] text-slate-400 leading-snug">Editörün masası, tanıtım alıntısı ve tıklanabilir içindekiler fihristi.</p>
+        </button>
+
         <!-- Şablon 3: Okul Gösterisi & Video -->
-        <button onclick="addNewPage('video')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-indigo-600/20 border border-slate-700 hover:border-indigo-500 transition group">
+        <button onclick="addNewPage('video')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-amber-600/20 border border-slate-700 hover:border-amber-500 transition group">
           <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
             <i class="ph ph-video-camera text-xl"></i>
           </div>
@@ -434,8 +470,8 @@
           <div class="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
             <i class="ph ph-newspaper text-xl"></i>
           </div>
-          <h4 class="font-bold text-white text-xs mb-1">Haber & Makale</h4>
-          <p class="text-[10.5px] text-slate-400 leading-snug">Görsel, başlık, iki sütunlu yazı ve vurgu alıntı kutusu.</p>
+          <h4 class="font-bold text-white text-xs mb-1">Özel Dosya & Makale</h4>
+          <p class="text-[10.5px] text-slate-400 leading-snug">Geniş görsel, başlık, iki sütunlu yazı ve vurgu alıntı kutusu.</p>
         </button>
 
         <!-- Şablon 5: Röportaj -->
@@ -605,6 +641,36 @@
           Farklı bir okul için yepyeni bir dergi ve bağımsız bir çalışma alanı oluşturun. Her okulun yayınları ve ekipleri ayrı olarak yönetilir.
         </p>
 
+        <!-- 20 Hazır Konsept & Tema Şablonu -->
+        <div class="bg-slate-950 p-3 rounded-2xl border border-amber-500/30">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-amber-400 mb-1 flex items-center gap-1.5">
+            <i class="ph ph-sparkle text-sm"></i> Başlangıç Konsept & Tasarım Teması (20 Ekol)
+          </label>
+          <select id="newMagPreset" onchange="applyMagPreset(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-amber-200 font-semibold focus:outline-none focus:border-amber-500 cursor-pointer">
+            <option value="1">1. Kamer — Minimalist Moda & Kültür (Minimalist)</option>
+            <option value="2">2. Yeni (Resimlik) — Brütalist Trend & Gençlik (Brütalist)</option>
+            <option value="3">3. Konak — Modüler Mimari & Yaşam Alanı (Modüler)</option>
+            <option value="4">4. Doğal — Tam Ekran Doğa & Canlılar (Fullscreen)</option>
+            <option value="5">5. Kapital — Kurumsal İş, Ekonomi & Yatırım (Modüler)</option>
+            <option value="6">6. Siber — Karanlık Teknoloji & Yapay Zeka (Brütalist)</option>
+            <option value="7">7. Damak — Pastel Gastronomi & Gurme (Minimalist)</option>
+            <option value="8">8. Bilim — Modern Keşif & Laboratuvar (Fullscreen)</option>
+            <option value="9">9. Sinema — Vintage Film & Sahne Sanatları (Brütalist)</option>
+            <option value="10">10. Spor — Dinamik Atletizm & Enerji (Modüler)</option>
+            <option value="11">11. Gezgin — Macera, Coğrafya & Rotalar (Fullscreen)</option>
+            <option value="12">12. Edebiyat — Klasik Kitap, Şiir & Deneme (Minimalist)</option>
+            <option value="13">13. Müzik — Neon Ses & Ritim (Brütalist)</option>
+            <option value="14">14. Oyun — Retro Piksel & Oyun Geliştirme (Modüler)</option>
+            <option value="15">15. Sanat — Galeri & Çağdaş Tasarım (Minimalist)</option>
+            <option value="16">16. Tarih — Arşiv, Medeniyetler & Antik Çağ (Modüler)</option>
+            <option value="17">17. Gençlik — Canlı Kampüs & Kulüpler (Brütalist)</option>
+            <option value="18">18. Uzay — Derin Kozmos & Astronomi (Fullscreen)</option>
+            <option value="19">19. Felsefe — Sade Düşünce & Mantık (Minimalist)</option>
+            <option value="20">20. Doğaüstü — Bilinmeyen Gizemler & Evren (Fullscreen)</option>
+          </select>
+          <span class="text-[10.5px] text-slate-400 mt-1 block">Konsept seçtiğinizde dergi adı, renk ve açıklama otomatik önerilir; dilediğiniz gibi değiştirebilirsiniz.</span>
+        </div>
+
         <div>
           <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Okul Adı (Resmi)</label>
           <input type="text" id="newMagSchoolName" placeholder="Örn: Atatürk Fen Lisesi" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
@@ -731,6 +797,6 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261027_04"></script>
+  <script src="/js/studio.js?v=20261027_05"></script>
 </body>
 </html>

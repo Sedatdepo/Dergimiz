@@ -9,6 +9,10 @@ let audioCtx = null;
 const urlParams = new URLSearchParams(window.location.search);
 const issueId = urlParams.get('id') || 'sayi-1';
 
+function renderBarcodeSvg(color = '#000000') {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="42" height="24" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="inline-block opacity-75"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></svg>`;
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (window.innerWidth < 1024) {
     spreadMode = false;
@@ -185,41 +189,194 @@ function renderReaderElement(el) {
 function renderTemplateHTML(page, pageIndex) {
   const accent = page.accentColor || '#4f46e5';
 
-  // 1. K1 • ÖN DIŞ KAPAK
+  // 1. K1 • ÖN DIŞ KAPAK (4 Mizanpaj Ekolü)
   if (page.type === 'cover' || page.type === 'k1') {
-    const highlights = (page.highlights || '').split('\n').filter(Boolean);
+    const layout = page.layout || 'minimalist';
+    let highlights = (page.highlights || '').split('\n').filter(Boolean);
+    if (highlights.length === 0) highlights = ['Özel Dosya', 'Ayın Konusu', 'Geleceğin Trendleri'];
+
+    // 1A. MINIMALIST (Kamer Ekolü)
+    if (layout === 'minimalist') {
+      return `
+        <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 bg-[#f4f2ee] text-stone-900 font-serif select-none overflow-hidden">
+          <div class="flex justify-between items-center pb-2 border-b border-stone-300 text-[11px] tracking-widest uppercase font-semibold text-stone-600">
+            <span>${escapeHtml(page.issueTag || 'SAYI 01 | EKİM 2026')}</span>
+            <span>${escapeHtml(page.price || 'OKUL E-DERGİSİ')}</span>
+          </div>
+
+          <div class="my-auto py-2">
+            <h1 class="text-5xl sm:text-7xl font-serif font-black tracking-tight text-stone-900 uppercase my-3 leading-none">
+              ${escapeHtml(page.magazineName || 'KAMER')}
+            </h1>
+            
+            <div class="flex flex-col sm:flex-row gap-4 h-[380px] sm:h-[420px] mt-2">
+              <!-- Sol Metin Bloğu -->
+              <div class="w-full sm:w-1/2 bg-black text-white p-5 sm:p-6 rounded-2xl flex flex-col justify-between shadow-xl">
+                <div>
+                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider mb-3" style="background-color: ${accent}">KAPAK DOSYASI</span>
+                  <h2 class="text-2xl sm:text-3xl font-serif font-bold leading-tight mb-2 text-white">${escapeHtml(page.mainHeadline || 'Güçlü Lider')}</h2>
+                  <p class="text-xs text-stone-300 font-sans leading-relaxed mb-3">${escapeHtml(page.subHeadline || '')}</p>
+                </div>
+                <div class="border-t border-stone-700 pt-3 space-y-1.5 font-sans">
+                  ${highlights.map(h => `
+                    <div class="text-xs text-stone-300 flex items-center gap-2">
+                      <span class="w-1.5 h-1.5 rounded-full shrink-0" style="background-color: ${accent}"></span>
+                      <span class="truncate">${escapeHtml(h)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <!-- Sağ Görsel Bloğu -->
+              <div class="w-full sm:w-1/2 h-full relative rounded-2xl overflow-hidden shadow-lg border-2 border-stone-300/80 bg-stone-200">
+                <img src="${escapeHtml(page.coverImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80')}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Kapak'" class="w-full h-full object-cover" alt="Kapak Görseli">
+                <div class="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded shadow text-stone-800 flex items-center gap-1.5">
+                  ${renderBarcodeSvg('#1c1917')}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-between items-center pt-2 border-t border-stone-300 text-[10px] font-sans font-semibold text-stone-500 uppercase tracking-widest">
+            <span>${escapeHtml(magazineData.schoolName || '')}</span>
+            <span>Öğrenci & Yayın Masası</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // 1B. BRUTALIST (Resimlik Ekolü)
+    if (layout === 'brutalist') {
+      return `
+        <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-7 text-white font-sans overflow-hidden select-none" style="background-color: ${accent || '#2563eb'}">
+          <div class="flex justify-between items-center text-xs font-black uppercase tracking-wider text-white/90 border-b-2 border-white/30 pb-2 z-10">
+            <span>${escapeHtml(page.issueTag || 'SAYI 04')}</span>
+            <span>${escapeHtml(page.price || '2026')}</span>
+          </div>
+
+          <div class="relative my-auto flex flex-col items-center justify-center">
+            <h1 class="text-6xl sm:text-8xl font-black uppercase tracking-tighter text-center leading-none text-white/90 mix-blend-overlay my-[-10px] select-none">
+              ${escapeHtml(page.magazineName || 'RESİMLİK')}
+            </h1>
+
+            <div class="w-60 sm:w-72 h-64 sm:h-72 my-[-20px] sm:my-[-30px] z-10 transform -rotate-3 border-4 border-white shadow-2xl overflow-hidden rounded-xl bg-white/20 backdrop-blur">
+              <img src="${escapeHtml(page.coverImage || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80')}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Kapak'" class="w-full h-full object-cover" alt="Kapak Görseli">
+            </div>
+
+            <div class="z-20 text-center mt-6 inline-block mx-auto px-6 py-2.5 transform rotate-2 bg-yellow-300 text-slate-950 font-black shadow-2xl rounded-lg">
+              <h2 class="text-2xl sm:text-3xl font-black tracking-tight uppercase">${escapeHtml(page.mainHeadline || 'YENİ GÖRÜNÜMLER')}</h2>
+            </div>
+
+            <p class="mt-3 font-bold text-xs uppercase tracking-widest text-center text-white/95 px-4">${escapeHtml(page.subHeadline || 'LİT POPÜLER KÜLTÜR VE GENÇLİK DOSYASI')}</p>
+          </div>
+
+          <div class="flex justify-between items-center pt-3 border-t-2 border-white/30 text-xs font-bold text-white z-10">
+            <span class="truncate max-w-[200px]">${escapeHtml(highlights[0] || 'Özel Dosya')}</span>
+            <div class="flex items-center gap-2 bg-white/20 px-2 py-0.5 rounded backdrop-blur">
+              ${renderBarcodeSvg('#ffffff')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 1C. MODULAR (Konak Ekolü)
+    if (layout === 'modular') {
+      return `
+        <div class="w-full h-full p-4 sm:p-5 bg-stone-100 text-slate-800 font-sans select-none overflow-hidden">
+          <div class="w-full h-full border-2 border-slate-900 p-4 sm:p-5 flex flex-col justify-between rounded-lg">
+            
+            <div class="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-3">
+              <h1 class="text-4xl sm:text-6xl font-display font-extrabold text-slate-900 tracking-tight leading-none">${escapeHtml(page.magazineName || 'KONAK')}</h1>
+              <div class="text-right text-xs uppercase font-bold text-slate-700">
+                <div>${escapeHtml(page.price || 'EV & YAŞAM')}</div>
+                <div class="text-slate-500 font-mono">${escapeHtml(page.issueTag || 'SAYI 01')}</div>
+              </div>
+            </div>
+
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3 my-2 min-h-0">
+              <div class="sm:col-span-2 border-2 border-slate-900 rounded-lg overflow-hidden relative bg-stone-200 min-h-[220px]">
+                <img src="${escapeHtml(page.coverImage || 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80')}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Kapak'" class="w-full h-full object-cover" alt="Kapak Görseli">
+                <div class="absolute bottom-2 left-2 bg-white border border-slate-900 px-2 py-1 text-[10px] font-bold uppercase shadow">
+                  <span>${escapeHtml(page.subHeadline || 'TASARIM ÖDÜLLERİ VE YAŞAM ALANLARI')}</span>
+                </div>
+              </div>
+
+              <div class="sm:col-span-1 flex flex-col gap-2.5">
+                <div class="border-2 border-slate-900 p-3 bg-slate-900 text-white rounded-lg flex flex-col justify-center">
+                  <span class="text-[9px] uppercase font-bold tracking-widest text-amber-400 block mb-1">BAŞLIK</span>
+                  <h2 class="text-lg sm:text-xl font-bold leading-tight">${escapeHtml(page.mainHeadline || 'TARZ DENEYİMLERİ')}</h2>
+                </div>
+
+                <div class="border-2 border-slate-900 p-3 bg-white rounded-lg flex-1 flex flex-col justify-around">
+                  ${highlights.map(h => `
+                    <div class="text-[11px] font-bold text-slate-700 pb-1 border-b border-slate-200 flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full" style="background-color: ${accent}"></span>
+                      <span class="truncate">${escapeHtml(h)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+
+                <div class="border-2 border-slate-900 p-2 bg-stone-200 rounded-lg flex items-center justify-between">
+                  ${renderBarcodeSvg('#0f172a')}
+                  <span class="text-[9px] font-mono font-bold text-slate-700 truncate max-w-[100px]">${escapeHtml(magazineData.schoolName || '')}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex justify-between items-center pt-2 border-t-2 border-slate-900 text-[10.5px] font-bold uppercase text-slate-600">
+              <span>${escapeHtml(magazineData.schoolName || '')}</span>
+              <span>Kültür & Sanat Serisi</span>
+            </div>
+
+          </div>
+        </div>
+      `;
+    }
+
+    // 1D. FULLSCREEN (Doğal Ekolü - Varsayılan)
     return `
-      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950">
-        <img src="${escapeHtml(page.coverImage)}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Dergi+Kapagi'" class="absolute inset-0 w-full h-full object-cover opacity-65 scale-105" alt="Kapak">
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-slate-950/70"></div>
+      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950 font-serif select-none">
+        <div class="absolute inset-0 w-full h-full">
+          <img src="${escapeHtml(page.coverImage || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80')}" onerror="this.src='https://placehold.co/800x1100/1e1b4b/ffffff?text=Kapak'" class="w-full h-full object-cover opacity-75 scale-105" alt="Kapak">
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/70 pointer-events-none"></div>
         
-        <div class="relative z-10 text-center border-b border-white/20 pb-3">
-          <div class="text-[10px] tracking-[0.25em] uppercase font-semibold text-indigo-300 mb-1">${escapeHtml(page.issueTag || '')}</div>
+        <div class="relative z-10 text-center border-b border-white/25 pb-3">
+          <div class="flex justify-between items-center text-[10px] tracking-[0.25em] uppercase font-semibold text-indigo-300 mb-1">
+            <span>${escapeHtml(page.issueTag || 'SAYI #1 • EKİM 2026')}</span>
+            <span>${escapeHtml(page.price || 'YAŞAM ALANLARI')}</span>
+          </div>
           <h1 class="font-display font-extrabold text-4xl sm:text-6xl tracking-tighter uppercase text-white drop-shadow-lg">
-            ${escapeHtml(page.magazineName || 'DERGİ')}
+            ${escapeHtml(page.magazineName || 'DOĞAL')}
           </h1>
-          <div class="text-[11px] font-medium text-slate-300 tracking-widest uppercase mt-0.5">${escapeHtml(magazineData.schoolName)}</div>
+          <div class="text-[11px] font-medium text-slate-300 tracking-widest uppercase mt-0.5">${escapeHtml(magazineData.schoolName || '')}</div>
         </div>
 
         <div class="relative z-10 space-y-3.5 my-auto pt-8">
-          <span class="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow" style="background-color: ${accent}">
+          <span class="inline-block px-3 py-1 rounded-full text-[10px] font-sans font-bold uppercase tracking-wider text-white shadow" style="background-color: ${accent}">
             AYIN DOSYASI
           </span>
-          <h2 class="font-serif font-bold text-2xl sm:text-3xl leading-tight text-white drop-shadow">
-            ${escapeHtml(page.mainHeadline || '')}
+          <h2 class="font-serif font-bold text-2xl sm:text-4xl leading-tight text-white drop-shadow">
+            ${escapeHtml(page.mainHeadline || 'VAHŞİ YAŞAMIN BÜYÜSÜ')}
           </h2>
           <p class="text-xs sm:text-sm text-slate-200 line-clamp-3 font-light leading-relaxed">
             ${escapeHtml(page.subHeadline || '')}
           </p>
         </div>
 
-        <div class="relative z-10 pt-3 border-t border-white/20 grid grid-cols-1 gap-1.5">
-          ${highlights.map(h => `
-            <div class="flex items-center gap-2 text-xs text-slate-200 font-medium">
-              <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${accent}"></span>
-              <span class="truncate">${escapeHtml(h)}</span>
-            </div>
-          `).join('')}
+        <div class="relative z-10 pt-3 border-t border-white/20 flex flex-col sm:flex-row justify-between items-center gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 flex-1">
+            ${highlights.map(h => `
+              <div class="flex items-center gap-2 text-xs text-slate-200 font-medium">
+                <span class="w-2 h-2 rounded-full shrink-0" style="background-color: ${accent}"></span>
+                <span class="truncate">${escapeHtml(h)}</span>
+              </div>
+            `).join('')}
+          </div>
+          <div class="shrink-0 bg-black/40 px-2 py-1 rounded backdrop-blur border border-white/20">
+            ${renderBarcodeSvg('#ffffff')}
+          </div>
         </div>
       </div>
     `;
@@ -364,28 +521,36 @@ function renderTemplateHTML(page, pageIndex) {
     `;
   }
 
-  // 5. K4 • ARKA DIŞ KAPAK (Prestij Kapanış, İletişim, QR Kod)
-  if (page.type === 'k4') {
+  // 5. K4 • ARKA DIŞ KAPAK
+  if (page.type === 'k4' || page.type === 'back') {
     return `
-      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-slate-950">
-        <img src="${escapeHtml(page.coverImage)}" onerror="this.src='https://placehold.co/800x1100/0f172a/ffffff?text=Arka+Kapak'" class="absolute inset-0 w-full h-full object-cover opacity-50 scale-105" alt="Arka Kapak">
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/50 to-slate-950/80"></div>
+      <div class="relative w-full h-full flex flex-col justify-between p-6 sm:p-8 text-white overflow-hidden bg-neutral-950 font-sans select-none">
+        <img src="${escapeHtml(page.coverImage || 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=800&q=80')}" onerror="this.src='https://placehold.co/800x1100/0f172a/ffffff?text=Arka+Kapak'" class="absolute inset-0 w-full h-full object-cover opacity-45 scale-105" alt="Arka Kapak">
+        <div class="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/60 to-neutral-950/80 pointer-events-none"></div>
 
         <div class="relative z-10 text-center border-b border-white/20 pb-3">
-          <h2 class="font-display font-extrabold text-2xl tracking-wider text-white uppercase">${escapeHtml(page.schoolName || magazineData.schoolName)}</h2>
-          <div class="text-xs italic text-indigo-300 font-serif mt-1">${escapeHtml(page.motto || '')}</div>
+          <span class="text-[10px] uppercase font-bold tracking-widest text-amber-400 block mb-0.5">RESMİ YAYIN KAPANIŞI</span>
+          <h2 class="font-display font-extrabold text-2xl sm:text-3xl tracking-wider text-white uppercase">${escapeHtml(page.schoolName || magazineData.schoolName)}</h2>
+          <div class="text-xs italic text-stone-300 font-serif mt-1">${escapeHtml(page.motto || 'Eğitimde Öncü, Sanatta ve Bilimde Işık')}</div>
         </div>
 
-        <div class="relative z-10 my-auto py-4 flex flex-col items-center text-center space-y-3">
-          <div class="w-28 h-28 bg-white p-2 rounded-2xl shadow-2xl">
-            <img src="${escapeHtml(page.qrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr')}" alt="QR Kod" class="w-full h-full object-contain">
+        <div class="relative z-10 my-auto py-4 flex flex-col items-center text-center space-y-4">
+          <div class="w-32 h-32 rounded-full border-4 border-white/30 flex flex-col items-center justify-center bg-white/10 backdrop-blur shadow-2xl relative p-3">
+            <img src="${escapeHtml(page.qrUrl || 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr')}" alt="QR Kod" class="w-20 h-20 object-contain rounded-lg bg-white p-1 shadow">
           </div>
-          <div class="text-xs text-slate-300 font-medium max-w-xs">${escapeHtml(page.qrText || 'Dergimizi çevrim içi okumak için karekodu okutun')}</div>
+
+          <div class="max-w-sm space-y-1.5">
+            <div class="text-sm sm:text-base font-serif italic text-amber-200">${escapeHtml(page.closingQuote || '\"Hayata ve geleceğe değer katan tasarımlar.\"')}</div>
+            <div class="text-xs text-stone-300 font-light">${escapeHtml(page.qrText || 'Dergimizi çevrim içi okumak ve arşivimize ulaşmak için karekodu okutun.')}</div>
+          </div>
         </div>
 
-        <div class="relative z-10 pt-3 border-t border-white/20 text-center space-y-1">
-          <div class="text-[11px] text-slate-400 font-mono">${escapeHtml(page.social || '')}</div>
-          <div class="text-xs font-serif italic text-slate-300 font-semibold">${escapeHtml(page.closingQuote || '')}</div>
+        <div class="relative z-10 pt-3 border-t border-white/20 flex flex-col sm:flex-row justify-between items-center gap-2">
+          <div class="text-[11px] text-stone-400 font-mono">${escapeHtml(page.social || '@dergimiz • dergimiz.com.tr')}</div>
+          <div class="flex items-center gap-3 text-xs font-bold uppercase tracking-widest border border-white/30 px-4 py-1.5 rounded-full bg-white/5 backdrop-blur">
+            ${renderBarcodeSvg('#ffffff')}
+            <span>DERGİMİZ.COM.TR</span>
+          </div>
         </div>
       </div>
     `;
@@ -399,42 +564,48 @@ function renderTemplateHTML(page, pageIndex) {
     }));
 
     return `
-      <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
+      <div class="p-6 md:p-8 flex flex-col h-full justify-between overflow-y-auto bg-stone-50 text-slate-900 font-sans select-none">
         <div>
-          <div class="flex items-center justify-between border-b-2 pb-2 mb-3" style="border-color: ${accent}">
+          <div class="flex items-center justify-between border-b-2 pb-2 mb-4" style="border-color: ${accent}">
             <span class="text-xs font-bold tracking-widest uppercase" style="color: ${accent}">EDİTÖRÜN MASASI</span>
-            <span class="text-[11px] text-slate-400 font-medium">BAŞYAZI & İÇİNDEKİLER</span>
+            <span class="text-[11px] text-slate-400 font-medium">İÇİNDEKİLER & BAŞYAZI</span>
           </div>
 
-          <h2 class="font-serif font-bold text-xl text-slate-900 mb-2 leading-snug">
-            ${escapeHtml(page.editorTitle || '')}
+          <h2 class="font-serif font-bold text-2xl text-slate-900 mb-3 leading-snug">
+            ${escapeHtml(page.editorTitle || 'Bu Sayıya Dair')}
           </h2>
 
-          <div class="flex gap-3 mb-3">
-            <img src="${escapeHtml(page.editorImage)}" onerror="this.src='https://placehold.co/200x200/e2e8f0/475569?text=Editor'" class="w-14 h-14 rounded-xl object-cover shrink-0 shadow border border-slate-200" alt="Editör">
-            <div class="text-[11px] text-slate-600 leading-relaxed whitespace-pre-line">
-              ${escapeHtml(page.editorText || '')}
+          <div class="flex flex-col sm:flex-row gap-4 mb-4">
+            <img src="${escapeHtml(page.editorImage || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80')}" onerror="this.src='https://placehold.co/200x200/e2e8f0/475569?text=Editor'" class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover shrink-0 shadow-md border-2 border-slate-200" alt="Editör">
+            <div class="flex-1 space-y-2">
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border-l-4 border-amber-500 text-xs italic font-serif text-slate-800">
+                "${escapeHtml(page.editorQuote || 'Dergimizi hazırlarken ilhamımızı sokaklardan, sanattan ve teknolojiden alıyoruz.')}"
+              </div>
+              <div class="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
+                ${escapeHtml(page.editorText || '')}
+              </div>
+              <div class="text-right text-xs font-bold text-slate-800 pt-1">— ${escapeHtml(page.editorName || 'Genel Yayın Yönetmeni')}</div>
             </div>
           </div>
-          <div class="text-right text-xs font-semibold text-slate-800 mb-3">— ${escapeHtml(page.editorName || '')}</div>
         </div>
 
-        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200/80 my-auto">
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
-            <i class="ph ph-book-open text-sm" style="color: ${accent}"></i> Bu Sayıda Neler Var?
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm my-2">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-800 mb-2.5 flex items-center gap-1.5">
+            <i class="ph ph-book-open text-base" style="color: ${accent}"></i> Bu Sayıda Neler Var? (İçindekiler)
           </h3>
-          <div class="space-y-1">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
             ${tocItems.map(item => `
-              <div onclick="goToPage(${item.num - 1})" class="flex items-center gap-2 text-xs py-1 px-2 rounded hover:bg-indigo-50 cursor-pointer transition">
-                <span class="font-bold text-[10.5px] w-5 h-5 rounded flex items-center justify-center text-white shrink-0" style="background-color: ${accent}">${item.num}</span>
+              <div onclick="goToPage(${item.num - 1})" class="flex items-center gap-2.5 text-xs py-1.5 px-2.5 rounded-xl hover:bg-indigo-50 border border-slate-100 cursor-pointer transition">
+                <span class="font-bold text-[11px] w-6 h-6 rounded-lg flex items-center justify-center text-white shrink-0 shadow-sm" style="background-color: ${accent}">${item.num}</span>
                 <span class="font-medium text-slate-700 truncate">${escapeHtml(item.title)}</span>
               </div>
             `).join('')}
           </div>
         </div>
 
-        <div class="mt-2 pt-2 border-t border-slate-200 text-[10px] text-slate-500 whitespace-pre-line leading-relaxed">
-          <strong class="text-slate-700 uppercase block mb-0.5">Yayın Kurulu Künyesi:</strong>${escapeHtml(page.editorialBoard || '')}
+        <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-500">
+          <div><strong class="text-slate-700">Yayın Masası:</strong> ${escapeHtml(page.editorialBoard || 'Dergimiz Okul Yayın Kurulu')}</div>
+          <div>${renderBarcodeSvg('#64748b')}</div>
         </div>
       </div>
     `;
@@ -443,34 +614,54 @@ function renderTemplateHTML(page, pageIndex) {
   // 7. HABER & MAKALE
   if (page.type === 'article') {
     return `
-      <div class="p-6 md:p-7 flex flex-col h-full justify-between overflow-y-auto">
+      <div class="p-6 md:p-8 flex flex-col h-full justify-between overflow-y-auto bg-white text-slate-900 font-sans select-none">
         <div>
-          <div class="flex items-center gap-2 mb-2">
-            <span class="px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white" style="background-color: ${accent}">
-              ${escapeHtml(page.category || 'HABER')}
-            </span>
-            <span class="text-[11px] text-slate-400 font-medium">${escapeHtml(page.author || '')}</span>
+          <div class="flex items-center justify-between border-b pb-2 mb-3 border-slate-200">
+            <div class="flex items-center gap-2">
+              <span class="px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style="background-color: ${accent}">
+                ${escapeHtml(page.category || 'ÖZEL DOSYA')}
+              </span>
+              <span class="text-xs text-slate-400 font-medium">— ${escapeHtml(page.author || '')}</span>
+            </div>
+            <span class="text-[10.5px] uppercase font-mono font-semibold text-slate-400">${escapeHtml(magazineData.schoolName || '')}</span>
           </div>
 
-          <h2 class="font-serif font-bold text-xl md:text-2xl text-slate-900 leading-snug mb-3">
-            ${escapeHtml(page.title || '')}
-          </h2>
-
-          <div class="relative rounded-xl overflow-hidden mb-3 bg-slate-100 border border-slate-200">
-            <img src="${escapeHtml(page.image)}" onerror="this.src='https://placehold.co/800x450/e2e8f0/475569?text=Haber'" class="w-full h-36 md:h-44 object-cover" alt="Haber">
-            ${page.imageCaption ? `<div class="bg-slate-900/80 text-white text-[10px] px-3 py-1">${escapeHtml(page.imageCaption)}</div>` : ''}
+          <div class="relative mb-4">
+            <h2 class="font-serif font-black text-2xl md:text-3xl text-slate-900 leading-tight">
+              ${escapeHtml(page.title || '')}
+            </h2>
           </div>
 
-          <div class="text-[11.5px] text-slate-700 leading-relaxed columns-1 sm:columns-2 gap-4 whitespace-pre-line text-justify">
-            ${escapeHtml(page.content || '')}
+          <div class="relative rounded-2xl overflow-hidden mb-4 bg-slate-100 border border-slate-200 shadow-md">
+            <img src="${escapeHtml(page.image || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80')}" onerror="this.src='https://placehold.co/800x450/e2e8f0/475569?text=Haber'" class="w-full h-44 sm:h-52 object-cover" alt="Haber">
+            <div class="bg-slate-900/90 backdrop-blur text-white text-[10px] px-3 py-1 flex justify-between items-center">
+              <span>${escapeHtml(page.imageCaption || '')}</span>
+              <span class="opacity-70">${renderBarcodeSvg('#ffffff')}</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-2 text-xs text-slate-700 leading-relaxed columns-1 sm:columns-2 gap-4 whitespace-pre-line text-justify font-serif">
+              ${escapeHtml(page.content || '')}
+            </div>
+
+            <div class="sm:col-span-1 space-y-3">
+              ${page.pullQuote ? `
+                <div class="p-3.5 rounded-2xl bg-stone-50 border-l-4 text-xs italic font-serif text-slate-800 shadow-sm" style="border-color: ${accent}">
+                  "${escapeHtml(page.pullQuote)}"
+                </div>
+              ` : ''}
+              <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] text-slate-500 font-sans">
+                <strong>Yazar Notu:</strong> Bu çalışma dergimiz yayın kurulu tarafından hazırlanmıştır.
+              </div>
+            </div>
           </div>
         </div>
 
-        ${page.pullQuote ? `
-          <div class="mt-3 p-3 rounded-xl bg-slate-50 border-l-4 text-xs italic font-serif text-slate-800" style="border-color: ${accent}">
-            "${escapeHtml(page.pullQuote)}"
-          </div>
-        ` : ''}
+        <div class="pt-2 border-t border-slate-200 flex justify-between items-center text-[10px] text-slate-400">
+          <span>Sayfa Özel Dosyası</span>
+          <span>${renderBarcodeSvg('#94a3b8')}</span>
+        </div>
       </div>
     `;
   }
