@@ -1766,6 +1766,7 @@ function createPageDOM(page, pageIndex, position, heightClass) {
   wrapper.dataset.pageIndex = pageIndex;
 
   wrapper.onclick = (e) => {
+    if (justTransformedInline) return;
     if (appMode === 'edit' && !e.target.closest('.canvas-element') && !e.target.closest('#inlineTransformGizmo') && !e.target.closest('.quiz-option-btn') && !e.target.closest('.inline-editable-text') && !e.target.closest('.template-image-container')) {
       if (selectedEditIndex !== pageIndex) {
         selectPageForEdit(pageIndex);
@@ -1809,14 +1810,15 @@ function createPageDOM(page, pageIndex, position, heightClass) {
     ${spineHtml}
     ${curlCornerHtml}
     ${gridHtml}
-    <div class="flex-1 overflow-hidden flex flex-col relative page-content-root">
+    <div class="flex-1 ${appMode === 'edit' ? 'overflow-visible' : 'overflow-hidden'} flex flex-col relative page-content-root">
       ${bodyHtml}
       <div class="canvas-elements-layer absolute inset-0 pointer-events-none" id="elemLayer_${pageIndex}"></div>
     </div>
     ${footerHtml}
   `;
 
-  // Elemanları DOM'a bağla
+  // Elemanları ve kayıtlı şablon içi boyut/konumları DOM'a bağla
+  renderElementsInPageDOM(page, pageIndex, wrapper);
   setTimeout(() => renderElementsInPageDOM(page, pageIndex, wrapper), 0);
 
   return wrapper;
@@ -1838,6 +1840,16 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
   const layer = pageWrapper.querySelector(`#elemLayer_${pageIndex}`);
   if (!layer) return;
   layer.innerHTML = '';
+
+  // Şablon içi görsel ve metinlerin kaydedilmiş boyut, pozisyon ve açılarını uygula
+  if (page && page.fieldStyles) {
+    Object.keys(page.fieldStyles).forEach(fKey => {
+      const fNode = pageWrapper.querySelector(`[data-field-key="${fKey}"]`);
+      if (fNode) {
+        applyInlineTransformToDOM(fNode, page.fieldStyles[fKey]);
+      }
+    });
+  }
 
   const isEditable = (appMode === 'edit' && canUserEditPage(page) && pageIndex === selectedEditIndex);
 
@@ -2104,11 +2116,36 @@ function renderElementsInPageDOM(page, pageIndex, pageWrapper) {
             rect.bottom - ev.clientY < borderThreshold
           );
           if (isNearEdge) {
+            ev.preventDefault();
             startDraggingElement(ev, el, pageWrapper);
+            return;
           }
+          // Metin kutusunun ortasından da fare > 5px sürüklenirse kutuyu taşı, sabit tıklanırsa yazı yaz
+          const startX = ev.clientX;
+          const startY = ev.clientY;
+          let dragStarted = false;
+          function onThresholdMove(moveEv) {
+            if (!dragStarted && Math.hypot(moveEv.clientX - startX, moveEv.clientY - startY) > 5) {
+              dragStarted = true;
+              window.removeEventListener('mousemove', onThresholdMove);
+              window.removeEventListener('mouseup', onThresholdUp);
+              if (window.getSelection) window.getSelection().removeAllRanges();
+              if (document.activeElement && elDom.contains(document.activeElement)) {
+                document.activeElement.blur();
+              }
+              startDraggingElement(ev, el, pageWrapper);
+            }
+          }
+          function onThresholdUp() {
+            window.removeEventListener('mousemove', onThresholdMove);
+            window.removeEventListener('mouseup', onThresholdUp);
+          }
+          window.addEventListener('mousemove', onThresholdMove);
+          window.addEventListener('mouseup', onThresholdUp);
           return;
         }
 
+        ev.preventDefault();
         selectCanvasElement(el.id);
         renderRightEditorPanel();
         startDraggingElement(ev, el, pageWrapper);
@@ -2158,6 +2195,7 @@ function createHandleDOM(className, handleType) {
   h.dataset.handle = handleType;
   h.onmousedown = (e) => {
     e.stopPropagation();
+    e.preventDefault();
     startResizingElement(e, handleType);
   };
   return h;
@@ -2170,6 +2208,7 @@ function createRotateHandleDOM(el, pageWrapper) {
   rh.title = 'Açısını döndürmek için sürükleyin';
   rh.onmousedown = (e) => {
     e.stopPropagation();
+    e.preventDefault();
     startRotatingElement(e, el, pageWrapper);
   };
   return rh;
@@ -2248,8 +2287,8 @@ function startDraggingElement(e, el, pageWrapper) {
       newY = Math.round(newY / 2.5) * 2.5;
     }
 
-    el.x = Math.max(-20, Math.min(100, Math.round(newX * 10) / 10));
-    el.y = Math.max(-10, Math.min(100, Math.round(newY * 10) / 10));
+    el.x = Math.max(-40, Math.min(100, Math.round(newX * 10) / 10));
+    el.y = Math.max(-40, Math.min(100, Math.round(newY * 10) / 10));
 
     const elDom = document.getElementById(`elDom_${el.id}`);
     if (elDom) {
@@ -2260,8 +2299,11 @@ function startDraggingElement(e, el, pageWrapper) {
 
   function onMouseUp() {
     isDraggingElement = false;
+    justTransformedInline = true;
+    setTimeout(() => { justTransformedInline = false; }, 140);
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
+    renderRightEditorPanel();
     saveAllChangesToServer();
   }
 
@@ -2283,6 +2325,8 @@ function startResizingElement(e, handle) {
   initialElemY = el.y;
   initialElemW = el.width;
   initialElemH = el.height;
+  const initFontSize = Number(el.fontSize) || 14;
+  const isCorner = ['nw', 'ne', 'se', 'sw'].includes(handle);
 
   const pageDom = document.querySelector(`.magazine-page[data-page-index="${selectedEditIndex}"]`);
   const pageRect = pageDom.getBoundingClientRect();
@@ -2292,15 +2336,15 @@ function startResizingElement(e, handle) {
     const dx = (ev.clientX - dragStartX) / pageRect.width * 100;
     const dy = (ev.clientY - dragStartY) / pageRect.height * 100;
 
-    if (handle.includes('e')) el.width = Math.max(8, initialElemW + dx);
-    if (handle.includes('s')) el.height = Math.max(6, initialElemH + dy);
+    if (handle.includes('e')) el.width = Math.max(5, initialElemW + dx);
+    if (handle.includes('s')) el.height = Math.max(4, initialElemH + dy);
     if (handle.includes('w')) {
-      const newW = Math.max(8, initialElemW - dx);
+      const newW = Math.max(5, initialElemW - dx);
       el.x = initialElemX + (initialElemW - newW);
       el.width = newW;
     }
     if (handle.includes('n')) {
-      const newH = Math.max(6, initialElemH - dy);
+      const newH = Math.max(4, initialElemH - dy);
       el.y = initialElemY + (initialElemH - newH);
       el.height = newH;
     }
@@ -2310,19 +2354,28 @@ function startResizingElement(e, handle) {
     el.x = Math.round(el.x * 10) / 10;
     el.y = Math.round(el.y * 10) / 10;
 
+    if (isCorner && (el.type === 'text' || el.type === 'card' || el.type === 'qbox')) {
+      const ratio = el.width / Math.max(1, initialElemW);
+      el.fontSize = Math.max(8, Math.min(140, Math.round(initFontSize * ratio)));
+    }
+
     const elDom = document.getElementById(`elDom_${el.id}`);
     if (elDom) {
       elDom.style.left = `${el.x}%`;
       elDom.style.top = `${el.y}%`;
       elDom.style.width = `${el.width}%`;
       elDom.style.height = `${el.height}%`;
+      if (el.fontSize) elDom.style.fontSize = `${el.fontSize}px`;
     }
   }
 
   function onMouseUp() {
     isResizingElement = false;
+    justTransformedInline = true;
+    setTimeout(() => { justTransformedInline = false; }, 140);
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
+    renderRightEditorPanel();
     saveAllChangesToServer();
   }
 
@@ -2352,8 +2405,11 @@ function startRotatingElement(e, el, pageWrapper) {
 
   function onMouseUp() {
     isRotatingElement = false;
+    justTransformedInline = true;
+    setTimeout(() => { justTransformedInline = false; }, 140);
     window.removeEventListener('mousemove', onMouseMove);
     window.removeEventListener('mouseup', onMouseUp);
+    renderRightEditorPanel();
     saveAllChangesToServer();
   }
 
@@ -2365,6 +2421,7 @@ function startRotatingElement(e, el, pageWrapper) {
 let activeInlineElement = null;
 let activeInlineFieldKey = null;
 let activeInlineType = null; // 'text' | 'image'
+let justTransformedInline = false;
 
 function ensureFieldStyles(page, key) {
   if (!page.fieldStyles) page.fieldStyles = {};
@@ -2372,47 +2429,130 @@ function ensureFieldStyles(page, key) {
   return page.fieldStyles[key];
 }
 
+// Şablon görseli bir çerçeve div'i içindeyse (örn. Kamer sağ görsel kartı), doğrudan dış çerçeve kartını hedef al
+function getVisualTargetForInline(domEl) {
+  if (!domEl) return null;
+  if (domEl.classList && domEl.classList.contains('template-image-container')) {
+    const parent = domEl.parentElement;
+    if (
+      parent &&
+      !parent.classList.contains('page-content-root') &&
+      !parent.classList.contains('magazine-page') &&
+      parent.querySelectorAll('.template-image-container').length === 1
+    ) {
+      return parent;
+    }
+  }
+  return domEl;
+}
+
 function applyInlineTransformToDOM(domEl, fs) {
   if (!domEl || !fs) return;
+  const targetBox = getVisualTargetForInline(domEl);
+  if (!targetBox) return;
+
   const tx = Number(fs.tx) || 0;
   const ty = Number(fs.ty) || 0;
   const rot = Number(fs.rotate) || 0;
+  const hasTransform = (tx !== 0 || ty !== 0 || rot !== 0);
+  const hasSize = Boolean(fs.width || fs.height);
 
-  if (tx !== 0 || ty !== 0 || rot !== 0) {
-    domEl.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
-    domEl.style.position = 'relative';
-    domEl.style.zIndex = '32';
-    if (domEl.parentElement && getComputedStyle(domEl.parentElement).overflow === 'hidden') {
-      domEl.parentElement.style.overflow = 'visible';
+  // Eğer hedef kutu dış çerçeveyse içteki .template-image-container'ı %100 dolu ve sıfır transformda tut
+  if (targetBox !== domEl) {
+    domEl.style.transform = '';
+    domEl.style.setProperty('width', '100%', 'important');
+    domEl.style.setProperty('height', '100%', 'important');
+    domEl.style.setProperty('max-width', 'none', 'important');
+    domEl.style.setProperty('max-height', 'none', 'important');
+  } else {
+    // Span gibi inline metinlerin boyutlandırılabilmesi ve taşınabilmesi için inline-block yap
+    if ((hasTransform || hasSize) && getComputedStyle(targetBox).display === 'inline') {
+      targetBox.style.setProperty('display', 'inline-block', 'important');
+    }
+  }
+
+  if (hasTransform) {
+    targetBox.style.setProperty('transform', `translate(${tx}px, ${ty}px) rotate(${rot}deg)`, 'important');
+    if (getComputedStyle(targetBox).position === 'static') {
+      targetBox.style.position = 'relative';
+    }
+    targetBox.style.zIndex = '35';
+    // Üst kapsayıcılardaki overflow:hidden kırpmalarını kaldır ki kutu sayfa içinde serbestçe taşınabilsin
+    let anc = targetBox.parentElement;
+    while (anc && !anc.classList.contains('magazine-page')) {
+      if (getComputedStyle(anc).overflow === 'hidden') {
+        anc.style.overflow = 'visible';
+      }
+      anc = anc.parentElement;
     }
   } else {
-    domEl.style.transform = '';
+    targetBox.style.removeProperty('transform');
   }
 
   if (fs.width) {
-    domEl.style.setProperty('width', `${fs.width}px`, 'important');
-    domEl.style.setProperty('max-width', 'none', 'important');
+    targetBox.style.setProperty('width', `${fs.width}px`, 'important');
+    targetBox.style.setProperty('min-width', '0px', 'important');
+    targetBox.style.setProperty('max-width', 'none', 'important');
+    targetBox.style.setProperty('flex', 'none', 'important');
   }
   if (fs.height) {
-    domEl.style.setProperty('height', `${fs.height}px`, 'important');
-    domEl.style.setProperty('max-height', 'none', 'important');
+    targetBox.style.setProperty('height', `${fs.height}px`, 'important');
+    targetBox.style.setProperty('min-height', '0px', 'important');
+    targetBox.style.setProperty('max-height', 'none', 'important');
+    targetBox.style.setProperty('flex', 'none', 'important');
+  }
+  if (fs.fontSize && !domEl.classList.contains('template-image-container')) {
+    domEl.style.setProperty('font-size', `${fs.fontSize}px`, 'important');
+    domEl.style.setProperty('line-height', '1.15', 'important');
   }
   if (fs.borderRadius !== undefined) {
+    targetBox.style.borderRadius = `${fs.borderRadius}px`;
     domEl.style.borderRadius = `${fs.borderRadius}px`;
     const innerImg = domEl.querySelector('img');
     if (innerImg) innerImg.style.borderRadius = `${fs.borderRadius}px`;
   }
   if (fs.opacity !== undefined) {
-    domEl.style.opacity = String(Number(fs.opacity) / 100);
+    targetBox.style.opacity = String(Number(fs.opacity) / 100);
   }
   if (fs.hasShadow !== undefined) {
-    domEl.style.filter = fs.hasShadow ? 'drop-shadow(0 12px 20px rgba(15, 23, 42, 0.35))' : '';
+    targetBox.style.filter = fs.hasShadow ? 'drop-shadow(0 12px 20px rgba(15, 23, 42, 0.35))' : '';
   }
   const innerImg = domEl.querySelector('img');
   if (innerImg) {
     if (fs.objectFit) innerImg.style.objectFit = fs.objectFit;
     if (fs.mask) innerImg.style.clipPath = fs.mask !== 'none' ? getClipPathForMask(fs.mask) : 'none';
   }
+}
+
+function updateInlineGizmoBox(domEl, fs, pageWrapper) {
+  if (!pageWrapper) {
+    pageWrapper = document.querySelector(`.magazine-page[data-page-index="${selectedEditIndex}"]`);
+  }
+  if (!pageWrapper || !domEl) return;
+  const gizmo = pageWrapper.querySelector('#inlineTransformGizmo');
+  if (!gizmo) return;
+  const layer = gizmo.parentElement;
+  if (!layer) return;
+
+  const targetBox = getVisualTargetForInline(domEl);
+  const layerRect = layer.getBoundingClientRect();
+  const elRect = targetBox.getBoundingClientRect();
+  const scale = (layerRect.width && layer.offsetWidth)
+    ? (layerRect.width / layer.offsetWidth)
+    : ((canvasZoomPercent || 100) / 100);
+
+  const w = targetBox.offsetWidth || (elRect.width / scale) || 120;
+  const h = targetBox.offsetHeight || (elRect.height / scale) || 50;
+  const centerX = ((elRect.left + elRect.width / 2) - layerRect.left) / scale;
+  const centerY = ((elRect.top + elRect.height / 2) - layerRect.top) / scale;
+  const leftPx = centerX - w / 2;
+  const topPx = centerY - h / 2;
+
+  gizmo.style.left = `${leftPx}px`;
+  gizmo.style.top = `${topPx}px`;
+  gizmo.style.width = `${w}px`;
+  gizmo.style.height = `${h}px`;
+  gizmo.style.transform = `rotate(${fs?.rotate || 0}deg)`;
 }
 
 function renderInlineTransformGizmo(page, pageIndex, pageWrapper) {
@@ -2435,13 +2575,19 @@ function renderInlineTransformGizmo(page, pageIndex, pageWrapper) {
   if (!domEl) return;
 
   const fs = ensureFieldStyles(page, activeInlineFieldKey);
-  const pageRect = pageWrapper.getBoundingClientRect();
-  const elRect = domEl.getBoundingClientRect();
+  applyInlineTransformToDOM(domEl, fs);
 
-  const w = domEl.offsetWidth || elRect.width || 120;
-  const h = domEl.offsetHeight || elRect.height || 50;
-  const centerX = (elRect.left + elRect.width / 2) - pageRect.left;
-  const centerY = (elRect.top + elRect.height / 2) - pageRect.top;
+  const targetBox = getVisualTargetForInline(domEl);
+  const layerRect = layer.getBoundingClientRect();
+  const elRect = targetBox.getBoundingClientRect();
+  const scale = (layerRect.width && layer.offsetWidth)
+    ? (layerRect.width / layer.offsetWidth)
+    : ((canvasZoomPercent || 100) / 100);
+
+  const w = targetBox.offsetWidth || (elRect.width / scale) || 120;
+  const h = targetBox.offsetHeight || (elRect.height / scale) || 50;
+  const centerX = ((elRect.left + elRect.width / 2) - layerRect.left) / scale;
+  const centerY = ((elRect.top + elRect.height / 2) - layerRect.top) / scale;
   const leftPx = centerX - w / 2;
   const topPx = centerY - h / 2;
 
@@ -2456,7 +2602,7 @@ function renderInlineTransformGizmo(page, pageIndex, pageWrapper) {
   gizmo.style.transform = `rotate(${fs.rotate || 0}deg)`;
   gizmo.style.outline = '2px solid #2563eb';
   gizmo.style.boxShadow = '0 0 0 2px rgba(37, 99, 235, 0.22)';
-  gizmo.style.borderRadius = domEl.style.borderRadius || '6px';
+  gizmo.style.borderRadius = targetBox.style.borderRadius || '6px';
   gizmo.style.zIndex = '60';
 
   // 1. Taşıma Kulakçığı (✢ Taşı)
@@ -2475,7 +2621,7 @@ function renderInlineTransformGizmo(page, pageIndex, pageWrapper) {
   ['nw', 'ne', 'se', 'sw', 'n', 's', 'e', 'w'].forEach(dir => {
     const rh = document.createElement('div');
     rh.className = `resize-handle handle-${dir} pointer-events-auto`;
-    rh.title = 'Ebatını (Genişlik / Yükseklik) değiştirmek için sürükleyin';
+    rh.title = 'Ebatını (Genişlik / Yükseklik) küçültmek veya büyütmek için sürükleyin';
     rh.onmousedown = (e) => {
       e.stopPropagation();
       e.preventDefault();
@@ -2501,13 +2647,15 @@ function renderInlineTransformGizmo(page, pageIndex, pageWrapper) {
 
 function startDraggingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
   const page = magazineData.pages[pageIndex];
-  if (!page) return;
+  if (!page || !domEl) return;
   const fs = ensureFieldStyles(page, key);
 
   const startX = e.clientX;
   const startY = e.clientY;
   const initTx = Number(fs.tx) || 0;
   const initTy = Number(fs.ty) || 0;
+  const prevUserSelect = document.body.style.userSelect;
+  document.body.style.userSelect = 'none';
 
   function onMove(ev) {
     const scaleFactor = (canvasZoomPercent || 100) / 100;
@@ -2516,13 +2664,17 @@ function startDraggingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
     fs.tx = Math.round(initTx + dx);
     fs.ty = Math.round(initTy + dy);
     applyInlineTransformToDOM(domEl, fs);
-    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+    updateInlineGizmoBox(domEl, fs, pageWrapper);
     syncInlineInspectorLiveInputs(fs, domEl);
   }
 
   function onUp() {
+    document.body.style.userSelect = prevUserSelect;
+    justTransformedInline = true;
+    setTimeout(() => { justTransformedInline = false; }, 140);
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
     renderRightEditorPanel();
     saveAllChangesToServer();
   }
@@ -2533,15 +2685,21 @@ function startDraggingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
 
 function startResizingInlineItem(e, handle, pageIndex, key, domEl, pageWrapper) {
   const page = magazineData.pages[pageIndex];
-  if (!page) return;
+  if (!page || !domEl) return;
   const fs = ensureFieldStyles(page, key);
+  const targetBox = getVisualTargetForInline(domEl);
 
   const startX = e.clientX;
   const startY = e.clientY;
-  const initW = Number(fs.width) || domEl.offsetWidth || 160;
-  const initH = Number(fs.height) || domEl.offsetHeight || 80;
+  const initW = Number(fs.width) || targetBox.offsetWidth || domEl.offsetWidth || 160;
+  const initH = Number(fs.height) || targetBox.offsetHeight || domEl.offsetHeight || 80;
   const initTx = Number(fs.tx) || 0;
   const initTy = Number(fs.ty) || 0;
+  const initFontSize = Number(fs.fontSize) || parseFloat(getComputedStyle(domEl).fontSize) || 16;
+  const isTextItem = !domEl.classList.contains('template-image-container');
+  const isCorner = ['nw', 'ne', 'se', 'sw'].includes(handle);
+  const prevUserSelect = document.body.style.userSelect;
+  document.body.style.userSelect = 'none';
 
   function onMove(ev) {
     const scaleFactor = (canvasZoomPercent || 100) / 100;
@@ -2553,14 +2711,17 @@ function startResizingInlineItem(e, handle, pageIndex, key, domEl, pageWrapper) 
     let newTx = initTx;
     let newTy = initTy;
 
-    if (handle.includes('e')) newW = Math.max(36, initW + dx);
-    if (handle.includes('s')) newH = Math.max(24, initH + dy);
+    const minW = isTextItem ? 28 : 36;
+    const minH = isTextItem ? 18 : 28;
+
+    if (handle.includes('e')) newW = Math.max(minW, initW + dx);
+    if (handle.includes('s')) newH = Math.max(minH, initH + dy);
     if (handle.includes('w')) {
-      newW = Math.max(36, initW - dx);
+      newW = Math.max(minW, initW - dx);
       newTx = initTx + (initW - newW);
     }
     if (handle.includes('n')) {
-      newH = Math.max(24, initH - dy);
+      newH = Math.max(minH, initH - dy);
       newTy = initTy + (initH - newH);
     }
 
@@ -2569,14 +2730,31 @@ function startResizingInlineItem(e, handle, pageIndex, key, domEl, pageWrapper) 
     fs.tx = Math.round(newTx);
     fs.ty = Math.round(newTy);
 
+    // Metin kutularını köşelerden küçültürken/büyütürken yazı puntosunu da orantılı küçült/büyüt
+    if (isTextItem) {
+      if (isCorner) {
+        const scaleRatio = newW / Math.max(1, initW);
+        fs.fontSize = Math.max(8, Math.min(160, Math.round(initFontSize * scaleRatio)));
+      } else if ((handle === 'n' || handle === 's') && newH < initH) {
+        const hRatio = newH / Math.max(1, initH);
+        fs.fontSize = Math.max(8, Math.min(160, Math.round(initFontSize * hRatio)));
+      }
+      const rtFs = document.getElementById('rtFontSize');
+      if (rtFs && fs.fontSize) rtFs.value = fs.fontSize;
+    }
+
     applyInlineTransformToDOM(domEl, fs);
-    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+    updateInlineGizmoBox(domEl, fs, pageWrapper);
     syncInlineInspectorLiveInputs(fs, domEl);
   }
 
   function onUp() {
+    document.body.style.userSelect = prevUserSelect;
+    justTransformedInline = true;
+    setTimeout(() => { justTransformedInline = false; }, 140);
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
     renderRightEditorPanel();
     saveAllChangesToServer();
   }
@@ -2587,12 +2765,15 @@ function startResizingInlineItem(e, handle, pageIndex, key, domEl, pageWrapper) 
 
 function startRotatingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
   const page = magazineData.pages[pageIndex];
-  if (!page) return;
+  if (!page || !domEl) return;
   const fs = ensureFieldStyles(page, key);
+  const targetBox = getVisualTargetForInline(domEl);
 
-  const rect = domEl.getBoundingClientRect();
+  const rect = targetBox.getBoundingClientRect();
   const centerX = rect.left + rect.width / 2;
   const centerY = rect.top + rect.height / 2;
+  const prevUserSelect = document.body.style.userSelect;
+  document.body.style.userSelect = 'none';
 
   function onMove(ev) {
     const rad = Math.atan2(ev.clientY - centerY, ev.clientX - centerX);
@@ -2601,13 +2782,17 @@ function startRotatingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
     if (Math.abs(deg % 45) < 4) deg = Math.round(deg / 45) * 45;
     fs.rotate = deg;
     applyInlineTransformToDOM(domEl, fs);
-    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
+    updateInlineGizmoBox(domEl, fs, pageWrapper);
     syncInlineInspectorLiveInputs(fs, domEl);
   }
 
   function onUp() {
+    document.body.style.userSelect = prevUserSelect;
+    justTransformedInline = true;
+    setTimeout(() => { justTransformedInline = false; }, 140);
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
+    renderInlineTransformGizmo(page, pageIndex, pageWrapper);
     renderRightEditorPanel();
     saveAllChangesToServer();
   }
@@ -2617,6 +2802,7 @@ function startRotatingInlineItem(e, pageIndex, key, domEl, pageWrapper) {
 }
 
 function syncInlineInspectorLiveInputs(fs, domEl) {
+  const targetBox = getVisualTargetForInline(domEl);
   const inpX = document.getElementById('inlineInpX');
   const inpY = document.getElementById('inlineInpY');
   const inpW = document.getElementById('inlineInpW');
@@ -2625,8 +2811,8 @@ function syncInlineInspectorLiveInputs(fs, domEl) {
   const lblRot = document.getElementById('inlineLblRotate');
   if (inpX) inpX.value = Math.round(fs.tx || 0);
   if (inpY) inpY.value = Math.round(fs.ty || 0);
-  if (inpW) inpW.value = Math.round(fs.width || domEl?.offsetWidth || 100);
-  if (inpH) inpH.value = Math.round(fs.height || domEl?.offsetHeight || 50);
+  if (inpW) inpW.value = Math.round(fs.width || targetBox?.offsetWidth || domEl?.offsetWidth || 100);
+  if (inpH) inpH.value = Math.round(fs.height || targetBox?.offsetHeight || domEl?.offsetHeight || 50);
   if (inpRot) inpRot.value = Math.round(fs.rotate || 0);
   if (lblRot) lblRot.textContent = `${Math.round(fs.rotate || 0)}°`;
 }
@@ -2643,7 +2829,7 @@ function updateInlineFieldTransform(prop, val) {
   }
   if (activeInlineElement) {
     applyInlineTransformToDOM(activeInlineElement, fs);
-    renderInlineTransformGizmo(page, selectedEditIndex, pageWrapper);
+    updateInlineGizmoBox(activeInlineElement, fs, pageWrapper);
   }
   const lblRot = document.getElementById('inlineLblRotate');
   if (prop === 'rotate' && lblRot) lblRot.textContent = `${val}°`;
@@ -2663,6 +2849,7 @@ function resetInlineFieldTransform() {
   delete fs.width;
   delete fs.height;
   delete fs.rotate;
+  delete fs.fontSize;
   renderMagazineViewport();
   setTimeout(() => {
     const pageWrapper = document.querySelector(`.magazine-page[data-page-index="${selectedEditIndex}"]`);
@@ -2679,6 +2866,7 @@ function resetInlineFieldTransform() {
 function handleInlineImageMouseDown(event, pageIndex, key, domEl) {
   if (event.target.closest('.img-change-badge')) return;
   event.stopPropagation();
+  event.preventDefault();
 
   if (selectedEditIndex !== pageIndex) {
     selectPageForEdit(pageIndex);
@@ -2706,6 +2894,42 @@ function handleInlineImageMouseDown(event, pageIndex, key, domEl) {
 
   // Doğrudan görsel üzerinden sürükleyerek taşıma başlat
   startDraggingInlineItem(event, pageIndex, key, domEl, pageWrapper);
+}
+
+function handleInlineTextMouseDown(event, pageIndex, key, domEl) {
+  event.stopPropagation();
+
+  if (selectedEditIndex !== pageIndex) {
+    selectPageForEdit(pageIndex);
+  }
+
+  // Seçimi ve gizmo çerçevesini aktif et
+  handleInlineTextFocus(pageIndex, key, domEl);
+
+  const pageWrapper = domEl.closest('.magazine-page');
+  const startX = event.clientX;
+  const startY = event.clientY;
+  let dragStarted = false;
+
+  // Kullanıcı fareyi basılı tutup > 4px sürüklerse metin seçmek yerine kutuyu taşısın; sabit tıklarsa yazıyı düzenlesin
+  function onThresholdMove(moveEv) {
+    if (!dragStarted && Math.hypot(moveEv.clientX - startX, moveEv.clientY - startY) > 4) {
+      dragStarted = true;
+      window.removeEventListener('mousemove', onThresholdMove);
+      window.removeEventListener('mouseup', onThresholdUp);
+      if (window.getSelection) window.getSelection().removeAllRanges();
+      domEl.blur();
+      startDraggingInlineItem(event, pageIndex, key, domEl, pageWrapper);
+    }
+  }
+
+  function onThresholdUp() {
+    window.removeEventListener('mousemove', onThresholdMove);
+    window.removeEventListener('mouseup', onThresholdUp);
+  }
+
+  window.addEventListener('mousemove', onThresholdMove);
+  window.addEventListener('mouseup', onThresholdUp);
 }
 
 function showFloatingRichTextBar(elDom, el) {
@@ -3639,7 +3863,7 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
   const isSelectedClass = (isEditable && activeInlineFieldKey === key) ? 'inline-selected' : '';
 
   if (!isEditable) {
-    return `<${tag} class="${className}" ${styleAttr}>${safeText}</${tag}>`;
+    return `<${tag} class="${className}" data-field-key="${key}" data-field-type="text" ${styleAttr}>${safeText}</${tag}>`;
   }
 
   return `
@@ -3649,7 +3873,8 @@ function makeInlineEditable(pageIndex, key, text, tag = 'div', className = '', s
       contenteditable="true" 
       data-field-key="${key}"
       data-field-type="text"
-      title="Tıklayarak metni, ebatını, konumunu ve açısını düzenleyin"
+      title="Sürükleyerek taşıyın, köşelerinden küçültüp büyütün veya tıklayarak yazıyı düzenleyin"
+      onmousedown="handleInlineTextMouseDown(event, ${pageIndex}, '${key}', this)"
       onfocus="handleInlineTextFocus(${pageIndex}, '${key}', this)"
       onclick="handleInlineTextFocus(${pageIndex}, '${key}', this)"
       onblur="handleInlineTextChange(${pageIndex}, '${key}', this)"
@@ -3666,11 +3891,6 @@ function makeInlineImage(pageIndex, key, currentUrl, fallbackUrl, imgClass = '',
   const fs = page?.fieldStyles?.[key] || {};
   let contStyle = '';
   let imgStyle = '';
-  if (fs.width) contStyle += `width:${fs.width}px !important; max-width:none !important; `;
-  if (fs.height) contStyle += `height:${fs.height}px !important; max-height:none !important; `;
-  if (fs.tx || fs.ty || fs.rotate) {
-    contStyle += `transform:translate(${Number(fs.tx)||0}px, ${Number(fs.ty)||0}px) rotate(${Number(fs.rotate)||0}deg); position:relative; z-index:32; `;
-  }
   if (fs.borderRadius !== undefined) {
     contStyle += `border-radius:${fs.borderRadius}px; `;
     imgStyle += `border-radius:${fs.borderRadius}px; `;
@@ -3686,7 +3906,7 @@ function makeInlineImage(pageIndex, key, currentUrl, fallbackUrl, imgClass = '',
 
   if (!isEditable) {
     return `
-      <div class="${containerClass}" ${contStyleAttr}>
+      <div class="template-image-container ${containerClass}" data-field-key="${key}" data-field-type="image" ${contStyleAttr}>
         <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass}" ${imgStyleAttr} alt="${alt}">
       </div>
     `;
@@ -3698,7 +3918,7 @@ function makeInlineImage(pageIndex, key, currentUrl, fallbackUrl, imgClass = '',
       ${contStyleAttr}
       data-field-key="${key}"
       data-field-type="image"
-      title="Sürükleyerek taşıyın, köşelerinden boyutlandırın, döndürün veya sağ üstten fotoğrafı değiştirin"
+      title="Sürükleyerek taşıyın, köşelerinden küçültüp büyütün, döndürün veya sağ üstten fotoğrafı değiştirin"
       onmousedown="handleInlineImageMouseDown(event, ${pageIndex}, '${key}', this)"
     >
       <img src="${safeUrl}" onerror="this.src='${safeFallback}'" class="${imgClass} pointer-events-none" ${imgStyleAttr} alt="${alt}">
@@ -4614,8 +4834,9 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
   // DURUM 0: ŞABLON İÇİ BİR GÖRSEL VEYA METİN KUTUSU SEÇİLİYSE (Ebat, Pozisyon, Açı & Görsel/Metin Stili)
   if (!el && activeInlineFieldKey) {
     const fs = ensureFieldStyles(page, activeInlineFieldKey);
-    const curW = Math.round(fs.width || activeInlineElement?.offsetWidth || 200);
-    const curH = Math.round(fs.height || activeInlineElement?.offsetHeight || 120);
+    const targetBox = getVisualTargetForInline(activeInlineElement);
+    const curW = Math.round(fs.width || targetBox?.offsetWidth || activeInlineElement?.offsetWidth || 200);
+    const curH = Math.round(fs.height || targetBox?.offsetHeight || activeInlineElement?.offsetHeight || 120);
     const curX = Math.round(fs.tx || 0);
     const curY = Math.round(fs.ty || 0);
     const curRot = Math.round(fs.rotate || 0);
@@ -6382,6 +6603,7 @@ window.toggleZenCanvasMode = toggleZenCanvasMode;
 window.cycleTextAlign = cycleTextAlign;
 window.cycleTextCase = cycleTextCase;
 window.handleInlineImageMouseDown = handleInlineImageMouseDown;
+window.handleInlineTextMouseDown = handleInlineTextMouseDown;
 window.updateInlineFieldTransform = updateInlineFieldTransform;
 window.resetInlineFieldTransform = resetInlineFieldTransform;
 
