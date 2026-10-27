@@ -65,9 +65,17 @@ const upload = multer({
   limits: { fileSize: 100 * 1024 * 1024 } // 100MB (Video ve yüksek çözünürlüklü medya için)
 });
 
-// Statik Dosyalar
+// Statik Dosyalar (Tarayıcı önbellek kilitlenmesini önlemek için no-cache başlıkları)
 app.use('/uploads', express.static(UPLOADS_DIR));
-app.use(express.static(PUBLIC_DIR));
+app.use(express.static(PUBLIC_DIR, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html') || filePath.endsWith('.js') || filePath.endsWith('.css')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 function isAdmin(authHeader, authData) {
   if (!authHeader) return false;

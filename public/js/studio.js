@@ -816,39 +816,46 @@ function toggleGridOverlay() {
 // Eleman Ekleme Butonları
 function addCanvasElement(type, data = {}) {
   const page = magazineData.pages[selectedEditIndex];
-  if (!page) return;
+  if (!page) {
+    showToast("Lütfen önce düzenlenecek sayfayı seçin!");
+    return;
+  }
   if (!page.elements) page.elements = [];
 
   const newId = 'el-' + Date.now();
   let newEl = {
     id: newId,
     type,
-    x: 25,
-    y: 30,
-    width: 40,
-    height: 20,
+    x: 20,
+    y: 25,
+    width: 45,
+    height: 22,
     rotate: 0,
-    zIndex: 15,
+    zIndex: 20,
     ...data
   };
 
   if (type === 'text') {
     newEl = {
       ...newEl,
-      content: "<strong>Yeni Başlık / Metin</strong><br>Çift tıklayarak doğrudan yazmaya başlayabilirsiniz.",
+      content: "<strong>Yeni Başlık / Metin Kutusu</strong><br>Çift tıklayarak doğrudan yazmaya başlayabilirsiniz.",
       fontSize: 14,
       fontFamily: "Inter",
       color: "#0f172a",
       bgColor: "#ffffff",
-      borderColor: "#e2e8f0",
+      borderColor: "#cbd5e1",
       textAlign: "left"
     };
   }
 
   page.elements.push(newEl);
-  selectCanvasElement(newId);
+  selectedElementId = newId;
+  renderMagazineViewport();
+  setTimeout(() => {
+    selectCanvasElement(newId);
+  }, 40);
   saveAllChangesToServer();
-  showToast("Eleman sayfaya eklendi!");
+  showToast("Eleman sayfaya eklendi! Taşıyabilir veya çift tıklayıp düzenleyebilirsiniz.");
 }
 
 async function handleCanvasImageUpload(event) {
@@ -2346,3 +2353,41 @@ function escapeHtml(str) {
 function escapeAttr(str) {
   return escapeHtml(str);
 }
+
+// ==========================================
+// GLOBAL WINDOW BINDINGS (Inline HTML eventleri için)
+// ==========================================
+window.addCanvasElement = addCanvasElement;
+window.handleCanvasImageUpload = handleCanvasImageUpload;
+window.handleCanvasVideoUpload = handleCanvasVideoUpload;
+window.toggleGridOverlay = toggleGridOverlay;
+window.applyTextStyle = applyTextStyle;
+window.applyTextFormat = applyTextFormat;
+window.changeElementLayer = changeElementLayer;
+window.deleteSelectedCanvasElement = deleteSelectedCanvasElement;
+window.toggleSpreadMode = toggleSpreadMode;
+window.selectPageForEdit = selectPageForEdit;
+window.setAppMode = setAppMode;
+window.onIssueChange = onIssueChange;
+window.handleLogout = handleLogout;
+window.openModal = openModal;
+window.closeModal = closeModal;
+window.saveAllChangesToServer = saveAllChangesToServer;
+window.addNewPage = addNewPage;
+window.deleteCurrentPage = deleteCurrentPage;
+window.moveCurrentPage = moveCurrentPage;
+window.prevPage = prevPage;
+window.nextPage = nextPage;
+window.goToPage = goToPage;
+window.togglePublishCurrentIssue = togglePublishCurrentIssue;
+window.createNewIssueSubmit = createNewIssueSubmit;
+window.saveMagSettings = saveMagSettings;
+window.addNewEditorKey = addNewEditorKey;
+window.changePageEditor = changePageEditor;
+window.saveAdminNote = saveAdminNote;
+window.dismissAdminNote = dismissAdminNote;
+window.downloadProjectJSON = downloadProjectJSON;
+window.uploadProjectJSON = uploadProjectJSON;
+window.exportStandaloneMagazine = exportStandaloneMagazine;
+window.showToast = showToast;
+
