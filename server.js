@@ -22,6 +22,7 @@ if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 
 const ISSUES_FILE = path.join(DATA_DIR, 'issues.json');
 const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
+const MAGAZINES_FILE = path.join(DATA_DIR, 'magazines.json');
 
 // Yardımcı JSON okuma/yazma fonksiyonları
 function readJSON(file, defaultVal = []) {
@@ -166,6 +167,7 @@ app.post('/api/auth/login', (req, res) => {
           name: user.name,
           role: user.role || 'editor',
           title: user.title,
+          magazineId: user.magazineId || 'mag-ufuk-al',
           assignedPages: user.assignedPages || []
         }
       });
@@ -196,7 +198,7 @@ app.post('/api/auth/keys', (req, res) => {
     return res.status(403).json({ error: 'Yetkisiz işlem.' });
   }
 
-  const { code, name, role, title, assignedPages } = req.body;
+  const { code, name, role, title, magazineId, assignedPages } = req.body;
   if (!code || !name) return res.status(400).json({ error: 'Kod ve isim zorunludur.' });
 
   const normCode = String(code).trim().toUpperCase();
@@ -207,6 +209,7 @@ app.post('/api/auth/keys', (req, res) => {
     name: String(name).trim(),
     role: role === 'admin' ? 'admin' : 'editor',
     title: title || '',
+    magazineId: magazineId || 'mag-ufuk-al',
     assignedPages: Array.isArray(assignedPages) ? assignedPages : []
   };
 
@@ -238,17 +241,305 @@ app.delete('/api/auth/keys/:code', (req, res) => {
 });
 
 // ==========================================
+// YARDIMCI: YENİ OKUL İÇİN 10 SAYFALIK STANDART ŞABLON
+// ==========================================
+function createDefault10Pages(mag) {
+  const name = mag.name || 'DERGİ';
+  const school = mag.schoolName || 'Okul Adı';
+  const accent = mag.themeColor || '#4f46e5';
+
+  return [
+    {
+      id: "p1",
+      type: "cover",
+      navTitle: "K1 • Ön Dış Kapak",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      magazineName: name.toUpperCase(),
+      issueTag: "SAYI 01 • İLK SAYI • E-DERGİ",
+      mainHeadline: `${school} Dijital Yayın Hayatına Başlıyor!`,
+      subHeadline: "Öğrencilerimizin, öğretmenlerimizin ve kulüplerimizin ortak emeğiyle hazırlanan ilk sayımız.",
+      coverImage: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+      highlights: "Okul Müdürümüzün Açılış Mesajı\nÖzel Etkinlik ve Tiyatro Gösterisi\nÖğrenci Şiirleri ve Edebi Köşe\nÖdüllü Okul Quiz Köşesi",
+      elements: []
+    },
+    {
+      id: "p2",
+      type: "k2",
+      subType: "ataturk",
+      navTitle: "K2 • Ön Kapak İçi (Atatürk)",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      headerText: "TÜRK GENÇLİĞİNE HİTABE",
+      subText: "Ey Türk Gençliği! Birinci vazifen, Türk istiklâlini, Türk Cumhuriyeti'ni, ilelebet muhafaza ve müdafaa etmektir.",
+      author: "Gazi Mustafa Kemal Atatürk",
+      image: "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80",
+      quote: "Bütün ümidim gençliktedir.",
+      elements: []
+    },
+    {
+      id: "p3",
+      type: "toc",
+      navTitle: "Editörden & İçindekiler",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      editorTitle: `Yeni Bir Soluk: ${name}`,
+      editorName: "Yayın Kurulu Başkanı",
+      editorImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
+      editorIntro: "Büyük bir heyecanla hazırladığımız ilk sayımızla karşınızdayız. Dergimiz okulumuzun tüm seslerini ve yeteneklerini bir araya getiriyor.",
+      editorialBoard: `${school} Kültür ve Edebiyat Kulübü Tarafından Hazırlanmıştır.`,
+      elements: []
+    },
+    {
+      id: "p4",
+      type: "article",
+      navTitle: "Bilim & Teknoloji",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      category: "BİLİM & TEKNOLOJİ",
+      author: "Proje Ekibi",
+      title: "Geleceğin Teknolojileri ve Okulumuz",
+      spot: "Öğrencilerimizin geliştirdiği projeler ve teknoloji kulübü çalışmaları.",
+      image: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=900&q=80",
+      imageCaption: "Laboratuvar ve robotik çalışmaları",
+      content: "Okulumuzda yürütülen bilimsel çalışmalar ve proje yarışmaları hız kesmeden devam ediyor. Gençlerimiz bilim yolunda üretmeye ve araştırmaya devam ediyor.",
+      pullQuote: "Bilim ve akıl, geleceğe açılan en aydınlık kapımızdır.",
+      elements: []
+    },
+    {
+      id: "p5",
+      type: "video",
+      navTitle: "Etkinlik & Video",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      author: "Tiyatro ve Gösteri Kulübü",
+      title: "Okul Gösterisi ve Sahne Performansı",
+      subTitle: "Sahnede devleşen öğrencilerimizin performansı",
+      videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+      videoPoster: "https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?auto=format&fit=crop&w=900&q=80",
+      caption: "Etkinlikten en güzel anlar",
+      notes: "Tüm velilerimizin ve öğretmenlerimizin katıldığı organizasyonda öğrencilerimiz unutulmaz anlar yaşattı.",
+      elements: []
+    },
+    {
+      id: "p6",
+      type: "interview",
+      navTitle: "Ayın Söyleşisi",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      rubric: "AYIN RÖPORTAJI",
+      interviewee: "Danışman Öğretmenimiz",
+      role: "Edebiyat Zümre Başkanı",
+      intro: "Okuma sevgisi, dergicilik kültürü ve geleceğe dair hedefler üzerine özel bir röportaj.",
+      photo: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80",
+      q1: "Dergimizin çıkış süreci hakkında ne düşünüyorsunuz?",
+      a1: "Öğrencilerimizin böyle bir yayını hayata geçirmesi okulumuz adına büyük bir gururdur.",
+      q2: "Gençlere yazarlık konusunda tavsiyeniz nedir?",
+      a2: "Sürekli okumak, dünyayı gözlemlemek ve hayal gücünü özgür bırakmak.",
+      q3: "Gelecek sayılarda neler göreceğiz?",
+      a3: "Daha fazla öğrenci eseri ve sürpriz içeriklerle yayına devam edeceğiz.",
+      elements: []
+    },
+    {
+      id: "p7",
+      type: "literature",
+      navTitle: "Edebiyat & Şiir",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      header: "GENÇ KALEMLER",
+      title: "Bir Umut Masalı",
+      author: "Okul Şiir Topluluğu",
+      bgImage: "https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=800&q=80",
+      poemText: "Rüzgâr fısıldar eski bir şarkıyı yapraklara,\nUmut yeşerir kalplerde usulca.\nKalem kâğıtla buluştuğu anda,\nBir dünya doğar yeniden burada.",
+      bottomNote: "Öğrencilerimizin serbest kürsü edebi çalışmaları.",
+      elements: []
+    },
+    {
+      id: "p8",
+      type: "quiz",
+      navTitle: "Quiz & Tavsiyeler",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      title: "ETKİLEŞİMLİ KÖŞE",
+      questionTitle: "Ayın Edebiyat Sorusu",
+      questionText: "Türk edebiyatının ilk yerli romanı olarak kabul edilen 'Taaşşuk-ı Tal'at ve Fitnat' kime aittir?",
+      options: ["Şemsettin Sami", "Namık Kemal", "Recaizade Mahmut Ekrem", "Ahmet Mithat Efendi"],
+      correctIndex: 0,
+      explanation: "Taaşşuk-ı Tal'at ve Fitnat, Şemsettin Sami tarafından 1872-1873 yıllarında yazılmıştır.",
+      bookRec: "Beyaz Gemi — Cengiz Aytmatov",
+      movieRec: "Ölü Ozanlar Derneği",
+      elements: []
+    },
+    {
+      id: "p9",
+      type: "k3",
+      navTitle: "K3 • Arka Kapak İçi (Künye)",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      boardTitle: `${name.toUpperCase()} YAYIN KURULU`,
+      publisher: `${school} Müdürlüğü`,
+      editorInChief: "Genel Yayın Yönetmeni",
+      advisor: "Kültür & Edebiyat Danışmanı",
+      editorialTeam: "Öğrenci Yayın ve Mizanpaj Kurulu",
+      contactInfo: `İletişim: iletisim@dergimiz.com.tr • ${school}`,
+      nextIssueTeaserTitle: "GELECEK SAYIDA NELER VAR?",
+      nextIssueText: "Özel bilim söyleşileri, resim sergisi ve okul içi yarışma sonuçları...",
+      elements: []
+    },
+    {
+      id: "p10",
+      type: "k4",
+      navTitle: "K4 • Arka Dış Kapak",
+      accentColor: accent,
+      assignedEditor: "ADMIN-2026",
+      status: "approved",
+      schoolName: school,
+      motto: "Bilgi, Sevgi ve Gelecek",
+      coverImage: "https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=900&q=80",
+      qrUrl: "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://dergimiz.com.tr",
+      qrText: "Dergimizi çevrim içi okumak ve yeni sayıları takip etmek için karekodu okutun.",
+      social: "@okuldergimiz • dergimiz.com.tr",
+      closingQuote: "Bir sonraki sayıda buluşmak dileğiyle...",
+      elements: []
+    }
+  ];
+}
+
+// ==========================================
+// API: ÇOKLU OKUL & DERGİ YÖNETİMİ (MAGAZINES)
+// ==========================================
+app.get('/api/magazines', (req, res) => {
+  const magazines = readJSON(MAGAZINES_FILE, []);
+  const issues = readJSON(ISSUES_FILE, []);
+  
+  const list = magazines.map(m => {
+    const magIssues = issues.filter(i => (i.magazineId || 'mag-ufuk-al') === m.id);
+    return {
+      ...m,
+      issueCount: magIssues.length,
+      latestIssue: magIssues[magIssues.length - 1] || null
+    };
+  });
+
+  res.json(list);
+});
+
+app.post('/api/magazines', (req, res) => {
+  const authHeader = req.headers['x-access-code'];
+  const authData = readJSON(AUTH_FILE, { adminKey: 'ADMIN-2026', admins: [], keys: [] });
+  if (!isAdmin(authHeader, authData)) {
+    return res.status(403).json({ error: 'Yalnızca Süper Yönetici yeni okul ve dergi ekleyebilir.' });
+  }
+
+  const { name, schoolName, period, themeColor, description, coverThumb, createFirstIssue } = req.body;
+  if (!name || !schoolName) {
+    return res.status(400).json({ error: 'Dergi adı ve Okul adı zorunludur.' });
+  }
+
+  const magazines = readJSON(MAGAZINES_FILE, []);
+  const slug = 'mag-' + Date.now();
+  
+  const newMag = {
+    id: slug,
+    name: String(name).trim(),
+    schoolName: String(schoolName).trim(),
+    period: period || 'Aylık',
+    themeColor: themeColor || '#4f46e5',
+    description: description || `${schoolName} resmi e-dergisi.`,
+    logo: '',
+    coverThumb: coverThumb || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80',
+    createdAt: new Date().toISOString().split('T')[0]
+  };
+
+  magazines.push(newMag);
+  writeJSON(MAGAZINES_FILE, magazines);
+
+  // Otomatik İlk Sayı
+  if (createFirstIssue !== false) {
+    const issues = readJSON(ISSUES_FILE, []);
+    const issueId = 'sayi-' + Date.now();
+    const firstIssue = {
+      id: issueId,
+      magazineId: newMag.id,
+      title: `${newMag.name} • Sayı #1`,
+      schoolName: newMag.schoolName,
+      issueNumber: 1,
+      issueMonth: "1. Sayı",
+      releaseDate: new Date().toISOString().split('T')[0],
+      status: "draft",
+      views: 0,
+      likes: 0,
+      description: `${newMag.schoolName} ilk sayısı yayına hazırlanıyor.`,
+      coverThumb: newMag.coverThumb,
+      pages: createDefault10Pages(newMag)
+    };
+    issues.push(firstIssue);
+    writeJSON(ISSUES_FILE, issues);
+  }
+
+  res.json({ success: true, magazine: newMag });
+});
+
+app.put('/api/magazines/:id', (req, res) => {
+  const authHeader = req.headers['x-access-code'];
+  const authData = readJSON(AUTH_FILE, { adminKey: 'ADMIN-2026', admins: [], keys: [] });
+  if (!isAdmin(authHeader, authData)) {
+    return res.status(403).json({ error: 'Yetkisiz işlem.' });
+  }
+
+  const magazines = readJSON(MAGAZINES_FILE, []);
+  const idx = magazines.findIndex(m => m.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Dergi bulunamadı.' });
+
+  magazines[idx] = { ...magazines[idx], ...req.body, id: magazines[idx].id };
+  writeJSON(MAGAZINES_FILE, magazines);
+  res.json({ success: true, magazine: magazines[idx] });
+});
+
+app.delete('/api/magazines/:id', (req, res) => {
+  const authHeader = req.headers['x-access-code'];
+  const authData = readJSON(AUTH_FILE, { adminKey: 'ADMIN-2026', admins: [], keys: [] });
+  if (!isAdmin(authHeader, authData)) {
+    return res.status(403).json({ error: 'Yetkisiz işlem.' });
+  }
+
+  let magazines = readJSON(MAGAZINES_FILE, []);
+  magazines = magazines.filter(m => m.id !== req.params.id);
+  writeJSON(MAGAZINES_FILE, magazines);
+
+  let issues = readJSON(ISSUES_FILE, []);
+  issues = issues.filter(i => (i.magazineId || 'mag-ufuk-al') !== req.params.id);
+  writeJSON(ISSUES_FILE, issues);
+
+  res.json({ success: true });
+});
+
+// ==========================================
 // API: DERGİ SAYILARI (ISSUES)
 // ==========================================
 app.get('/api/issues', (req, res) => {
   const issues = readJSON(ISSUES_FILE, []);
   const includeDrafts = req.query.includeDrafts === 'true';
+  const magId = req.query.magazineId;
+
+  let filtered = issues;
+  if (magId) {
+    filtered = filtered.filter(i => (i.magazineId || 'mag-ufuk-al') === magId);
+  }
 
   if (includeDrafts) {
-    return res.json(issues);
+    return res.json(filtered);
   }
-  // Ziyaretçi sadece yayınlananları görür
-  const published = issues.filter(i => i.status === 'published');
+  const published = filtered.filter(i => i.status === 'published');
   res.json(published);
 });
 
@@ -278,6 +569,7 @@ app.post('/api/issues', (req, res) => {
   const newIssue = {
     id: newId,
     title: req.body.title || `Sayı #${newNumber}`,
+    magazineId: req.body.magazineId || 'mag-ufuk-al',
     schoolName: req.body.schoolName || "UFUK ANADOLU LİSESİ E-DERGİSİ",
     issueNumber: newNumber,
     issueMonth: req.body.issueMonth || "Yeni Sayı",

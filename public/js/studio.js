@@ -1,5 +1,7 @@
 // Dergimiz Editör & Yönetim Masası (Advanced Studio Engine)
 let currentUser = null;
+let allMagazines = [];
+let currentMagazine = null;
 let allIssues = [];
 let currentIssue = null;
 let magazineData = null;
@@ -36,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.innerWidth < 1100) spreadMode = false;
   updateSpreadButtonUI();
 
-  await loadAllIssues();
+  await loadAllMagazines();
   await loadEditorKeys();
   initGlobalCanvasEvents();
 });
@@ -86,11 +88,151 @@ function handleLogout() {
 }
 
 // ==========================================
-// 2. SAYILARI YÜKLEME & SEÇİM
+// 2. OKUL & DERGİ (MAGAZINES) VE SAYI SEÇİMİ
 // ==========================================
-async function loadAllIssues() {
+async function loadAllMagazines() {
   try {
-    const res = await fetch('/api/issues?includeDrafts=true');
+    const res = await fetch('/api/magazines');
+    if (res.ok) {
+      allMagazines = await res.json();
+    }
+  } catch (err) {
+    console.warn("Dergiler alınamadı:", err);
+    allMagazines = [];
+  }
+
+  if (allMagazines.length === 0) {
+    allMagazines = [{
+      id: "mag-ufuk-al",
+      name: "Ufuk E-Dergi",
+      schoolName: "Ufuk Anadolu Lisesi",
+      period: "Aylık",
+      themeColor: "#4f46e5"
+    }];
+  }
+
+  const magSelector = document.getElementById('magazineSelector');
+  const btnNewMag = document.getElementById('btnNewMagModal');
+  const keyMagSelect = document.getElementById('newKeyMagazine');
+
+  if (magSelector) {
+    magSelector.innerHTML = '';
+    allMagazines.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = `${m.name} (${m.schoolName})`;
+      magSelector.appendChild(opt);
+    });
+  }
+
+  if (keyMagSelect) {
+    keyMagSelect.innerHTML = '';
+    allMagazines.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = `${m.name} (${m.schoolName})`;
+      keyMagSelect.appendChild(opt);
+    });
+  }
+
+  // Yetkilendirme Kontrolü
+  if (currentUser && currentUser.role !== 'admin' && currentUser.magazineId) {
+    const targetMag = allMagazines.find(m => m.id === currentUser.magazineId) || allMagazines[0];
+    currentMagazine = targetMag;
+    if (magSelector) {
+      magSelector.value = targetMag.id;
+      magSelector.disabled = true;
+    }
+    if (btnNewMag) btnNewMag.classList.add('hidden');
+  } else {
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetMagId = urlParams.get('magId');
+    currentMagazine = (targetMagId && allMagazines.find(m => m.id === targetMagId)) || allMagazines[0];
+    if (magSelector) {
+      magSelector.value = currentMagazine.id;
+      magSelector.disabled = false;
+    }
+    if (btnNewMag) btnNewMag.classList.remove('hidden');
+  }
+
+  updateMagazineHeaderUI();
+  await loadAllIssues(currentMagazine.id);
+}
+
+function updateMagazineHeaderUI() {
+  if (!currentMagazine) return;
+  const schoolText = document.getElementById('headerSchoolText');
+  if (schoolText) schoolText.textContent = currentMagazine.schoolName;
+}
+
+async function onMagazineChange(newMagId) {
+  const selected = allMagazines.find(m => m.id === newMagId);
+  if (!selected) return;
+  currentMagazine = selected;
+  updateMagazineHeaderUI();
+
+  const url = new URL(window.location);
+  url.searchParams.set('magId', selected.id);
+  url.searchParams.delete('id');
+  window.history.pushState({}, '', url);
+
+  await loadAllIssues(selected.id);
+}
+
+async function createNewMagazineSubmit() {
+  const schoolName = document.getElementById('newMagSchoolName').value.trim();
+  const name = document.getElementById('newMagName').value.trim();
+  const period = document.getElementById('newMagPeriod').value;
+  const themeColor = document.getElementById('newMagColor').value;
+  const description = document.getElementById('newMagDesc').value.trim();
+  const createFirstIssue = document.getElementById('newMagFirstIssueCheck').checked;
+
+  if (!schoolName || !name) {
+    showToast("Lütfen Okul Adı ve Dergi Adı alanlarını doldurun!");
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/magazines', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-access-code': currentUser.code
+      },
+      body: JSON.stringify({
+        schoolName,
+        name,
+        period,
+        themeColor,
+        description,
+        createFirstIssue
+      })
+    });
+
+    const data = await res.json();
+    if (data.success && data.magazine) {
+      closeModal('newMagazineModal');
+      showToast(`🎉 "${name}" dergisi ve ${schoolName} masası oluşturuldu!`);
+      document.getElementById('newMagSchoolName').value = '';
+      document.getElementById('newMagName').value = '';
+      document.getElementById('newMagDesc').value = '';
+
+      await loadAllMagazines();
+      await onMagazineChange(data.magazine.id);
+    } else {
+      showToast(data.error || "Oluşturulamadı!");
+    }
+  } catch (err) {
+    showToast("Bağlantı hatası!");
+  }
+}
+
+async function loadAllIssues(magId = null) {
+  const effectiveMagId = magId || (currentMagazine ? currentMagazine.id : null);
+  const queryParam = effectiveMagId ? `&magazineId=${effectiveMagId}` : '';
+
+  try {
+    const res = await fetch(`/api/issues?includeDrafts=true${queryParam}`);
     if (!res.ok) throw new Error('Sayılar alınamadı');
     allIssues = await res.json();
   } catch (err) {
@@ -114,6 +256,10 @@ async function loadAllIssues() {
   if (activeIssue) {
     selector.value = activeIssue.id;
     setIssue(activeIssue);
+  } else {
+    currentIssue = null;
+    magazineData = { schoolName: currentMagazine ? currentMagazine.schoolName : '', pages: [] };
+    renderAll();
   }
 }
 
@@ -2168,13 +2314,15 @@ async function addNewEditorKey() {
   }
 
   try {
+    const magSelect = document.getElementById('newKeyMagazine');
+    const magId = magSelect ? magSelect.value : (currentMagazine ? currentMagazine.id : 'mag-ufuk-al');
     const res = await fetch('/api/auth/keys', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-access-code': currentUser.code
       },
-      body: JSON.stringify({ code, name, title, role: 'editor' })
+      body: JSON.stringify({ code, name, title, magazineId: magId, role: 'editor' })
     });
     if (res.ok) {
       document.getElementById('newKeyCode').value = '';
@@ -2343,8 +2491,9 @@ async function createNewIssueSubmit() {
         'x-access-code': currentUser.code
       },
       body: JSON.stringify({
+        magazineId: currentMagazine ? currentMagazine.id : 'mag-ufuk-al',
         title,
-        schoolName: school,
+        schoolName: currentMagazine ? currentMagazine.schoolName : school,
         issueMonth: month,
         description: desc,
         pages: initialPages
@@ -2353,7 +2502,7 @@ async function createNewIssueSubmit() {
     const data = await res.json();
     if (data.success) {
       closeModal('newIssueModal');
-      await loadAllIssues();
+      await loadAllIssues(currentMagazine ? currentMagazine.id : null);
       onIssueChange(data.issue.id);
       showToast("🎉 4 kapaklı yeni sayı otomatik oluşturuldu!");
     }
@@ -2550,6 +2699,8 @@ window.toggleSpreadMode = toggleSpreadMode;
 window.selectPageForEdit = selectPageForEdit;
 window.setAppMode = setAppMode;
 window.onIssueChange = onIssueChange;
+window.onMagazineChange = onMagazineChange;
+window.createNewMagazineSubmit = createNewMagazineSubmit;
 window.handleLogout = handleLogout;
 window.openModal = openModal;
 window.closeModal = closeModal;

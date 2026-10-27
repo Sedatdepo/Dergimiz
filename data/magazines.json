@@ -1,0 +1,13 @@
+[
+  {
+    "id": "mag-ufuk-al",
+    "name": "Ufuk E-Dergi",
+    "schoolName": "Ufuk Anadolu Lisesi",
+    "period": "Aylık",
+    "themeColor": "#4f46e5",
+    "description": "Ufuk Anadolu Lisesi aylık bilim, teknoloji, sanat ve edebiyat dergisi.",
+    "logo": "",
+    "coverThumb": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80",
+    "createdAt": "2026-10-01"
+  }
+]

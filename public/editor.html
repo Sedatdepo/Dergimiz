@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,400&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20261027_03">
+  <link rel="stylesheet" href="/css/style.css?v=20261027_04">
   <script>
     tailwind.config = {
       theme: {
@@ -45,15 +45,29 @@
         <i class="ph ph-book-open-text text-2xl text-white"></i>
       </a>
 
-      <div>
+      <div class="flex flex-col gap-1">
+        <!-- 1. OKUL & DERGİ SEÇİCİ & YENİ DERGİ EKLE BUTONU -->
+        <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1 bg-slate-900/90 px-2 py-0.5 rounded-lg border border-slate-700">
+            <i class="ph ph-buildings text-amber-400 text-xs"></i>
+            <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-transparent border-0 text-xs font-bold text-white focus:outline-none cursor-pointer py-0.5 pr-1">
+              <!-- JS ile dolar -->
+            </select>
+          </div>
+          <button id="btnNewMagModal" onclick="openModal('newMagazineModal')" class="px-2 py-1 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition" title="Yeni Bir Okul ve Dergi Ekle">
+            <i class="ph ph-plus-circle text-xs"></i>
+            <span class="hidden sm:inline">+ Okul / Dergi Ekle</span>
+          </button>
+        </div>
+
+        <!-- 2. SAYI SEÇİCİ & DURUM ROZETİ -->
         <div class="flex items-center gap-2">
-          <!-- Sayı Seçici Dropdown -->
-          <select id="issueSelector" onchange="onIssueChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:outline-none focus:border-indigo-500 cursor-pointer">
+          <select id="issueSelector" onchange="onIssueChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-[11.5px] font-semibold text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer">
             <!-- JS ile doldurulur -->
           </select>
           <span id="issueStatusBadge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Yayında</span>
+          <span id="headerSchoolText" class="text-[11px] text-slate-400 hidden md:inline truncate max-w-[200px]">Ufuk Anadolu Lisesi</span>
         </div>
-        <p id="headerSchoolText" class="text-[11px] text-slate-400">Ufuk Anadolu Lisesi E-Dergi Stüdyosu</p>
       </div>
     </div>
 
@@ -494,10 +508,15 @@
         <!-- Yeni Editör Kodu Ekle Formu -->
         <div class="pt-3 border-t border-slate-800">
           <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-2.5">+ Yeni Editör Kodu Tanımla</h4>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-2">
             <input type="text" id="newKeyCode" placeholder="Kod (Örn: ED-BURAK)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white uppercase font-mono">
             <input type="text" id="newKeyName" placeholder="Ad Soyad (Örn: Burak Can)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input type="text" id="newKeyTitle" placeholder="Ünvan (Örn: 9-A Çizer)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+            <select id="newKeyMagazine" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+              <!-- JS ile dergiler listelenir -->
+            </select>
           </div>
           <div class="mt-2.5 flex justify-end">
             <button onclick="addNewEditorKey()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
@@ -564,6 +583,78 @@
         <div class="pt-2 flex justify-end gap-2">
           <button onclick="closeModal('magSettingsModal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium">İptal</button>
           <button onclick="saveMagSettings()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Kaydet ve Uygula</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: YENİ OKUL VE DERGİ EKLE (MULTI-TENANCY) -->
+  <div id="newMagazineModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-flip select-text">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
+          <i class="ph ph-buildings text-amber-400 text-lg"></i>
+          <span>Yeni Okul & Dergi Masası Başlat</span>
+        </h3>
+        <button onclick="closeModal('newMagazineModal')" class="text-slate-400 hover:text-white p-1">
+          <i class="ph ph-x text-xl"></i>
+        </button>
+      </div>
+      <div class="p-5 space-y-3.5">
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Farklı bir okul için yepyeni bir dergi ve bağımsız bir çalışma alanı oluşturun. Her okulun yayınları ve ekipleri ayrı olarak yönetilir.
+        </p>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Okul Adı (Resmi)</label>
+          <input type="text" id="newMagSchoolName" placeholder="Örn: Atatürk Fen Lisesi" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Dergi Adı</label>
+          <input type="text" id="newMagName" placeholder="Örn: Meşale E-Dergisi" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Yayın Periyodu</label>
+            <select id="newMagPeriod" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+              <option value="Aylık">Aylık</option>
+              <option value="2 Aylık">2 Aylık</option>
+              <option value="Dönemlik">Dönemlik</option>
+              <option value="Yıllık">Yıllık</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Tema Vurgu Rengi</label>
+            <select id="newMagColor" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
+              <option value="#4f46e5">🟣 İndigo</option>
+              <option value="#d97706">🟡 Kehribar</option>
+              <option value="#059669">🟢 Zümrüt</option>
+              <option value="#0284c7">🔵 Okyanus</option>
+              <option value="#e11d48">🔴 Yakut</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Kısa Açıklama / Slogan</label>
+          <input type="text" id="newMagDesc" placeholder="Örn: Bilim, Sanat ve Edebiyat Işığında..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div class="p-3 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center gap-3">
+          <input type="checkbox" id="newMagFirstIssueCheck" checked class="w-4 h-4 rounded text-indigo-600 cursor-pointer">
+          <label for="newMagFirstIssueCheck" class="text-xs text-slate-200 cursor-pointer">
+            <strong>1. Sayıyı Otomatik Oluştur</strong> (10 sayfalık K1-K4 Atatürk, Video, Röportaj ve Quiz şablonuyla hazır başlasın)
+          </label>
+        </div>
+
+        <div class="pt-2 flex justify-end gap-2">
+          <button onclick="closeModal('newMagazineModal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium">İptal</button>
+          <button onclick="createNewMagazineSubmit()" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center gap-1.5">
+            <i class="ph ph-check-circle text-base"></i>
+            <span>Dergiyi ve Okulu Kaydet</span>
+          </button>
         </div>
       </div>
     </div>
@@ -640,6 +731,6 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261027_03"></script>
+  <script src="/js/studio.js?v=20261027_04"></script>
 </body>
 </html>
