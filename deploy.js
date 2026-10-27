@@ -24,7 +24,7 @@ conn.on('ready', async () => {
     if (!fs.existsSync('uploads')) fs.mkdirSync('uploads', { recursive: true });
     if (!fs.existsSync('data')) fs.mkdirSync('data', { recursive: true });
     if (fs.existsSync('deploy.tar.gz')) fs.unlinkSync('deploy.tar.gz');
-    execSync('tar -czf deploy.tar.gz server.js package.json public data uploads', { stdio: 'inherit' });
+    execSync('tar -czf deploy.tar.gz .env server.js package.json public data uploads', { stdio: 'inherit' });
 
     // 2. SFTP ile Sunucuya Yükle
     conn.sftp((err, sftp) => {
@@ -86,7 +86,7 @@ server {
           rm -f /tmp/dergimiz.tar.gz &&
           cd ${config.remoteDir} &&
           npm install --omit=dev &&
-          (pm2 restart dergimiz || pm2 start server.js --name dergimiz) &&
+          (pm2 restart dergimiz --update-env || pm2 start server.js --name dergimiz) &&
           pm2 save &&
           echo '${confB64}' | base64 -d > /etc/nginx/sites-available/dergimiz &&
           ln -sf /etc/nginx/sites-available/dergimiz /etc/nginx/sites-enabled/dergimiz &&

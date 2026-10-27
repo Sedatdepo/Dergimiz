@@ -583,6 +583,71 @@ function createMaskClipPathForObject(obj, maskType, radiusPx) {
       top: 0
     });
   }
+  if (maskType === 'octagon') {
+    return new fabric.Polygon([
+      { x: -w * 0.22, y: -h / 2 },
+      { x: w * 0.22, y: -h / 2 },
+      { x: w / 2, y: -h * 0.22 },
+      { x: w / 2, y: h * 0.22 },
+      { x: w * 0.22, y: h / 2 },
+      { x: -w * 0.22, y: h / 2 },
+      { x: -w / 2, y: h * 0.22 },
+      { x: -w / 2, y: -h * 0.22 }
+    ], {
+      originX: 'center',
+      originY: 'center',
+      left: 0,
+      top: 0
+    });
+  }
+  if (maskType === 'star') {
+    const pts = [];
+    const outerR = r;
+    const innerR = r * 0.45;
+    for (let i = 0; i < 10; i++) {
+      const ang = (Math.PI / 5) * i - Math.PI / 2;
+      const radUse = i % 2 === 0 ? outerR : innerR;
+      pts.push({ x: Math.cos(ang) * radUse, y: Math.sin(ang) * radUse });
+    }
+    return new fabric.Polygon(pts, {
+      originX: 'center',
+      originY: 'center',
+      left: 0,
+      top: 0
+    });
+  }
+  if (maskType === 'arch') {
+    const pts = [];
+    for (let i = 0; i <= 18; i++) {
+      const ang = Math.PI + (Math.PI * i) / 18;
+      pts.push({
+        x: Math.cos(ang) * (w / 2),
+        y: -h * 0.05 + Math.sin(ang) * (h * 0.45)
+      });
+    }
+    pts.push({ x: w / 2, y: h / 2 });
+    pts.push({ x: -w / 2, y: h / 2 });
+    return new fabric.Polygon(pts, {
+      originX: 'center',
+      originY: 'center',
+      left: 0,
+      top: 0
+    });
+  }
+  if (maskType === 'rounded') {
+    const scaleX = obj.scaleX || 1;
+    const scaleY = obj.scaleY || 1;
+    return new fabric.Rect({
+      width: w,
+      height: h,
+      rx: 36 / scaleX,
+      ry: 36 / scaleY,
+      originX: 'center',
+      originY: 'center',
+      left: 0,
+      top: 0
+    });
+  }
 
   // Normal dikdörtgen + köşe yuvarlatma (cornerRadiusPx)
   const rad = Number(radiusPx) || 0;
@@ -832,10 +897,12 @@ function buildFabricObjectsForTemplatePage(page, pageIndex, fCanvas, onComplete)
   function checkDone() {
     if (pendingImages <= 0 && !finished) {
       finished = true;
-      // Ayrıca varsa eski serbest page.elements dizisindeki öğeleri de ekle
-      if (Array.isArray(page.elements) && page.elements.length > 0 && !page._elementsMigrated) {
+      // Ayrıca varsa eski serbest page.elements dizisindeki öğeleri de ekle (İçindekiler sayfasındaki eski 1- 2- yer tutucularını hariç tut)
+      if (page.type !== 'toc' && Array.isArray(page.elements) && page.elements.length > 0 && !page._elementsMigrated) {
         page._elementsMigrated = true;
         page.elements.forEach(el => {
+          const cleanTxt = (el.content || '').replace(/<[^>]+>/g, '');
+          if (cleanTxt.includes('1-') && cleanTxt.includes('2-')) return;
           if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
             const lx = Math.round((Number(el.x) || 10) / 100 * FABRIC_W);
             const ly = Math.round((Number(el.y) || 10) / 100 * FABRIC_H);
@@ -1111,30 +1178,42 @@ function buildFabricObjectsForTemplatePage(page, pageIndex, fCanvas, onComplete)
 
     // İçindekiler Kartı
     addFabRect(fCanvas, {
-      name: 'İçindekiler Çerçevesi', left: 32, top: 305, width: 486, height: 405, rx: 16, fill: '#ffffff', stroke: '#e2e8f0', strokeWidth: 1.5, shadow: true
+      name: 'İçindekiler Çerçevesi', left: 32, top: 298, width: 486, height: 422, rx: 16, fill: '#ffffff', stroke: '#e2e8f0', strokeWidth: 1.5, shadow: true
     });
     addFabText(fCanvas, 'BU SAYIDA NELER VAR? (İÇİNDEKİLER)', {
-      name: 'İçindekiler Başlığı', left: 52, top: 324, width: 446, fontSize: 13, fontFamily: 'Inter', fontWeight: 'bold', fill: accent
+      name: 'İçindekiler Başlığı', left: 50, top: 314, width: 446, fontSize: 12.5, fontFamily: 'Inter', fontWeight: 'bold', fill: accent
     });
 
     const pagesList = (window.magazineData && magazineData.pages) ? magazineData.pages : [];
-    pagesList.slice(0, 8).forEach((pItem, idx) => {
+    const maxItems = Math.min(pagesList.length, 12);
+    const totalRows = Math.max(1, Math.ceil(maxItems / 2));
+    const cardH = totalRows > 5 ? 54 : 64;
+    const rowStep = totalRows > 5 ? 61 : 72;
+
+    pagesList.slice(0, maxItems).forEach((pItem, idx) => {
       const col = idx % 2;
       const row = Math.floor(idx / 2);
-      const bx = 52 + col * 228;
-      const by = 360 + row * 78;
+      const bx = 48 + col * 230;
+      const by = 342 + row * rowStep;
+      const rawTitle = pItem.navTitle || pItem.title || pItem.mainHeadline || pItem.headerText || ('Sayfa ' + (idx + 1));
+      const cleanTitle = String(rawTitle).replace(/^\d+\s*[•\-|:]\s*/, '').trim();
+      const subAuthor = pItem.author || pItem.interviewee || pItem.editorName || (pItem.isFixedBackbone ? 'Resmi Bölüm' : 'Özel İçerik');
+
       addFabRect(fCanvas, {
-        name: `Sayfa ${idx + 1} Kutu`, left: bx, top: by, width: 214, height: 62, rx: 10, fill: '#f8fafc', stroke: '#e2e8f0', strokeWidth: 1,
+        name: `Sayfa ${idx + 1} Kutu`, left: bx, top: by, width: 220, height: cardH, rx: 10, fill: '#f8fafc', stroke: '#e2e8f0', strokeWidth: 1,
         actionType: 'gotoPage', actionValue: String(idx + 1)
       });
       addFabRect(fCanvas, {
-        name: `Numara Rozeti ${idx + 1}`, left: bx + 10, top: by + 15, width: 32, height: 32, rx: 8, fill: accent
+        name: `Numara Rozeti ${idx + 1}`, left: bx + 8, top: by + Math.round((cardH - 30) / 2), width: 30, height: 30, rx: 8, fill: accent
       });
       addFabText(fCanvas, String(idx + 1).padStart(2, '0'), {
-        name: `Sayfa No ${idx + 1}`, left: bx + 10, top: by + 23, width: 32, fontSize: 13, fontFamily: 'Inter', fontWeight: 'bold', textAlign: 'center', fill: '#ffffff'
+        name: `Sayfa No ${idx + 1}`, left: bx + 8, top: by + Math.round((cardH - 30) / 2) + 8, width: 30, fontSize: 12, fontFamily: 'Inter', fontWeight: 'bold', textAlign: 'center', fill: '#ffffff'
       });
-      addFabText(fCanvas, pItem.navTitle || ('Sayfa ' + (idx + 1)), {
-        name: `Bölüm Başlığı ${idx + 1}`, left: bx + 52, top: by + 22, width: 150, fontSize: 12.5, fontFamily: 'Inter', fontWeight: 'bold', fill: '#1e293b'
+      addFabText(fCanvas, cleanTitle, {
+        name: `Bölüm Başlığı ${idx + 1}`, left: bx + 46, top: by + 10, width: 164, fontSize: 11.5, fontFamily: 'Inter', fontWeight: 'bold', fill: '#0f172a', lineHeight: 1.15
+      });
+      addFabText(fCanvas, String(subAuthor), {
+        name: `Bölüm Yazarı ${idx + 1}`, left: bx + 46, top: by + cardH - 18, width: 164, fontSize: 9.5, fontFamily: 'Inter', fill: '#64748b'
       });
     });
 

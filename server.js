@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -729,8 +730,237 @@ app.post('/api/upload', (req, res) => {
 });
 
 // ==========================================
-// SAYFA YÖNLENDİRMELERİ (SPA & ROUTING)
+// FAZ 9: AKILLI AI MOTORU (ANA MOTOR: DEEPSEEK + GÖRSEL MOTOR: GEMINI VISION)
 // ==========================================
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || process.env.AI_API_KEY || '';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY || '';
+
+async function callDeepSeekAI(systemPrompt, userPrompt, jsonMode = true) {
+  if (!DEEPSEEK_API_KEY) throw new Error('DEEPSEEK_API_KEY tanımlı değil.');
+  const body = {
+    model: 'deepseek-chat',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    temperature: 0.35,
+    max_tokens: 1800
+  };
+  if (jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
+  const resp = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`DeepSeek API Hatası (${resp.status}): ${errText}`);
+  }
+  const data = await resp.json();
+  const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  return content || '';
+}
+
+async function resolveImageBase64(imageUrl) {
+  if (!imageUrl) return null;
+  if (imageUrl.startsWith('data:image/')) {
+    const parts = imageUrl.split(',');
+    const mimeMatch = parts[0].match(/data:(image\/[a-zA-Z0-9+.-]+);base64/);
+    return { mimeType: mimeMatch ? mimeMatch[1] : 'image/jpeg', base64: parts[1] };
+  }
+  if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('/img/')) {
+    const localPath = imageUrl.startsWith('/uploads/')
+      ? path.join(UPLOADS_DIR, imageUrl.replace('/uploads/', ''))
+      : path.join(PUBLIC_DIR, imageUrl);
+    if (fs.existsSync(localPath)) {
+      const ext = path.extname(localPath).toLowerCase();
+      if (ext === '.svg') return null;
+      const mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+      const buf = fs.readFileSync(localPath);
+      return { mimeType, base64: buf.toString('base64') };
+    }
+  }
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    const resp = await fetch(imageUrl);
+    if (!resp.ok) return null;
+    const contentType = resp.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await resp.arrayBuffer();
+    return {
+      mimeType: contentType.split(';')[0],
+      base64: Buffer.from(arrayBuffer).toString('base64')
+    };
+  }
+  return null;
+}
+
+async function callGeminiVisionAI(promptText, imageUrl) {
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY tanımlı değil.');
+  const imgData = await resolveImageBase64(imageUrl);
+  const parts = [{ text: promptText }];
+  if (imgData && imgData.base64) {
+    parts.push({
+      inline_data: {
+        mime_type: imgData.mimeType,
+        data: imgData.base64
+      }
+    });
+  }
+  const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+  let lastError = null;
+  for (const model of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: {
+            temperature: 0.4,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+      if (!resp.ok) {
+        lastError = await resp.text();
+        continue;
+      }
+      const data = await resp.json();
+      const text = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0] && data.candidates[0].content.parts[0].text;
+      if (text) return text;
+    } catch (e) {
+      lastError = e.message;
+    }
+  }
+  throw new Error(lastError || 'Gemini Vision yanıt vermedi.');
+}
+
+// Seçili Öğe Odaklı Akıllı AI Komut Endpoint'i
+app.post('/api/ai/magic-command', async (req, res) => {
+  const { prompt, selectedObject, mode } = req.body || {};
+  if (!prompt) return res.status(400).json({ error: 'Komut boş olamaz.' });
+
+  const obj = selectedObject || { type: 'none' };
+  const cmdLower = String(prompt).toLowerCase();
+
+  // Sadece Görsel (Gemini Vision) gerektiren durum kontrolü:
+  const isVisionRequest =
+    mode === 'vision' ||
+    (obj.type === 'image' && /(analiz|ne var|betimle|açıklama yaz|altyazı|caption|manşet öner|başlık öner|ocr|görseldeki yazı|fotoğraftaki yazı)/i.test(cmdLower));
+
+  if (isVisionRequest && obj.src) {
+    try {
+      const visionPrompt = `Sen bir okul ve kültür dergisi Görsel Sanat Yönetmenisin (Gemini Vision).
+Seçili görseli incele ve kullanıcının şu isteğini yerine getir: "${prompt}".
+Lütfen SADECE aşağıdaki JSON formatında yanıt ver:
+{
+  "engine": "gemini-2.5-flash-vision",
+  "summary": "Yapılan görsel analizin özeti",
+  "headline": "Fotoğrafa uygun çarpıcı dergi başlığı",
+  "caption": "Fotoğrafın altına eklenecek edebi/haberci alt yazı",
+  "ocrText": "Görselin içinde okunan metin (varsa)",
+  "addCaptionToCanvas": true,
+  "properties": {}
+}`;
+      const rawVision = await callGeminiVisionAI(visionPrompt, obj.src);
+      const parsedVision = JSON.parse(rawVision);
+      return res.json({ success: true, engine: 'Gemini 2.5 Flash (Vision)', result: parsedVision });
+    } catch (visionErr) {
+      console.warn('Gemini Vision fallback -> DeepSeek:', visionErr.message);
+    }
+  }
+
+  // ANA MOTOR: DeepSeek (Tüm Metin, İmla/Noktalama, Resmi/Edebi Dil, İçerik ve Doğal Dil Tasarım Komutları)
+  try {
+    const sysPrompt = `Sen Dergimiz Profesyonel E-Dergi Stüdyosu'nun ANA YAPAY ZEKA MOTORUSUN (DeepSeek).
+Kullanıcı dergi tuvalinde (Fabric.js) bir öğe seçti ve Türkçe bir komut verdi.
+Seçili öğenin mevcut durumu:
+${JSON.stringify(obj, null, 2)}
+
+GÖREVİN:
+Kullanıcının komutunu analiz et ve seçili öğeye uygulanacak değişiklikleri SADECE geçerli bir JSON nesnesi olarak döndür:
+{
+  "engine": "deepseek-chat",
+  "summary": "Kullanıcıya gösterilecek kısa Türkçe işlem özeti (Örn: 'Metin imla hataları düzeltildi ve resmi dile çevrildi' veya 'Görsel siyah-beyaz yapıldı ve sağa döndürüldü')",
+  "properties": {
+    // Sadece değişmesi gereken Fabric.js / özel özellikleri yaz:
+    // Metin (textbox) için:
+    // "text": "Yeni veya düzeltilmiş metin (girinti istendiyse paragraf başlarına '    ' ekle)",
+    // "textAlign": "left" | "center" | "right" | "justify",
+    // "lineHeight": 1.15 - 2.4 arası sayı,
+    // "charSpacing": -50 ile 400 arası sayı (100 = 0.1em),
+    // "fontSize": sayı,
+    // "fontWeight": "normal" | "bold" | "800",
+    // "fontStyle": "normal" | "italic",
+    // "fill": "#hexRenk",
+    // "backgroundColor": "#hexRenk",
+    // Görsel (image) veya Şekil için:
+    // "angle": açı (0-360),
+    // "angleDelta": mevcut açıya eklenecek derece (örn: 90, -90, 15, -15),
+    // "flipX": true | false (yatay aynala),
+    // "flipY": true | false (dikey aynala),
+    // "filterPreset": "none" | "grayscale" | "sepia" | "vintage" | "kodachrome" | "technicolor" | "polaroid" | "highcontrast",
+    // "filterBrightness": -0.5 ile 0.5 arası sayı,
+    // "filterContrast": -0.5 ile 0.5 arası sayı,
+    // "filterSaturation": -1 ile 1 arası sayı,
+    // "maskType": "none" | "circle" | "rounded" | "arch" | "diamond" | "hexagon" | "star" | "polaroid" | "phone" | "monitor" | "tablet",
+    // "cornerRadiusPx": 0 - 120 arası sayı,
+    // "opacity": 0.1 - 1.0 arası sayı,
+    // "alignOnPage": "center-h" | "center-v" | "center-both" | "left" | "right"
+  },
+  "suggestedHeadlines": []
+}`;
+
+    const rawDeepSeek = await callDeepSeekAI(sysPrompt, `Kullanıcı Komutu: "${prompt}"`, true);
+    const parsed = JSON.parse(rawDeepSeek);
+    return res.json({
+      success: true,
+      engine: 'DeepSeek (deepseek-chat)',
+      result: parsed
+    });
+  } catch (err) {
+    console.error('DeepSeek AI Hatası:', err.message);
+    return res.json({
+      success: true,
+      engine: 'DeepSeek Yerel Akıllı Motor',
+      fallback: true,
+      errorInfo: err.message
+    });
+  }
+});
+
+// DeepSeek ile Tam Dergi İçeriği / Makale / Röportaj / Şiir Üretimi
+app.post('/api/ai/generate-content', async (req, res) => {
+  const { topic, contentType, tone } = req.body || {};
+  if (!topic) return res.status(400).json({ error: 'Konu başlığı gerekli.' });
+
+  try {
+    const sysPrompt = `Sen Türkiye'deki okul ve kültür dergileri için içerik üreten başeditörsün (DeepSeek Ana Motor).
+Verilen konuya ve türe göre zengin, akıcı, imla kurallarına tam uygun Türkçe dergi içeriği üret.
+SADECE aşağıdaki JSON yapısında yanıt ver:
+{
+  "title": "Çarpıcı Ana Başlık",
+  "spot": "1-2 cümlelik etkileyici alt başlık / spot metni",
+  "author": "Önerilen Yazar / Kulüp Adı",
+  "content": "En az 2-3 paragraflık zengin dergi metni (veya şiir/röportaj metni)",
+  "pullQuote": "Sayfa ortasında büyük tırnak içinde vurgulanacak vurucu alıntı cümlesi",
+  "headlines": ["Alternatif Başlık 1", "Alternatif Başlık 2", "Alternatif Başlık 3"]
+}`;
+    const userMsg = `Konu: "${topic}" | Tür: "${contentType || 'Makale'}" | Üslup: "${tone || 'Edebi ve Akıcı'}"`;
+    const raw = await callDeepSeekAI(sysPrompt, userMsg, true);
+    const data = JSON.parse(raw);
+    return res.json({ success: true, engine: 'DeepSeek (deepseek-chat)', data });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 app.get('/oku/:id', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'oku.html'));
 });

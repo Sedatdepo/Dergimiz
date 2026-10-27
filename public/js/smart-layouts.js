@@ -703,17 +703,19 @@ window.buildFabricObjectsForTemplatePage = function(page, pageIndex, fCanvas, on
         name: 'İçindekiler Başlığı', left: 240, top: 32, width: 280, fontSize: 30, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: '#0f172a'
       });
       addFabRect(fCanvas, { name: 'Başlık Çizgisi', left: 240, top: 76, width: 280, height: 2.5, fill: accent });
-      pagesList.slice(0, 7).forEach((pItem, idx) => {
-        const ry = 96 + idx * 86;
-        addFabRect(fCanvas, { name: `Satır Kartı ${idx + 1}`, left: 240, top: ry, width: 280, height: 74, rx: 12, fill: '#f8fafc', stroke: '#e2e8f0', strokeWidth: 1, actionType: 'gotoPage', actionValue: String(idx + 1) });
+      pagesList.slice(0, 10).forEach((pItem, idx) => {
+        const ry = 88 + idx * 63;
+        const cleanTitle = String(pItem.navTitle || pItem.title || ('Bölüm ' + (idx + 1))).replace(/^\d+\s*[•\-|:]\s*/, '').trim();
+        const subAuth = pItem.author || pItem.interviewee || pItem.editorName || ('Sayfa ' + (idx + 1) + ' • Özel İçerik');
+        addFabRect(fCanvas, { name: `Satır Kartı ${idx + 1}`, left: 240, top: ry, width: 280, height: 55, rx: 10, fill: '#f8fafc', stroke: '#e2e8f0', strokeWidth: 1, actionType: 'gotoPage', actionValue: String(idx + 1) });
         addFabText(fCanvas, String(idx + 1).padStart(2, '0'), {
-          name: `Dev Numara ${idx + 1}`, left: 252, top: ry + 14, width: 54, fontSize: 28, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: accent
+          name: `Dev Numara ${idx + 1}`, left: 250, top: ry + 11, width: 46, fontSize: 22, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: accent
         });
-        addFabText(fCanvas, pItem.navTitle || ('Bölüm ' + (idx + 1)), {
-          name: `Bölüm Adı ${idx + 1}`, left: 312, top: ry + 18, width: 196, fontSize: 13.5, fontFamily: 'Inter', fontWeight: 'bold', fill: '#0f172a'
+        addFabText(fCanvas, cleanTitle, {
+          name: `Bölüm Adı ${idx + 1}`, left: 300, top: ry + 10, width: 208, fontSize: 12, fontFamily: 'Inter', fontWeight: 'bold', fill: '#0f172a'
         });
-        addFabText(fCanvas, 'Sayfa ' + (idx + 1) + ' • Özel İçerik', {
-          name: `Bölüm Alt Yazı ${idx + 1}`, left: 312, top: ry + 42, width: 196, fontSize: 10.5, fontFamily: 'Inter', fill: '#64748b'
+        addFabText(fCanvas, String(subAuth), {
+          name: `Bölüm Alt Yazı ${idx + 1}`, left: 300, top: ry + 32, width: 208, fontSize: 9.5, fontFamily: 'Inter', fill: '#64748b'
         });
       });
       addStandardPageFooter(fCanvas, page, pageIndex);
@@ -761,22 +763,30 @@ window.buildFabricObjectsForTemplatePage = function(page, pageIndex, fCanvas, on
       name: 'Editör Notu', fieldKey: 'editorText', left: 144, top: 94, width: 356, fontSize: 12.5, fontFamily: 'Inter', fill: isDarkToc ? '#cbd5e1' : '#334155', lineHeight: 1.45
     });
 
-    pagesList.slice(0, 8).forEach((pItem, idx) => {
+    const maxToc = Math.min(pagesList.length, 10);
+    pagesList.slice(0, maxToc).forEach((pItem, idx) => {
       const col = idx % 2;
       const row = Math.floor(idx / 2);
       const bx = 32 + col * 248;
-      const by = 206 + row * 124;
+      const by = 200 + row * 102;
+      const cleanTitle = String(pItem.navTitle || pItem.title || ('Sayfa ' + (idx + 1))).replace(/^\d+\s*[•\-|:]\s*/, '').trim();
+      const subAuth = pItem.author || pItem.interviewee || pItem.editorName || '';
       addFabRect(fCanvas, {
-        name: `Fihrist Kartı ${idx + 1}`, left: bx, top: by, width: 238, height: 110, rx: 14,
+        name: `Fihrist Kartı ${idx + 1}`, left: bx, top: by, width: 238, height: 90, rx: 14,
         fill: isDarkToc ? '#1e293b' : '#ffffff', stroke: isDarkToc ? '#334155' : '#cbd5e1', strokeWidth: 1.5, shadow: true,
         actionType: 'gotoPage', actionValue: String(idx + 1)
       });
       addFabText(fCanvas, String(idx + 1).padStart(2, '0'), {
-        name: `Sayfa Rakamı ${idx + 1}`, left: bx + 16, top: by + 16, width: 65, fontSize: 34, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: isDarkToc ? '#fbbf24' : accent
+        name: `Sayfa Rakamı ${idx + 1}`, left: bx + 14, top: by + 12, width: 55, fontSize: 28, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: isDarkToc ? '#fbbf24' : accent
       });
-      addFabText(fCanvas, pItem.navTitle || ('Sayfa ' + (idx + 1)), {
-        name: `Bölüm Başlığı ${idx + 1}`, left: bx + 16, top: by + 62, width: 206, fontSize: 13.5, fontFamily: 'Inter', fontWeight: 'bold', fill: isDarkToc ? '#ffffff' : '#0f172a'
+      addFabText(fCanvas, cleanTitle, {
+        name: `Bölüm Başlığı ${idx + 1}`, left: bx + 14, top: by + 48, width: 210, fontSize: 12, fontFamily: 'Inter', fontWeight: 'bold', fill: isDarkToc ? '#ffffff' : '#0f172a'
       });
+      if (subAuth) {
+        addFabText(fCanvas, String(subAuth), {
+          name: `Bölüm Yazarı ${idx + 1}`, left: bx + 72, top: by + 20, width: 150, fontSize: 9.5, fontFamily: 'Inter', fill: isDarkToc ? '#94a3b8' : '#64748b'
+        });
+      }
     });
     addStandardPageFooter(fCanvas, page, pageIndex);
     checkDone();
