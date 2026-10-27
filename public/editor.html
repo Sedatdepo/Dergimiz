@@ -12,7 +12,18 @@
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <!-- Fabric.js 5.3.0 Profesyonel Tuval Motoru -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20261027_12">
+  <link rel="stylesheet" href="/css/style.css?v=20261027_16">
+  <style>
+    select {
+      color-scheme: dark;
+    }
+    select option,
+    select optgroup {
+      background-color: #0f172a !important;
+      color: #f8fafc !important;
+      padding: 6px 10px;
+    }
+  </style>
   <script>
     tailwind.config = {
       theme: {
@@ -54,7 +65,7 @@
 
       <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
         <i class="ph ph-Notebook text-amber-400 text-xs"></i>
-        <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-transparent border-0 text-xs font-bold text-white focus:outline-none cursor-pointer max-w-[190px]">
+        <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-slate-900 text-white border-0 text-xs font-bold focus:outline-none cursor-pointer max-w-[190px]">
           <!-- JS ile dolar -->
         </select>
       </div>
@@ -89,7 +100,7 @@
         <button onclick="stepCanvasZoom(-15)" class="w-6 h-6 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs" title="Uzaklaştır (-)">
           <i class="ph ph-minus"></i>
         </button>
-        <select id="zoomSelector" onchange="setCanvasZoom(Number(this.value))" class="bg-transparent text-xs font-bold text-slate-200 focus:outline-none cursor-pointer px-0.5">
+        <select id="zoomSelector" onchange="setCanvasZoom(Number(this.value))" class="bg-slate-900 text-xs font-bold text-slate-200 focus:outline-none cursor-pointer px-0.5">
           <option value="50">50%</option>
           <option value="65">65%</option>
           <option value="75">75%</option>
