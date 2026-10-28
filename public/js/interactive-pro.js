@@ -1693,9 +1693,10 @@ window.toggleMasterPageForCurrentPage = function() {
   showToast(page.showMasterPage ? '📐 Kalıp Sayfa (Üst Bilgi & Sayfa No) açıldı.' : '📐 Kalıp Sayfa bu sayfa için gizlendi.');
 };
 
-window.renderMasterPageOverlay = function() {
-  const fCanvas = getCurrentFabricCanvas();
-  const page = magazineData?.pages?.[selectedEditIndex];
+window.renderMasterPageOverlay = function(optCanvas, optPageIndex) {
+  const fCanvas = optCanvas || getCurrentFabricCanvas();
+  const pIdx = (typeof optPageIndex === 'number') ? optPageIndex : selectedEditIndex;
+  const page = magazineData?.pages?.[pIdx];
   if (!fCanvas || !page) return;
 
   // Önceki master nesnelerini temizle
@@ -1708,7 +1709,7 @@ window.renderMasterPageOverlay = function() {
     return;
   }
 
-  const pNum = selectedEditIndex + 1;
+  const pNum = pIdx + 1;
   const magTitle = (magazineData.schoolName || 'DERGİMİZ').toUpperCase();
   const issueInfo = magazineData.issueMonth || magazineData.issueInfo || 'SAYI 01';
 

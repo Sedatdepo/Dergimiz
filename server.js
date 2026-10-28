@@ -800,18 +800,16 @@ async function callGeminiTextAI(systemPrompt, userPrompt, jsonMode = true) {
     for (const model of models) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-        const contents = [];
-        if (systemPrompt) {
-          contents.push({ parts: [{ text: systemPrompt }] });
-        }
-        contents.push({ parts: [{ text: userPrompt }] });
         const bodyObj = {
-          contents,
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
           generationConfig: {
             temperature: 0.2,
-            maxOutputTokens: 2048
+            maxOutputTokens: 4096
           }
         };
+        if (systemPrompt) {
+          bodyObj.system_instruction = { parts: [{ text: systemPrompt }] };
+        }
         if (jsonMode) {
           bodyObj.generationConfig.responseMimeType = "application/json";
         }
@@ -824,6 +822,9 @@ async function callGeminiTextAI(systemPrompt, userPrompt, jsonMode = true) {
           const data = await resp.json();
           const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (txt) return txt;
+        } else {
+          const errBody = await resp.text();
+          console.warn(`Gemini (${model}) API uyarısı (${resp.status}):`, errBody.substring(0, 150));
         }
       } catch (err) {
         console.warn(`Gemini (${model}) metin hatası:`, err.message);
