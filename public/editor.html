@@ -1235,62 +1235,288 @@
     </div>
   </div>
 
-  <!-- MODAL 8: AI METİN & TASARIM ASİSTANI (DEEPSEEK + GEMINI VISION) -->
-  <div id="aiHelperModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl animate-flip select-text">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/80 shrink-0">
-        <h3 class="font-display font-bold text-base text-white flex items-center gap-2">
-          <i class="ph ph-sparkle text-amber-400 text-xl"></i>
-          <span>Akıllı Yapay Zekâ Asistanı</span>
-        </h3>
-        <button onclick="closeModal('aiHelperModal')" class="text-slate-400 hover:text-white p-1">
+  <!-- MODAL 8: DERGİMİZ 20 BÜYÜK YAYINCILIK GÜCÜ (GÖRSEL AI STÜDYOSU + EDİTORYAL MASASI + PREFLIGHT) -->
+  <div id="aiHelperModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden shadow-2xl animate-flip select-text">
+      <!-- Modal Üst Başlık & Sekmeler -->
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/90 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-lg">
+            <i class="ph ph-sparkle text-lg"></i>
+          </div>
+          <div>
+            <h3 class="font-display font-bold text-sm text-white flex items-center gap-1.5">
+              <span>Akıllı Yayıncılık & AI Stüdyosu</span>
+              <span class="text-[9.5px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-bold">20 Yetenek</span>
+            </h3>
+            <p class="text-[10.5px] text-slate-400">DeepSeek Ana Motor + Gemini 2.5 Flash Görsel Stüdyosu</p>
+          </div>
+        </div>
+        <button onclick="closeModal('aiHelperModal')" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition">
           <i class="ph ph-x text-xl"></i>
         </button>
       </div>
+
+      <!-- 3 Ana Sekme Butonu -->
+      <div class="flex border-b border-slate-800 bg-slate-950/60 p-1.5 gap-1 shrink-0 text-xs font-bold">
+        <button id="aiTabBtn_visual" onclick="switchAiModalTab('visual')" class="flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition bg-amber-500/20 text-amber-300 border border-amber-500/40">
+          <i class="ph ph-paint-brush-broad text-base"></i> Görsel AI Stüdyosu
+        </button>
+        <button id="aiTabBtn_editorial" onclick="switchAiModalTab('editorial')" class="flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <i class="ph ph-article text-base"></i> Editoryal & Redaksiyon
+        </button>
+        <button id="aiTabBtn_preflight" onclick="switchAiModalTab('preflight')" class="flex-1 py-2 px-3 rounded-xl flex items-center justify-center gap-1.5 transition text-slate-400 hover:text-white hover:bg-slate-800/60">
+          <i class="ph ph-printer text-base"></i> Dizgi & Baskı Kontrolü
+        </button>
+      </div>
+
+      <!-- Modal İçeriği (Sekmeler) -->
       <div class="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
-        <!-- 1. Seçili Öğeye Komut Verme Bölümü -->
-        <div id="aiModalTargetSection" class="bg-indigo-950/40 border border-indigo-500/40 rounded-2xl p-3.5 space-y-2.5">
-          <div class="flex items-center justify-between">
-            <span class="font-bold text-amber-300 flex items-center gap-1.5">
-              <i class="ph ph-magic-wand text-base"></i> Seçili Tuval Öğesine Komut Ver
-            </span>
-            <span id="aiModalElementBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 font-mono font-bold">Sayfa</span>
-          </div>
-          <div class="flex gap-1.5">
-            <input id="aiModalCustomCommand" type="text" placeholder="Örn: sağa çevir, siyah beyaz yap, ortala, imla hatalarını düzelt, resmi dile çevir..." class="flex-1 bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
-            <button onclick="runAiModalCommand()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 shrink-0 transition shadow">
-              <i class="ph ph-sparkle"></i> Uygula
+        
+        <!-- 1. SEKME: GÖRSEL AI STÜDYOSU -->
+        <div id="aiTabPane_visual" class="space-y-4">
+          <!-- A. Metinden Sıfırdan Görsel Üretme -->
+          <div class="bg-gradient-to-br from-amber-950/30 via-slate-950 to-slate-950 p-4 rounded-2xl border border-amber-500/30 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-amber-300 flex items-center gap-1.5">
+                <i class="ph ph-magic-wand text-base"></i> 1. Metinden Görsel Üret (Text-to-Image / Imagen & Gemini)
+              </span>
+              <span class="text-[10px] text-slate-400">1024x1024 HD</span>
+            </div>
+            <textarea id="aiGenPromptInput" rows="2" placeholder="Örn: TÜBİTAK bilim fuarında robot projesini tanıtan Türk lise öğrencileri, fotogerçekçi, yüksek kaliteli dergi kapağı..." class="w-full bg-slate-900 border border-slate-700/80 rounded-xl p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400"></textarea>
+            
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div>
+                <label class="block text-slate-400 font-semibold mb-1">Görsel Stili:</label>
+                <select id="aiGenStyleSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                  <option value="photo">Fotogerçekçi Dergi Fotoğrafı</option>
+                  <option value="illustration">Modern Editoryal İllüstrasyon</option>
+                  <option value="watercolor">Suluboya Edebi Resim</option>
+                  <option value="sketch">Karakalem / Eskiz Çizim</option>
+                  <option value="vintage">1920'ler Tarihi Nostaljik Arşiv</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-400 font-semibold mb-1">En/Boy Oranı:</label>
+                <select id="aiGenRatioSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                  <option value="1:1">Kare (1:1 - Galeri & Izgara)</option>
+                  <option value="portrait">Dikey (9:16 - Dergi Kapağı)</option>
+                  <option value="16:9">Yatay (16:9 - Çift Sayfa Manşet)</option>
+                </select>
+              </div>
+            </div>
+
+            <button onclick="triggerAiImageGenerationModal()" id="btnGenerateAiImg" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 transition shadow-lg">
+              <i class="ph ph-sparkle text-sm"></i> Görseli Üret ve Sayfaya / Seçili Kutuya Yerleştir
             </button>
           </div>
-          <div id="aiModalQuickChips" class="flex flex-wrap gap-1 pt-1">
-            <!-- JS ile seçili öğeye göre butonlar dolar -->
+
+          <!-- B. Seçili Görsele Uygulanacak Hızlı AI Araçları (9 Büyük Yetenek) -->
+          <div class="space-y-2">
+            <span class="font-bold text-slate-200 block text-xs">Seçili Fotoğraf Üzerinde Tek Tıkla AI İşlemleri:</span>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              <button onclick="runAiBackgroundRemoval()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
+                <span class="font-bold text-sky-300 flex items-center gap-1"><i class="ph ph-scissors"></i> 2. Arka Planı Kaldır</span>
+                <span class="text-[9.5px] text-slate-400">Şeffaf dekupe PNG</span>
+              </button>
+              <button onclick="runAiSmartFaceCentering()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
+                <span class="font-bold text-amber-300 flex items-center gap-1"><i class="ph ph-crosshair"></i> 3. Yüzü / Özneyi Odakla</span>
+                <span class="text-[9.5px] text-slate-400">Kafaların kesilmesini önle</span>
+              </button>
+              <button onclick="runAiPaletteHarmonizer()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
+                <span class="font-bold text-emerald-300 flex items-center gap-1"><i class="ph ph-palette"></i> 4. Renk Paleti Çıkar</span>
+                <span class="text-[9.5px] text-slate-400">Sayfa başlıklarına giydir</span>
+              </button>
+              <button onclick="runAiEnhanceSharpener()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
+                <span class="font-bold text-purple-300 flex items-center gap-1"><i class="ph ph-sparkle"></i> 5. Netleştir & İyileştir</span>
+                <span class="text-[9.5px] text-slate-400">Düşük kaliteyi baskıya hazırla</span>
+              </button>
+              <button onclick="runAiTextBehindSubject()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
+                <span class="font-bold text-rose-300 flex items-center gap-1"><i class="ph ph-layers"></i> 6. Metni Arkaya Al</span>
+                <span class="text-[9.5px] text-slate-400">TIME/Vogue derinlik efekti</span>
+              </button>
+              <button onclick="runAiVisionOcr()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
+                <span class="font-bold text-yellow-300 flex items-center gap-1"><i class="ph ph-text-t"></i> 7. Görseldeki Yazıyı Oku</span>
+                <span class="text-[9.5px] text-slate-400">OCR ile tuvale metin yap</span>
+              </button>
+            </div>
+
+            <!-- Stil Filtreleri -->
+            <div class="pt-2 border-t border-slate-800">
+              <span class="text-[11px] font-bold text-slate-400 block mb-1.5">8. Sanat & Edebi İllüstrasyon Filtreleri:</span>
+              <div class="flex flex-wrap gap-1.5">
+                <button onclick="applyAiStyleFilter('sketch')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">✏️ Karakalem</button>
+                <button onclick="applyAiStyleFilter('watercolor')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🎨 Suluboya</button>
+                <button onclick="applyAiStyleFilter('vintage1923')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🏛️ 1923 Sepya Arşiv</button>
+                <button onclick="applyAiStyleFilter('popart')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">💥 Pop-Art Çizgi</button>
+                <button onclick="applyAiStyleFilter('dramaticBw')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">📷 Dramatik S&B</button>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 2. Sıfırdan Dergi İçeriği Üretme (DeepSeek Ana Motor) -->
-        <div class="space-y-2">
-          <span class="font-bold text-slate-200 block text-xs">Yeni Dergi İçeriği & Makale Üret (DeepSeek):</span>
-          <div class="grid grid-cols-2 gap-2">
-            <button onclick="generateAiSnippet('headline')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-              ✨ Etkileyici Kapak Manşeti
-            </button>
-            <button onclick="generateAiSnippet('editorial')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-              ✍️ Editörden Sunuş Yazısı
-            </button>
-            <button onclick="generateAiSnippet('interview')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-              🎙️ 3 Röportaj Sorusu Üret
-            </button>
-            <button onclick="generateAiSnippet('article')" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs text-white font-semibold transition">
-              📰 Bilim & Kültür Makalesi
-            </button>
+        <!-- 2. SEKME: EDİTORYAL & REDAKSİYON MASASI -->
+        <div id="aiTabPane_editorial" class="hidden space-y-4">
+          <!-- A. Tür Bazlı İçerik Masası -->
+          <div class="bg-indigo-950/30 border border-indigo-500/30 p-3.5 rounded-2xl space-y-2.5">
+            <span class="font-bold text-indigo-300 block text-xs flex items-center gap-1.5">
+              <i class="ph ph-newspaper text-base"></i> 1. Sıfırdan Tür Odaklı İçerik Üret (DeepSeek):
+            </span>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="generateAiSnippet('editorial')" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 text-left transition">
+                <div class="font-bold text-amber-300">✍️ Editörden</div>
+                <div class="text-[9.5px] text-slate-400">Sunuş mektubu</div>
+              </button>
+              <button onclick="generateAiSnippet('interview')" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 text-left transition">
+                <div class="font-bold text-sky-300">🎙️ Röportaj</div>
+                <div class="text-[9.5px] text-slate-400">Soru - Cevap söyleşi</div>
+              </button>
+              <button onclick="generateAiSnippet('article')" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 text-left transition">
+                <div class="font-bold text-emerald-300">📑 Makale / Deneme</div>
+                <div class="text-[9.5px] text-slate-400">Kültür & bilim yazısı</div>
+              </button>
+              <button onclick="generateAiSnippet('review')" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 text-left transition">
+                <div class="font-bold text-purple-300">🎬 Kitap / Film</div>
+                <div class="text-[9.5px] text-slate-400">Kültür köşesi tahlili</div>
+              </button>
+              <button onclick="generateAiSnippet('bulletin')" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 text-left transition">
+                <div class="font-bold text-yellow-300">🏆 Başarı Bülteni</div>
+                <div class="text-[9.5px] text-slate-400">TÜBİTAK & etkinlikler</div>
+              </button>
+              <button onclick="generateAiSnippet('poetry')" class="p-2 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 text-left transition">
+                <div class="font-bold text-rose-300">✒️ Şiir Köşesi</div>
+                <div class="text-[9.5px] text-slate-400">Ahenkli edebi şiir</div>
+              </button>
+            </div>
           </div>
-          <textarea id="aiOutputBox" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Üretilen dergi metni burada belirecek..."></textarea>
-          <div class="flex justify-end gap-2">
-            <button onclick="insertAiOutputToCanvas()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
-              <i class="ph ph-plus-circle"></i> Seçili Kutuya / Sayfaya Aktar
-            </button>
+
+          <!-- B. Seçili Metne Özel Editoryal Araçlar -->
+          <div class="space-y-2">
+            <span class="font-bold text-slate-200 block text-xs">Seçili Metin İçin Editoryal & Redaksiyon Araçları:</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="runAiTdkProofread()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600/25 border border-slate-700 hover:border-emerald-500 text-left transition flex items-center gap-2">
+                <span class="text-xl">🔍</span>
+                <div>
+                  <div class="font-bold text-emerald-300">TDK İleri İmla & Düzelti</div>
+                  <div class="text-[9.5px] text-slate-400">De/da, ki ve noktalama düzeltisi</div>
+                </div>
+              </button>
+              <button onclick="runAiHeadlineSpotGenerator()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-amber-600/25 border border-slate-700 hover:border-amber-500 text-left transition flex items-center gap-2">
+                <span class="text-xl">✨</span>
+                <div>
+                  <div class="font-bold text-amber-300">Manşet & Spot Üretici</div>
+                  <div class="text-[9.5px] text-slate-400">3 alternatif başlık ve vurucu spot</div>
+                </div>
+              </button>
+              <button onclick="runAiPullQuoteExtractor()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-purple-600/25 border border-slate-700 hover:border-purple-500 text-left transition flex items-center gap-2">
+                <span class="text-xl">💬</span>
+                <div>
+                  <div class="font-bold text-purple-300">Vurgulu Çekme Alıntı</div>
+                  <div class="text-[9.5px] text-slate-400">Büyük tırnaklı dergi kutusu yap</div>
+                </div>
+              </button>
+              <button onclick="toggleDropCap()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-sky-600/25 border border-slate-700 hover:border-sky-500 text-left transition flex items-center gap-2">
+                <span class="text-xl">🔤</span>
+                <div>
+                  <div class="font-bold text-sky-300">Süslü Başlangıç İnisiyali</div>
+                  <div class="text-[9.5px] text-slate-400">Drop Cap ilk harf büyütme</div>
+                </div>
+              </button>
+            </div>
+
+            <!-- 4 Üslup / Ton Dönüştürücü -->
+            <div class="pt-2 border-t border-slate-800">
+              <span class="text-[11px] font-bold text-slate-400 block mb-1.5">Metnin Üslubunu / Tonunu Dönüştür:</span>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                <button onclick="runAiTransformTone('resmi')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🏛️ Resmi Protokol</button>
+                <button onclick="runAiTransformTone('genclik')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">⚡ Dinamik Gençlik</button>
+                <button onclick="runAiTransformTone('edebi')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-purple-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">✒️ Edebi & Şiirsel</button>
+                <button onclick="runAiTransformTone('populer-bilim')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🔬 Popüler Bilim</button>
+              </div>
+            </div>
+
+            <!-- Metin Çıktı Kutusu -->
+            <div class="pt-2">
+              <textarea id="aiOutputBox" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Üretilen dergi metni burada belirecek..."></textarea>
+              <div class="flex justify-end gap-2 pt-1.5">
+                <button onclick="insertAiOutputToCanvas()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
+                  <i class="ph ph-plus-circle"></i> Seçili Kutuya / Sayfaya Aktar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- 3. SEKME: DİZGİ, İNTERAKTİF QR & BASKI KONTROLÜ (PREFLIGHT) -->
+        <div id="aiTabPane_preflight" class="hidden space-y-4">
+          <!-- A. Preflight Denetimi & Okuma Süresi -->
+          <div class="bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 p-4 rounded-2xl border border-indigo-500/40 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+              <span class="font-bold text-amber-300 flex items-center gap-1.5">
+                <i class="ph ph-check-square-offset text-base"></i> Matbaa Baskı Öncesi (Preflight) Denetimi
+              </span>
+              <button onclick="runPreflightCheck()" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10.5px] flex items-center gap-1 transition">
+                <i class="ph ph-arrows-clockwise"></i> Şimdi Denetle
+              </button>
+            </div>
+            
+            <div id="preflightResultsBox" class="grid grid-cols-3 gap-2 text-center">
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-400">Okuma Süresi</div>
+                <div id="pfReadingTime" class="text-sm font-extrabold text-amber-400">~2 dk</div>
+                <div id="pfWordCount" class="text-[9px] text-slate-500">280 kelime</div>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-400">Baskı Çözünürlüğü</div>
+                <div class="text-sm font-extrabold text-emerald-400">300 DPI Uyumlu</div>
+                <div class="text-[9px] text-emerald-500/80">Yüksek Kalite</div>
+              </div>
+              <div class="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-slate-400">Taşma Payı (Bleed)</div>
+                <div class="text-sm font-extrabold text-sky-400">3 mm Güvenli</div>
+                <div class="text-[9px] text-slate-500">Kesim Alanı Korumalı</div>
+              </div>
+            </div>
+            <div id="preflightFeedbackText" class="text-[11px] text-slate-300 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 leading-relaxed">
+              Sayfa dizgisi ve tipografik hiyerarşi dengeli görünüyor.
+            </div>
+          </div>
+
+          <!-- B. Çok Sütunlu Metin Akışı -->
+          <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-200 block text-xs">Çok Sütunlu Metin Akışına Böl (Multi-Column):</span>
+            <div class="flex gap-2">
+              <button onclick="runAiMultiColumnSplit(2)" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition">
+                📰 2 Eşit Sütuna Böl
+              </button>
+              <button onclick="runAiMultiColumnSplit(3)" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition">
+                📰 3 Eşit Sütuna Böl
+              </button>
+            </div>
+          </div>
+
+          <!-- C. Dinamik Üst/Alt Bilgiler ve Sayfa Numaraları -->
+          <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+            <span class="font-bold text-slate-200 block text-xs">Dinamik Üst/Alt Bilgiler & Sayfa Numaraları (Folio):</span>
+            <button onclick="applyRunningHeadersAndFolio()" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-xs font-bold text-slate-200 transition flex items-center justify-center gap-1.5">
+              <i class="ph ph-number-square-four"></i> Bu Sayfaya Otomatik Üstbilgi & Folio Sayfa Numarası Giydir
+            </button>
+          </div>
+
+          <!-- D. İnteraktif QR Kod Oluşturucu -->
+          <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+            <span class="font-bold text-amber-300 block text-xs flex items-center gap-1.5">
+              <i class="ph ph-qr-code text-base"></i> İnteraktif QR Kod ve Video Bağlantı Kartı:
+            </span>
+            <div class="flex gap-1.5">
+              <input id="qrUrlInput" type="text" placeholder="https://youtube.com/watch?... veya okul web sitesi" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400">
+              <button onclick="insertInteractiveQrCode()" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1 transition">
+                <i class="ph ph-plus"></i> QR Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

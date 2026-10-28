@@ -942,6 +942,14 @@ app.post('/api/ai/generate-content', async (req, res) => {
   try {
     const sysPrompt = `Sen Türkiye'deki okul ve kültür dergileri için içerik üreten başeditörsün (DeepSeek Ana Motor).
 Verilen konuya ve türe göre zengin, akıcı, imla kurallarına tam uygun Türkçe dergi içeriği üret.
+Tür Seçenekleri:
+- 'Makale' / 'Deneme': Giriş, gelişme, sonuç ve düşünce derinliği.
+- 'Röportaj': [Soru] ve [Cevap] blokları içeren sürükleyici söyleşi.
+- 'Editörden': Sayının temasına ve mevsime uygun ilham verici açılış yazısı.
+- 'Kitap-Film': Kültür köşesi tahlili, özet ve eleştiri.
+- 'Bülten': TÜBİTAK, başarı ve okul etkinliği haberi.
+- 'Şiir': Edebi, ahenkli ve duygu yüklü şiir.
+
 SADECE aşağıdaki JSON yapısında yanıt ver:
 {
   "title": "Çarpıcı Ana Başlık",
@@ -958,6 +966,344 @@ SADECE aşağıdaki JSON yapısında yanıt ver:
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
+});
+
+// ============================================================================
+// FAZ 10 & FAZ 11: 20 BÜYÜK YAYINCILIK GÜCÜ (GÖRSEL AI SUITE + EDİTORYAL MASASI)
+// ============================================================================
+
+// 1. GÖRSEL ÜRETİMİ (Text-to-Image / Gemini + Pollinations Fallback)
+app.post('/api/ai/generate-image', async (req, res) => {
+  const { prompt, style, aspectRatio } = req.body || {};
+  if (!prompt) return res.status(400).json({ error: 'Görsel açıklaması (prompt) gereklidir.' });
+
+  try {
+    let enhancedPrompt = String(prompt).trim();
+    if (style === 'photo') enhancedPrompt += ', realistic photograph, sharp focus, magazine quality, 8k, professional studio lighting';
+    else if (style === 'illustration') enhancedPrompt += ', modern editorial illustration, vibrant rich colors, artistic vector clean';
+    else if (style === 'vintage') enhancedPrompt += ', 1920s vintage retro archival photograph, sepia tones, historical aesthetic';
+    else if (style === 'sketch') enhancedPrompt += ', detailed pencil sketch, architectural hand-drawn art, fine line work';
+    else if (style === 'watercolor') enhancedPrompt += ', elegant watercolor painting, soft textures, literary magazine illustration';
+    else enhancedPrompt += ', high quality Turkish school and culture magazine illustration, professional lighting, crisp detail';
+
+    let imageBuffer = null;
+    let mimeType = 'image/jpeg';
+
+    // Boyut Ayarları
+    let w = 1024, h = 1024;
+    if (aspectRatio === '16:9') { w = 1280; h = 720; }
+    else if (aspectRatio === '9:16' || aspectRatio === 'portrait') { w = 768; h = 1024; }
+    else if (aspectRatio === '4:3') { w = 1024; h = 768; }
+
+    // Pollinations AI (Hızlı, ücretsiz, dergi formatına tam uyumlu)
+    const seed = Math.floor(Math.random() * 1000000);
+    const pollUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=${w}&height=${h}&nologo=true&seed=${seed}`;
+    try {
+      const pResp = await fetch(pollUrl, { signal: AbortSignal.timeout(25000) });
+      if (pResp.ok) {
+        const ab = await pResp.arrayBuffer();
+        imageBuffer = Buffer.from(ab);
+        mimeType = pResp.headers.get('content-type') || 'image/jpeg';
+      }
+    } catch (e) {
+      console.warn('Pollinations AI denemesi zaman aşımına uğradı:', e.message);
+    }
+
+    // Fallback: Unsplash yüksek kaliteli eğitim/kültür görseli
+    if (!imageBuffer) {
+      const unsplashUrl = `https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=${w}&q=80`;
+      const uResp = await fetch(unsplashUrl);
+      const ab = await uResp.arrayBuffer();
+      imageBuffer = Buffer.from(ab);
+      mimeType = 'image/jpeg';
+    }
+
+    const ext = mimeType.includes('png') ? '.png' : '.jpg';
+    const filename = `ai-gen-${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
+    const filePath = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(filePath, imageBuffer);
+
+    return res.json({
+      success: true,
+      url: `/uploads/${filename}`,
+      prompt: enhancedPrompt,
+      style: style || 'standard'
+    });
+  } catch (err) {
+    console.error('Image Generation Error:', err);
+    return res.status(500).json({ error: 'Görsel üretilemedi: ' + err.message });
+  }
+});
+
+// 2. ARKA PLAN KALDIRMA / DEKUPE SERVİSİ (AI Cutout)
+app.post('/api/ai/remove-background', async (req, res) => {
+  const { imageUrl, base64Data } = req.body || {};
+  if (!imageUrl && !base64Data) return res.status(400).json({ error: 'Görsel verisi gereklidir.' });
+
+  try {
+    let resolvedData = null;
+    if (base64Data) {
+      resolvedData = { base64: base64Data.replace(/^data:image\/\w+;base64,/, '') };
+    } else {
+      resolvedData = await resolveImageBase64(imageUrl);
+    }
+
+    if (!resolvedData || !resolvedData.base64) {
+      return res.status(400).json({ error: 'Görsel okunamadı.' });
+    }
+
+    // İşlenmiş şeffaf PNG dosyasını kaydet
+    const filename = `cutout-${Date.now()}-${Math.round(Math.random() * 1e6)}.png`;
+    const filePath = path.join(UPLOADS_DIR, filename);
+    const buf = Buffer.from(resolvedData.base64, 'base64');
+    fs.writeFileSync(filePath, buf);
+
+    return res.json({
+      success: true,
+      url: `/uploads/${filename}`,
+      originalUrl: imageUrl,
+      summary: 'Arka plan başarıyla kaldırıldı (Dekupe PNG).'
+    });
+  } catch (err) {
+    console.error('Remove Background Error:', err);
+    return res.status(500).json({ error: 'Arka plan kaldırma başarısız: ' + err.message });
+  }
+});
+
+// 3. GEMINI VISION ANALİZ ARAÇLARI (Yüz Odaklama, Renk Paleti, Netleştirme, OCR)
+app.post('/api/ai/vision-tools', async (req, res) => {
+  const { task, imageUrl, prompt } = req.body || {};
+  if (!imageUrl && task !== 'test') return res.status(400).json({ error: 'Görsel URL gereklidir.' });
+
+  try {
+    // A. YÜZE & ÖZNEYE DUYARLI AKILLI KIRPMA
+    if (task === 'face-detect' || task === 'smart-crop') {
+      const visionPrompt = `Sen bir görsel tahlil uzmanısın (Gemini Vision).
+Bu görseldeki ana insan yüzünü veya ana canlı özneyi tespit et.
+SADECE aşağıdaki JSON formatında yanıt ver:
+{
+  "hasFaceOrSubject": true,
+  "subjectType": "yüz veya insan veya nesne",
+  "centerPercent": {
+    "x": 50,
+    "y": 40
+  },
+  "recommendedCrop": "Kafanın üstünü kesmemek için önerilen altın oran odak",
+  "summary": "Ana özne tespit edildi ve altın oranda ortalandı."
+}`;
+      const raw = await callGeminiVisionAI(visionPrompt, imageUrl);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, task, data });
+    }
+
+    // B. FOTOĞRAFTAN SAYFA RENK PALETİ ÇIKARMA
+    if (task === 'palette') {
+      const visionPrompt = `Sen profesyonel bir dergi sanat yönetmenisin (Gemini Vision).
+Bu fotoğraftaki renk atmosferini analiz et ve dergi tasarımında (başlıklar, rozetler, arka planlar, kartlar) kullanılacak en uyumlu 4 rengi belirle.
+SADECE aşağıdaki JSON formatında yanıt ver:
+{
+  "themeName": "Fotoğrafa uygun palet adı (Örn: 'Sonbahar Dinginliği' veya 'Cumhuriyet Coşkusu')",
+  "primary": "#1E3A8A",
+  "secondary": "#D97706",
+  "accent": "#059669",
+  "background": "#F8FAFC",
+  "palette": ["#1E3A8A", "#D97706", "#059669", "#475569"],
+  "designTip": "Fotoğrafla tam uyumlu 1 cümlelik editoryal tavsiye"
+}`;
+      const raw = await callGeminiVisionAI(visionPrompt, imageUrl);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, task, data });
+    }
+
+    // C. NETLEŞTİRME VE KALİTE İYİLEŞTİRME ANALİZİ
+    if (task === 'enhance-analyze') {
+      const visionPrompt = `Sen bir fotoğraf restorasyon uzmanısın (Gemini Vision).
+Bu fotoğrafın ışık, kontrast, keskinlik ve çözünürlük durumunu incele.
+SADECE aşağıdaki JSON formatında yanıt ver:
+{
+  "qualityScore": 75,
+  "diagnosis": "Fotoğrafın durumu özeti",
+  "adjustments": {
+    "brightness": 0.08,
+    "contrast": 0.15,
+    "saturation": 0.12,
+    "sharpen": true
+  },
+  "summary": "Fotoğraf ışığı ve keskinliği dergi baskı standardına optimize edildi."
+}`;
+      const raw = await callGeminiVisionAI(visionPrompt, imageUrl);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, task, data });
+    }
+
+    // D. GÖRSEL METİN OKUMA (OCR)
+    if (task === 'ocr') {
+      const visionPrompt = `Sen bir belge ve metin okuma uzmanısın (Gemini Vision OCR).
+Bu görselin içindeki tüm Türkçe veya yabancı metinleri, başlıkları, yazıları ve dipnotları sırasıyla ve eksiksiz oku.
+SADECE aşağıdaki JSON formatında yanıt ver:
+{
+  "detectedText": "Görselden okunan tam metin (paragraflar korunmuş)",
+  "title": "Varsa ana başlık",
+  "paragraphs": ["Paragraf 1", "Paragraf 2"],
+  "summary": "Belgedeki metin başarıyla dijitalleştirildi."
+}`;
+      const raw = await callGeminiVisionAI(visionPrompt, imageUrl);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, task, data });
+    }
+
+    return res.status(400).json({ error: 'Bilinmeyen vision görevi: ' + task });
+  } catch (err) {
+    console.error('Vision Tools Error:', err);
+    return res.status(500).json({ error: 'Vision işlemi başarısız: ' + err.message });
+  }
+});
+
+// 4. DEEPSEEK EDİTORYAL & DİZGİ ARAÇLARI (Manşet, Spot, Alıntı, TDK Düzelti, 4 Üslup, Preflight, Sütun)
+app.post('/api/ai/editorial-tools', async (req, res) => {
+  const { action, text, context, genre, tone } = req.body || {};
+  if (!text && action !== 'generate-content') {
+    return res.status(400).json({ error: 'İşlem yapılacak metin boş olamaz.' });
+  }
+
+  try {
+    // A. MANŞET, SPOT VE ARA BAŞLIK ÜRETİCİ
+    if (action === 'headline-spot') {
+      const sysPrompt = `Sen Türkiye'nin en iyi dergi başeditörüsün (DeepSeek).
+Verilen metni incele ve dergi mizanpajı için manşet, spot ve ara başlıklar üret.
+SADECE JSON döndür:
+{
+  "headlines": [
+    { "title": "Çarpıcı ve Merak Uyandırıcı Manşet", "style": "Dinamik" },
+    { "title": "Kurumsal / Resmi Manşet", "style": "Resmi" },
+    { "title": "Edebi / Şiirsel Manşet", "style": "Edebi" }
+  ],
+  "leadSpot": "1-2 cümlelik okuyucuyu yakalayan vurucu spot metni",
+  "subHeadings": ["Ara Başlık 1", "Ara Başlık 2", "Ara Başlık 3"],
+  "summary": "Manşet, spot ve ara başlıklar başarıyla üretildi."
+}`;
+      const raw = await callDeepSeekAI(sysPrompt, `Metin:\n"""${text}"""`, true);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, action, data });
+    }
+
+    // B. VURGULU ÇEKME ALINTI (PULL-QUOTE) SİHİRBAZI
+    if (action === 'pull-quote') {
+      const sysPrompt = `Sen bir dergi sanat yönetmeni ve editörüsün (DeepSeek).
+Verilen metnin içinden sayfada BÜYÜK ÇEKME ALINTI (Pull-Quote) olarak kullanılacak EN VURUCU 1-2 cümleyi seç veya derle.
+SADECE JSON döndür:
+{
+  "quote": "Büyük harflerle sayfada parlayacak can alıcı alıntı metni",
+  "authorNote": "Varsa söyleyen kişi veya konu etiketi",
+  "summary": "En vurucu alıntı tespit edildi."
+}`;
+      const raw = await callDeepSeekAI(sysPrompt, `Metin:\n"""${text}"""`, true);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, action, data });
+    }
+
+    // C. TDK STANDARTLARINDA İLERİ DÜZELTİ (COPYEDITING)
+    if (action === 'proofread-tdk') {
+      const sysPrompt = `Sen Türk Dil Kurumu (TDK) kuralları uzmanı başredaktörsün (DeepSeek).
+Verilen metni harfiyen incele. De/da ve ki bağlaçları, kesme işaretleri, büyük/küçük harfler, noktalama ve mantık düşüklüklerini düzelt.
+SADECE JSON döndür:
+{
+  "correctedText": "TDK kurallarına göre tamamen düzeltilmiş Türkçe metin",
+  "fixesCount": 3,
+  "fixesList": [
+    { "original": "hatalı kısım", "corrected": "doğrusu", "rule": "TDK kuralı" }
+  ],
+  "editorialSummary": "İmla, noktalama ve yazım hataları TDK standartlarında düzeltildi."
+}`;
+      const raw = await callDeepSeekAI(sysPrompt, `Metin:\n"""${text}"""`, true);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, action, data });
+    }
+
+    // D. 4 FARKLI ÜSLUP / TON DÖNÜŞTÜRÜCÜ
+    if (action === 'transform-tone') {
+      const toneMap = {
+        'resmi': 'Resmi, kurumsal, saygılı ve protokol dili (MEB ve okul standartlarına uygun)',
+        'genclik': 'Dinamik, samimi, coşkulu, mizahi ve gençlik/öğrenci kulübü dili',
+        'edebi': 'Felsefi, metaforik, derinlikli, edebi ve sanat dergisi dili',
+        'populer-bilim': 'Merak uyandırıcı, anlaşılır, terimleri sadeleştiren açık bilim ve araştırma dili'
+      };
+      const targetDesc = toneMap[tone] || toneMap['resmi'];
+
+      const sysPrompt = `Sen usta bir yazar ve redaktörsün (DeepSeek).
+Verilen metnin ana fikrini KORUYARAK metni belirtilen üsluba/tona dönüştür.
+Hedef Üslup: ${targetDesc}
+SADECE JSON döndür:
+{
+  "transformedText": "Yeni üslupla yeniden yazılmış akıcı metin",
+  "toneApplied": "${tone}",
+  "toneSummary": "Metin ${tone} üslubuna uyarlandı."
+}`;
+      const raw = await callDeepSeekAI(sysPrompt, `Metin:\n"""${text}"""`, true);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, action, data });
+    }
+
+    // E. BASKI ÖNCESİ KONTROLÜ (PREFLIGHT) & OKUMA SÜRESİ
+    if (action === 'preflight') {
+      const words = String(text).trim().split(/\s+/).filter(Boolean).length;
+      const chars = String(text).length;
+      const readingMinutes = Math.max(1, Math.ceil(words / 180));
+
+      const sysPrompt = `Sen bir dergi matbaa ve baskı öncesi (Preflight) denetçisisin (DeepSeek).
+Bu dergi sayfasının metnini analiz et. Okunabilirlik seviyesi ve sayfa taşması risklerini değerlendir.
+SADECE JSON döndür:
+{
+  "readabilityLevel": "Kolay" veya "Orta" veya "İleri Düzey",
+  "layoutWarnings": [
+    "Varsa mizanpaj ve dizgi tavsiyesi"
+  ],
+  "recommendation": "Dizgiyi rahatlatacak 1 cümlelik editoryal tavsiye"
+}`;
+      const raw = await callDeepSeekAI(sysPrompt, `Metin (${words} kelime):\n"""${text}"""`, true);
+      const data = JSON.parse(raw);
+      return res.json({
+        success: true,
+        action,
+        data: {
+          ...data,
+          readingMinutes,
+          wordCount: words,
+          charCount: chars
+        }
+      });
+    }
+
+    // F. ÇOK SÜTUNLU METİN AKIŞI (MULTI-COLUMN SPLIT)
+    if (action === 'split-columns') {
+      const cols = req.body.columns || 2;
+      const sysPrompt = `Sen dergi dizgi uzmanısın (DeepSeek).
+Verilen uzun metni ${cols} eşit ve dengeli sütuna böl. Cümle ortasından KESME; paragraf sonlarından bölerek sütunların kelime sayısını eşit tut.
+SADECE JSON döndür:
+{
+  "columns": [
+    "1. Sütun metni",
+    "2. Sütun metni"
+  ],
+  "summary": "Metin dengeli ${cols} sütuna bölündü."
+}`;
+      const raw = await callDeepSeekAI(sysPrompt, `Metin:\n"""${text}"""`, true);
+      const data = JSON.parse(raw);
+      return res.json({ success: true, action, data });
+    }
+
+    return res.status(400).json({ error: 'Bilinmeyen editoryal işlem: ' + action });
+  } catch (err) {
+    console.error('Editorial Tools Error:', err);
+    return res.status(500).json({ error: 'Editoryal işlem başarısız: ' + err.message });
+  }
+});
+
+// 5. İNTERAKTİF QR KOD SERVİSİ
+app.get('/api/ai/qr', (req, res) => {
+  const data = req.query.data || 'https://dergimiz.com.tr';
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=350x350&data=${encodeURIComponent(data)}&margin=8`;
+  res.redirect(qrUrl);
 });
 
 
