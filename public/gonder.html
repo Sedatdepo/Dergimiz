@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Öğrenci Eser & Yazı Gönderimi — Dergimiz</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css?v=20261028_10">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-cinzel { font-family: 'Cinzel', serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- Üst Bar -->
+  <header class="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md sticky top-0 z-30 px-4 py-3">
+    <div class="max-w-4xl mx-auto flex items-center justify-between">
+      <a href="/" class="flex items-center gap-2.5 group">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-indigo-600 flex items-center justify-center text-white shadow-lg group-hover:scale-105 transition">
+          <i class="ph ph-feather text-lg"></i>
+        </div>
+        <div>
+          <span class="font-cinzel font-bold text-base tracking-wide text-white block">DERGİMİZ</span>
+          <span class="text-[10px] text-amber-400 font-medium block">Öğrenci Eser & Katkı Havuzu</span>
+        </div>
+      </a>
+
+      <div class="flex items-center gap-2 text-xs">
+        <a href="/oku" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 transition flex items-center gap-1.5">
+          <i class="ph ph-book-open text-base text-amber-400"></i>
+          <span>Dergiyi Oku</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Ana İçerik -->
+  <main class="flex-1 max-w-2xl w-full mx-auto p-4 sm:p-6 my-4">
+    <!-- Karşılama Kartı -->
+    <div class="bg-gradient-to-br from-slate-900 via-indigo-950/40 to-slate-900 border border-amber-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden mb-6">
+      <div class="absolute -right-8 -top-8 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+      <div class="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">
+        <i class="ph ph-sparkle"></i> Genç Kalemler & Sanatçılar
+      </div>
+      <h1 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mb-2 font-serif">
+        Eserin Dergimizde Yayımlansın!
+      </h1>
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+        Yazdığın şiiri, köşe yazısını, hikâyeni veya sanatsal çizimini yayın kurulumuza ulaştır. Editörlerimiz inceledikten sonra okul dergimizin sayfalarında isminle birlikte yerini alsın.
+      </p>
+    </div>
+
+    <!-- Gönderim Formu -->
+    <form id="submissionForm" onsubmit="handleStudentSubmission(event)" class="bg-slate-900/90 border border-slate-800 rounded-3xl p-5 sm:p-7 shadow-xl space-y-4">
+      
+      <!-- İsim & Sınıf -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">Adınız ve Soyadınız <span class="text-rose-400">*</span></label>
+          <input type="text" id="subName" required placeholder="Örn: Elif Demir" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none transition">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-300 mb-1.5">Okulunuz ve Sınıfınız / Şubeniz <span class="text-rose-400">*</span></label>
+          <input type="text" id="subClass" required placeholder="Örn: 10-A • Atatürk Anadolu Lisesi" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none transition">
+        </div>
+      </div>
+
+      <!-- Tür Seçimi -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">Eser Türü <span class="text-rose-400">*</span></label>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <label class="p-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 cursor-pointer flex flex-col items-center gap-1 text-center transition">
+            <input type="radio" name="subGenre" value="Şiir" checked class="accent-amber-500">
+            <span class="text-xs font-semibold text-slate-200">📜 Şiir</span>
+          </label>
+          <label class="p-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 cursor-pointer flex flex-col items-center gap-1 text-center transition">
+            <input type="radio" name="subGenre" value="Deneme" class="accent-amber-500">
+            <span class="text-xs font-semibold text-slate-200">✍️ Deneme</span>
+          </label>
+          <label class="p-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 cursor-pointer flex flex-col items-center gap-1 text-center transition">
+            <input type="radio" name="subGenre" value="Hikâye" class="accent-amber-500">
+            <span class="text-xs font-semibold text-slate-200">📖 Hikâye</span>
+          </label>
+          <label class="p-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 cursor-pointer flex flex-col items-center gap-1 text-center transition">
+            <input type="radio" name="subGenre" value="Röportaj" class="accent-amber-500">
+            <span class="text-xs font-semibold text-slate-200">🎤 Röportaj</span>
+          </label>
+          <label class="p-2 rounded-xl border border-slate-800 bg-slate-950 hover:bg-slate-800/80 cursor-pointer flex flex-col items-center gap-1 text-center transition col-span-2 sm:col-span-1">
+            <input type="radio" name="subGenre" value="Görsel Sanat" class="accent-amber-500">
+            <span class="text-xs font-semibold text-slate-200">🎨 Çizim/Resim</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Başlık -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">Eserinizin Başlığı <span class="text-rose-400">*</span></label>
+        <input type="text" id="subTitle" required placeholder="Örn: Sonbaharın Rüzgârı, Geleceğe Mektup..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none transition">
+      </div>
+
+      <!-- Metin İçeriği -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label class="block text-xs font-bold text-slate-300">Yazınız veya Şiiriniz</label>
+          <span id="charCount" class="text-[10.5px] font-mono text-slate-500">0 karakter</span>
+        </div>
+        <textarea id="subContent" rows="6" oninput="updateCharCount(this.value)" placeholder="Eserinizi buraya yazın veya yapıştırın..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none transition font-sans leading-relaxed"></textarea>
+      </div>
+
+      <!-- Görsel / Çizim Yükleme -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">Fotoğraf, Çizim veya İllüstrasyon (İsteğe Bağlı)</label>
+        <div class="flex items-center gap-3">
+          <label class="flex-1 py-3 px-4 rounded-xl bg-slate-950 border border-dashed border-slate-700 hover:border-amber-400 cursor-pointer flex items-center justify-center gap-2 transition group">
+            <i class="ph ph-image text-lg text-amber-400 group-hover:scale-110 transition"></i>
+            <span id="uploadLabel" class="text-xs text-slate-400 font-semibold">Resim Dosyası Seç (JPG, PNG, WEBP)</span>
+            <input type="file" id="subFile" accept="image/*" onchange="handleStudentFileUpload(event)" class="hidden">
+          </label>
+          <div id="imagePreviewContainer" class="hidden relative w-12 h-12 rounded-xl overflow-hidden border border-amber-500/50">
+            <img id="imagePreview" src="" class="w-full h-full object-cover">
+          </div>
+        </div>
+      </div>
+
+      <!-- İletişim Bilgisi -->
+      <div>
+        <label class="block text-xs font-bold text-slate-300 mb-1.5">İletişim E-Postanız veya Telefonunuz (İsteğe Bağlı)</label>
+        <input type="text" id="subContact" placeholder="Örn: ogrenci@okul.k12.tr" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none transition">
+      </div>
+
+      <!-- Gönder Butonu -->
+      <div class="pt-2">
+        <button type="submit" id="btnSubmit" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-sm sm:text-base flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition">
+          <i class="ph ph-paper-plane-tilt text-lg"></i>
+          <span>Eserimi Yayın Kuruluna Gönder</span>
+        </button>
+      </div>
+    </form>
+  </main>
+
+  <!-- Başarı Modalı -->
+  <div id="successModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-2xl space-y-4 animate-scale">
+      <div class="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 flex items-center justify-center mx-auto text-3xl shadow-lg">
+        <i class="ph ph-check-circle"></i>
+      </div>
+      <h3 class="text-xl font-bold text-white font-serif">Tebrikler, Eseriniz Alındı!</h3>
+      <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+        Eseriniz dergi yayın kuruluna başarıyla ulaştı. Öğretmenlerimiz ve yayın editörlerimiz inceledikten sonra dergimizin yeni sayısında yerini alacaktır.
+      </p>
+      <div class="pt-2 flex flex-col sm:flex-row gap-2">
+        <button onclick="window.location.reload()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition">
+          Yeni Eser Gönder
+        </button>
+        <a href="/oku" class="flex-1 py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold flex items-center justify-center gap-1 transition shadow">
+          <span>Dergiyi Oku</span>
+          <i class="ph ph-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let uploadedImageUrl = null;
+
+    function updateCharCount(text) {
+      const len = (text || '').length;
+      const words = (text || '').trim().split(/\s+/).filter(Boolean).length;
+      document.getElementById('charCount').textContent = `${len} karakter • ${words} kelime`;
+    }
+
+    async function handleStudentFileUpload(e) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const label = document.getElementById('uploadLabel');
+      label.textContent = 'Yükleniyor: ' + file.name;
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.url) {
+          uploadedImageUrl = data.url;
+          label.textContent = '✓ ' + file.name;
+          document.getElementById('imagePreview').src = data.url;
+          document.getElementById('imagePreviewContainer').classList.remove('hidden');
+        }
+      } catch (err) {
+        label.textContent = '⚠️ Hata: ' + file.name;
+      }
+    }
+
+    async function handleStudentSubmission(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i><span>Gönderiliyor...</span>';
+
+      const genre = document.querySelector('input[name="subGenre"]:checked')?.value || 'Şiir';
+      const payload = {
+        studentName: document.getElementById('subName').value,
+        studentClass: document.getElementById('subClass').value,
+        genre: genre,
+        title: document.getElementById('subTitle').value,
+        content: document.getElementById('subContent').value,
+        imageUrl: uploadedImageUrl,
+        contactInfo: document.getElementById('subContact').value
+      };
+
+      try {
+        const res = await fetch('/api/submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('successModal').classList.remove('hidden');
+        } else {
+          alert('Hata: ' + (data.error || 'Gönderilemedi.'));
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ph ph-paper-plane-tilt text-lg"></i><span>Eserimi Yayın Kuruluna Gönder</span>';
+        }
+      } catch (err) {
+        alert('Sunucu bağlantı hatası oluştu.');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-paper-plane-tilt text-lg"></i><span>Eserimi Yayın Kuruluna Gönder</span>';
+      }
+    }
+  </script>
+</body>
+</html>

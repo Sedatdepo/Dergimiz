@@ -2053,25 +2053,81 @@ window.applyAllDoctorAutoFixes = function() {
 };
 
 // ============================================================================
-// 13. 📬 ÖĞRENCİ KATKI HAVUZU
+// 13. 📬 ÖĞRENCİ KATKI HAVUZU (FAZ 4: GERÇEK API & /gonder PORTALI ENTEGRASYONU)
 // ============================================================================
 window.STUDENT_SUBMISSIONS_SAMPLE = [
-  { id: 'sub_1', student: 'Zeynep Kaya (10-A)', type: 'Şiir', title: '23 Nisan Rüzgârı', preview: 'Gökyüzünde süzülen al bayrak gibi,\nÖzgürlüğe kanat açar yarınlarımız...', date: 'Bugün 14:20' },
-  { id: 'sub_2', student: 'Emir Yılmaz (11-C)', type: 'Deneme', title: 'Yapay Zekâ ve İnsan Ruhu', preview: 'Geleceğin teknolojisi edebiyatı öldürecek mi yoksa ona yeni bir nefes mi verecek?...', date: 'Dün 18:45' },
-  { id: 'sub_3', student: 'Elif Demir (9-B)', type: 'Çizim / Sanat', title: 'Atatürk ve Çocuklar (Karakalem)', preview: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80', date: '2 gün önce' }
+  { id: 'sub_sample_1', student: 'Zeynep Kaya (10-A)', type: 'Şiir', title: '23 Nisan Rüzgârı', preview: 'Gökyüzünde süzülen al bayrak gibi,\nÖzgürlüğe kanat açar yarınlarımız...', date: 'Bugün 14:20' },
+  { id: 'sub_sample_2', student: 'Emir Yılmaz (11-C)', type: 'Deneme', title: 'Yapay Zekâ ve İnsan Ruhu', preview: 'Geleceğin teknolojisi edebiyatı öldürecek mi yoksa ona yeni bir nefes mi verecek?...', date: 'Dün 18:45' },
+  { id: 'sub_sample_3', student: 'Elif Demir (9-B)', type: 'Çizim / Sanat', title: 'Atatürk ve Çocuklar (Karakalem)', preview: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=600&q=80', date: '2 gün önce' }
 ];
 
-window.openStudentSubmissionsModal = function() {
+window.currentSubmissionsList = [];
+
+window.openStudentSubmissionsModal = async function() {
   let modal = document.getElementById('studentSubmissionsModal');
   if (!modal) {
     modal = document.createElement('div');
     modal.id = 'studentSubmissionsModal';
-    modal.className = 'fixed top-12 right-0 bottom-0 w-[460px] max-w-[95vw] bg-slate-900/98 backdrop-blur-xl border-l border-slate-700 shadow-2xl z-50 flex flex-col select-text';
+    modal.className = 'fixed top-12 right-0 bottom-0 w-[480px] max-w-[95vw] bg-slate-900/98 backdrop-blur-xl border-l border-slate-700 shadow-2xl z-50 flex flex-col select-text';
     document.body.appendChild(modal);
   }
 
   modal.classList.remove('hidden');
-  const subs = window.STUDENT_SUBMISSIONS_SAMPLE;
+
+  const issueParam = (typeof currentIssue !== 'undefined' && currentIssue && currentIssue.id) ? currentIssue.id : 'sayi-1';
+  const portalUrl = `${window.location.origin}/gonder?issueId=${encodeURIComponent(issueParam)}`;
+
+  // Yükleniyor durumunu göster
+  modal.innerHTML = `
+    <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/90 shrink-0">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow">
+          <i class="ph ph-tray text-lg"></i>
+        </div>
+        <div>
+          <h3 class="font-display font-bold text-sm text-white">Öğrenci Katkı Havuzu</h3>
+          <p class="text-[10px] text-slate-400">Yazı ve şiirleri dergi tuvaline tek tıkla aktarın.</p>
+        </div>
+      </div>
+      <button onclick="document.getElementById('studentSubmissionsModal').classList.add('hidden')" class="text-slate-400 hover:text-white p-1 rounded-lg">
+        <i class="ph ph-x text-lg"></i>
+      </button>
+    </div>
+    <div class="p-8 text-center text-slate-400 text-xs">
+      <i class="ph ph-spinner animate-spin text-2xl text-indigo-400 mb-2 block"></i>
+      Öğrenci yazıları yükleniyor...
+    </div>
+  `;
+
+  let subs = [];
+  try {
+    const res = await fetch(`/api/submissions?issueId=${encodeURIComponent(issueParam)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        subs = data.map(item => ({
+          id: item.id,
+          student: `${item.studentName || 'Anonim'} (${item.studentClass || ''})`,
+          type: item.genre || 'Yazı',
+          title: item.title || 'Başlıksız',
+          preview: item.content || item.imageUrl || '',
+          imageUrl: item.imageUrl || '',
+          date: item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('tr-TR', { hour: '2-digit', minute: '2-digit' }) : 'Bugün',
+          status: item.status || 'pending',
+          isReal: true
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('API submissions hatası:', err);
+  }
+
+  // Eğer gönderi yoksa örnekleri ekle
+  if (subs.length === 0) {
+    subs = window.STUDENT_SUBMISSIONS_SAMPLE.map(s => ({ ...s, isReal: false }));
+  }
+
+  window.currentSubmissionsList = subs;
 
   modal.innerHTML = `
     <div class="p-3.5 border-b border-slate-800 flex items-center justify-between bg-slate-950/90 shrink-0">
@@ -2092,59 +2148,89 @@ window.openStudentSubmissionsModal = function() {
     <!-- Katkı Linki & QR Paylaşımı -->
     <div class="p-3 bg-slate-950/80 border-b border-slate-800 text-xs space-y-2">
       <div class="flex items-center justify-between text-slate-300">
-        <span class="font-semibold">Öğrenci Katkı Bağlantısı:</span>
-        <button onclick="navigator.clipboard.writeText('https://dergimiz.com.tr/katki/okulumuz'); showToast('📋 Bağlantı kopyalandı! WhatsApp veya sınıfa gönderebilirsiniz.');" class="text-[10px] text-amber-400 hover:underline font-mono">
-          Link Kopyala
+        <span class="font-semibold flex items-center gap-1.5">
+          <i class="ph ph-link-simple text-indigo-400"></i> Öğrenci Gönderim Formu:
+        </span>
+        <button onclick="navigator.clipboard.writeText('${portalUrl}'); showToast('📋 Gönderim bağlantısı kopyalandı! WhatsApp veya sınıfa gönderebilirsiniz.');" class="text-[10px] text-amber-400 hover:underline font-mono flex items-center gap-1">
+          <i class="ph ph-copy"></i> Link Kopyala
         </button>
       </div>
       <div class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-[10px] text-slate-400 font-mono select-all truncate">
-        https://dergimiz.com.tr/katki/okulumuz
+        ${portalUrl}
+      </div>
+      <div class="text-[9.5px] text-slate-500 flex items-center justify-between">
+        <span>Öğrenciler üye olmadan bu linkten yazı/resim gönderebilir.</span>
+        <a href="${portalUrl}" target="_blank" class="text-indigo-400 hover:underline">Formu Aç ↗</a>
       </div>
     </div>
 
     <!-- Gelen Yazılar Listesi -->
     <div class="p-3 flex-1 overflow-y-auto space-y-2.5 text-xs">
       ${subs.map((s, idx) => `
-        <div class="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 hover:border-indigo-500/50 transition space-y-2">
+        <div class="p-3 rounded-2xl bg-slate-950/90 border ${s.status === 'used' ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800 hover:border-indigo-500/50'} transition space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300">
-              ${s.type}
+            <span class="text-[9.5px] font-bold px-2 py-0.5 rounded-full ${s.status === 'used' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-indigo-500/20 text-indigo-300'}">
+              ${escapeHtml(s.type)} ${s.status === 'used' ? '✓ Dergide Kullanıldı' : ''}
             </span>
-            <span class="text-[10px] text-slate-500">${s.date}</span>
+            <span class="text-[10px] text-slate-500">${escapeHtml(s.date)}</span>
           </div>
           <div>
             <div class="font-bold text-white text-xs">${escapeHtml(s.title)}</div>
             <div class="text-[10px] text-slate-400 font-medium">${escapeHtml(s.student)}</div>
           </div>
-          ${s.type.includes('Çizim') ? `
-            <img src="${s.preview}" class="w-full h-24 object-cover rounded-xl border border-slate-800">
-          ` : `
-            <p class="text-[10px] text-slate-300 bg-slate-900 p-2 rounded-xl italic leading-relaxed whitespace-pre-line border border-slate-800/80">
+          ${(s.imageUrl || s.type.includes('Çizim') || s.type.includes('Görsel')) ? `
+            <img src="${escapeHtml(s.imageUrl || s.preview)}" class="w-full h-28 object-cover rounded-xl border border-slate-800" alt="Öğrenci Eseri">
+          ` : ''}
+          ${(!s.imageUrl && s.preview) ? `
+            <p class="text-[10px] text-slate-300 bg-slate-900 p-2.5 rounded-xl italic leading-relaxed whitespace-pre-line border border-slate-800/80 max-h-32 overflow-y-auto">
               ${escapeHtml(s.preview)}
             </p>
-          `}
-          <button onclick="insertStudentSubmissionToActive(${idx})" class="w-full py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10.5px] shadow flex items-center justify-center gap-1.5 transition">
-            <i class="ph ph-arrow-down-left"></i> Sayfadaki Kutuya Yerleştir
-          </button>
+          ` : ''}
+          <div class="flex items-center gap-2 pt-1">
+            <button onclick="insertStudentSubmissionToActive(${idx})" class="flex-1 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[10.5px] shadow flex items-center justify-center gap-1.5 transition">
+              <i class="ph ph-arrow-down-left"></i> Sayfaya Yerleştir
+            </button>
+            ${s.isReal ? `
+              <button onclick="deleteStudentSubmission('${s.id}', ${idx})" class="p-1.5 rounded-xl bg-slate-800 hover:bg-rose-600/30 text-slate-400 hover:text-rose-300 border border-slate-700 transition" title="Yazıyı Sil">
+                <i class="ph ph-trash text-sm"></i>
+              </button>
+            ` : ''}
+          </div>
         </div>
       `).join('')}
     </div>
   `;
 };
 
-window.insertStudentSubmissionToActive = function(subIdx) {
-  const sub = window.STUDENT_SUBMISSIONS_SAMPLE[subIdx];
+window.deleteStudentSubmission = async function(id, idx) {
+  if (!confirm('Bu öğrenci gönderisini silmek istediğinize emin misiniz?')) return;
+  try {
+    const res = await fetch(`/api/submissions/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      showToast('🗑️ Öğrenci gönderisi silindi.');
+      openStudentSubmissionsModal();
+    }
+  } catch (err) {
+    showToast('Hata: Gönderi silinemedi.');
+  }
+};
+
+window.insertStudentSubmissionToActive = async function(subIdx) {
+  const sub = window.currentSubmissionsList[subIdx] || window.STUDENT_SUBMISSIONS_SAMPLE[subIdx];
   const fCanvas = getCurrentFabricCanvas();
   if (!sub || !fCanvas) return;
 
   const active = fCanvas.getActiveObject();
   pushFabricHistory(selectedEditIndex);
 
-  if (sub.type.includes('Çizim')) {
+  const isImg = sub.imageUrl || sub.type.includes('Çizim') || sub.type.includes('Görsel');
+  const imgUrl = sub.imageUrl || sub.preview;
+
+  if (isImg && imgUrl) {
     if (active && (active.type === 'image' || active.isGridSlot)) {
-      fitImageIntoGridSlot(active, sub.preview, fCanvas);
+      fitImageIntoGridSlot(active, imgUrl, fCanvas);
     } else {
-      addFabImage(fCanvas, { url: sub.preview, name: sub.title + ' - ' + sub.student });
+      addFabImage(fCanvas, { url: imgUrl, name: sub.title + ' - ' + sub.student });
     }
   } else {
     const fullText = `${sub.title}\n\n${sub.preview}\n\n— ${sub.student}`;
@@ -2155,10 +2241,10 @@ window.insertStudentSubmissionToActive = function(subIdx) {
     } else {
       const txt = new fabric.Textbox(fullText, {
         name: sub.title,
-        left: 80,
-        top: 220,
-        width: 380,
-        fontSize: 14,
+        left: 60,
+        top: 180,
+        width: 430,
+        fontSize: 13,
         fontFamily: 'Playfair Display',
         fill: '#0f172a',
         lineHeight: 1.35
@@ -2168,6 +2254,17 @@ window.insertStudentSubmissionToActive = function(subIdx) {
       fCanvas.requestRenderAll();
       saveFabricPageState(selectedEditIndex);
     }
+  }
+
+  // Backend'de status'u 'used' olarak işaretle
+  if (sub.isReal && sub.id) {
+    try {
+      await fetch(`/api/submissions/${sub.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'used' })
+      });
+    } catch (e) {}
   }
 
   document.getElementById('studentSubmissionsModal')?.classList.add('hidden');

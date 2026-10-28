@@ -8,7 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Phosphor Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="/css/style.css?v=20261027_07">
+  <!-- Fabric.js 5.3.0 Profesyonel Tuval Motoru -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+  <!-- StPageFlip Gerçek 3D Sayfa Çevirme Motoru -->
+  <script src="/js/page-flip.browser.js"></script>
+  <link rel="stylesheet" href="/css/style.css?v=20261028_10">
   <script>
     tailwind.config = {
       theme: {
@@ -53,6 +57,11 @@
         <i class="ph ph-speaker-high text-lg" id="audioIcon"></i>
       </button>
 
+      <!-- Otomatik Sayfa Çevirme (Play/Pause) -->
+      <button onclick="toggleAutoPlay()" id="btnAutoPlay" class="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs transition" title="Otomatik Çevir (5 sn)">
+        <i class="ph ph-play text-lg" id="autoPlayIcon"></i>
+      </button>
+
       <!-- Çift / Tek Sayfa -->
       <button onclick="toggleSpreadMode()" id="btnSpreadToggle" class="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-slate-800 transition" title="Görünüm Değiştir">
         <i class="ph ph-columns text-base"></i>
@@ -93,8 +102,10 @@
       </button>
 
       <!-- Dergi Sayfaları Konteyneri -->
-      <div id="magazineViewport" class="magazine-spread flex items-center justify-center">
-        <!-- JS ile sayfalar render edilir -->
+      <div id="magazineViewport" class="flex items-center justify-center relative max-w-full">
+        <div id="flipbookWrapper" class="flipbook-root">
+          <!-- JS ile sayfalar render edilir -->
+        </div>
       </div>
 
       <!-- Sağ Ok -->
@@ -154,6 +165,6 @@
     <span id="toastMessage">Bildirim mesajı</span>
   </div>
 
-  <script src="/js/reader.js?v=20261027_07"></script>
+  <script src="/js/reader.js?v=20261028_03"></script>
 </body>
 </html>

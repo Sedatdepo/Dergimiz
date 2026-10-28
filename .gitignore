@@ -2,5 +2,6 @@ node_modules/
 dist/
 out/
 .env
+uploads/
 deploy.tar.gz
 setup_vds.cjs

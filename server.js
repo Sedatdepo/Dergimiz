@@ -24,6 +24,7 @@ if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 const ISSUES_FILE = path.join(DATA_DIR, 'issues.json');
 const AUTH_FILE = path.join(DATA_DIR, 'auth.json');
 const MAGAZINES_FILE = path.join(DATA_DIR, 'magazines.json');
+const SUBMISSIONS_FILE = path.join(DATA_DIR, 'submissions.json');
 
 // Yardımcı JSON okuma/yazma fonksiyonları
 function readJSON(file, defaultVal = []) {
@@ -730,10 +731,107 @@ app.post('/api/upload', (req, res) => {
 });
 
 // ==========================================
+// FAZ 4: ÖĞRENCİ ESER & YAZI KABUL HAVUZU (SUBMISSIONS API)
+// ==========================================
+app.get('/api/submissions', (req, res) => {
+  const submissions = readJSON(SUBMISSIONS_FILE, []);
+  const { magazineId, issueId, status } = req.query;
+  let filtered = submissions;
+  if (magazineId) filtered = filtered.filter(s => s.magazineId === magazineId);
+  if (issueId) filtered = filtered.filter(s => s.issueId === issueId);
+  if (status) filtered = filtered.filter(s => s.status === status);
+  res.json(filtered.reverse());
+});
+
+app.post('/api/submissions', (req, res) => {
+  const { studentName, studentClass, title, genre, content, imageUrl, contactInfo, magazineId, issueId } = req.body;
+  if (!studentName || !title || (!content && !imageUrl)) {
+    return res.status(400).json({ error: 'Öğrenci adı, eser başlığı ve içerik zorunludur.' });
+  }
+
+  const submissions = readJSON(SUBMISSIONS_FILE, []);
+  const newSub = {
+    id: 'sub-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+    studentName: String(studentName).trim(),
+    studentClass: String(studentClass || '').trim(),
+    title: String(title).trim(),
+    genre: String(genre || 'Şiir').trim(),
+    content: String(content || '').trim(),
+    imageUrl: imageUrl || null,
+    contactInfo: contactInfo || null,
+    magazineId: magazineId || null,
+    issueId: issueId || null,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  };
+
+  submissions.push(newSub);
+  writeJSON(SUBMISSIONS_FILE, submissions);
+  res.json({ success: true, submission: newSub, message: 'Eseriniz başarıyla dergi yayın kuruluna iletildi!' });
+});
+
+app.put('/api/submissions/:id/status', (req, res) => {
+  const { status } = req.body;
+  const submissions = readJSON(SUBMISSIONS_FILE, []);
+  const idx = submissions.findIndex(s => s.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Eser bulunamadı.' });
+
+  submissions[idx].status = status || submissions[idx].status;
+  writeJSON(SUBMISSIONS_FILE, submissions);
+  res.json({ success: true, submission: submissions[idx] });
+});
+
+app.delete('/api/submissions/:id', (req, res) => {
+  let submissions = readJSON(SUBMISSIONS_FILE, []);
+  submissions = submissions.filter(s => s.id !== req.params.id);
+  writeJSON(SUBMISSIONS_FILE, submissions);
+  res.json({ success: true });
+});
+
+// ==========================================
 // FAZ 9: AKILLI AI MOTORU (ANA MOTOR: DEEPSEEK + GÖRSEL MOTOR: GEMINI VISION)
 // ==========================================
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || process.env.AI_API_KEY || '';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_GENAI_API_KEY || '';
+
+async function callGeminiTextAI(systemPrompt, userPrompt, jsonMode = true) {
+  if (GEMINI_API_KEY) {
+    const models = ['gemini-2.5-flash', 'gemini-1.5-flash'];
+    for (const model of models) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+        const contents = [];
+        if (systemPrompt) {
+          contents.push({ parts: [{ text: systemPrompt }] });
+        }
+        contents.push({ parts: [{ text: userPrompt }] });
+        const bodyObj = {
+          contents,
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 2048
+          }
+        };
+        if (jsonMode) {
+          bodyObj.generationConfig.responseMimeType = "application/json";
+        }
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bodyObj)
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          const txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (txt) return txt;
+        }
+      } catch (err) {
+        console.warn(`Gemini (${model}) metin hatası:`, err.message);
+      }
+    }
+  }
+  return await callDeepSeekAI(systemPrompt, userPrompt, jsonMode);
+}
 
 async function callDeepSeekAI(systemPrompt, userPrompt, jsonMode = true) {
   if (!DEEPSEEK_API_KEY) throw new Error('DEEPSEEK_API_KEY tanımlı değil.');
@@ -1159,6 +1257,171 @@ SADECE aşağıdaki JSON formatında yanıt ver:
   }
 });
 
+// ==========================================
+// GERÇEK GEMINI AI MİZANPAJ & REDAKSİYON DOKTORU
+// ==========================================
+app.post('/api/ai/proofread-layout', async (req, res) => {
+  const { texts, pageTitle, pageNumber } = req.body || {};
+  if (!texts || !Array.isArray(texts) || texts.length === 0) {
+    return res.status(400).json({ error: 'Denetlenecek metin bulunamadı.' });
+  }
+
+  try {
+    const sysPrompt = `Sen Türkiye'nin en saygın edebiyat ve yayıncılık başeditörüsün (TDK İmla ve Sayfa Doktoru).
+Görevin: Bir okul/kültür dergisindeki metinleri ve sayfa hiyerarşisini derinlemesine denetlemek.
+Her bir metin öğesini incele:
+1. TDK Yazım Kuralı & İmla Hataları (bağlaç olan de/da, soru eki mi, büyük/küçük harf, yanlış sözcükler).
+2. Anlatım Bozuklukları & Düşük Cümleler (dergi ciddiyetine veya öğrenci üslubuna uymayan ifadeler).
+3. Başlık - Spot - Gövde Metni Hiyerarşisi (başlık çok mu uzun, spot çarpıcı mı, paragraf okunabilir mi).
+
+SADECE aşağıdaki JSON şemasında geçerli bir JSON çıktısı ver:
+{
+  "summary": "Sayfanın genel editoryal durumu ve özeti (1-2 cümle)",
+  "overallScore": 88,
+  "issues": [
+    {
+      "elementId": "İncelenen metin öğesinin id değeri",
+      "type": "spelling",
+      "severity": "critical",
+      "title": "Kısa ve net sorun başlığı (Örn: 'TDK İmla: da/de Yazımı')",
+      "desc": "Sorunun açıklaması ve neden düzeltilmesi gerektiği",
+      "originalSnippet": "Hatalı kelime veya cümlenin orijinal hali",
+      "suggestedSnippet": "Düzeltilmiş kelime veya cümlenin önerilen hali",
+      "fullCorrectedText": "Öğenin tamamının bu hatası düzeltilmiş eksiksiz son metni",
+      "actionLabel": "🪄 Düzelt"
+    }
+  ]
+}`;
+
+    const userPrompt = `Aşağıdaki sayfa metin bloklarını incele ve imla, anlatım bozukluğu, hiyerarşi hatalarını tespit et:\n` + JSON.stringify(texts, null, 2);
+    const rawResult = await callGeminiTextAI(sysPrompt, userPrompt, true);
+    let parsed;
+    try {
+      let cleanJson = (rawResult || '').trim();
+      if (cleanJson.startsWith('```json')) {
+        cleanJson = cleanJson.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+      } else if (cleanJson.startsWith('```')) {
+        cleanJson = cleanJson.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      const startIdx = cleanJson.indexOf('{');
+      const endIdx = cleanJson.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        cleanJson = cleanJson.substring(startIdx, endIdx + 1);
+      }
+      parsed = JSON.parse(cleanJson);
+    } catch(e) {
+      console.warn("JSON parse fallback. Raw response:", rawResult);
+      throw new Error("Yapay zekâ yanıtı JSON olarak ayrıştırılamadı: " + e.message);
+    }
+
+    return res.json({ success: true, doctor: parsed });
+  } catch (err) {
+    console.warn('AI Proofread Cloud Engine Fallback -> Running Local Editorial Rules:', err.message);
+    const localResult = runLocalProofreadEngine(texts, pageTitle, pageNumber);
+    return res.json({ success: true, doctor: localResult, fallback: true });
+  }
+});
+
+function runLocalProofreadEngine(texts, pageTitle, pageNumber) {
+  const dictionary = [
+    { wrong: 'herşey', correct: 'her şey', title: 'TDK: "her şey" ayrı yazılır' },
+    { wrong: 'yalnış', correct: 'yanlış', title: 'TDK: "yanlış" (yanılmaktan)' },
+    { wrong: 'yanlız', correct: 'yalnız', title: 'TDK: "yalnız" (yalından)' },
+    { wrong: 'bir kaç', correct: 'birkaç', title: 'TDK: "birkaç" bitişik yazılır' },
+    { wrong: 'bir çok', correct: 'birçok', title: 'TDK: "birçok" bitişik yazılır' },
+    { wrong: 'orjinal', correct: 'orijinal', title: 'TDK: Doğru yazımı "orijinal"dir' },
+    { wrong: 'tabiki', correct: 'tabii ki', title: 'TDK: "tabii ki" iki i ile ve ayrı yazılır' },
+    { wrong: 'hiç bir', correct: 'hiçbir', title: 'TDK: "hiçbir" bitişik yazılır' },
+    { wrong: 'yada', correct: 'ya da', title: 'TDK: "ya da" daima ayrı yazılır' },
+    { wrong: 'yinede', correct: 'yine de', title: 'TDK: Bağlaç olan "de" ayrı yazılır' },
+    { wrong: 'farketmek', correct: 'fark etmek', title: 'TDK: "fark etmek" ayrı yazılır' },
+    { wrong: 'terketmek', correct: 'terk etmek', title: 'TDK: "terk etmek" ayrı yazılır' },
+    { wrong: 'hakketmek', correct: 'hak etmek', title: 'TDK: "hak etmek" ayrı yazılır' },
+    { wrong: 'süpriz', correct: 'sürpriz', title: 'TDK: Doğru yazımı "sürpriz"dir' },
+    { wrong: 'laboratuar', correct: 'laboratuvar', title: 'TDK: Doğru yazımı "laboratuvar"dır' },
+    { wrong: 'hastahane', correct: 'hastane', title: 'TDK: Doğru yazımı "hastane"dir' },
+    { wrong: 'postahane', correct: 'postane', title: 'TDK: Doğru yazımı "postane"dir' },
+    { wrong: 'traş', correct: 'tıraş', title: 'TDK: "tıraş" ı harfiyle yazılır' },
+    { wrong: 'makina', correct: 'makine', title: 'TDK: Doğru yazımı "makine"dir' },
+    { wrong: 'şevkat', correct: 'şefkat', title: 'TDK: Doğru yazımı "şefkat"tir' },
+    { wrong: 'eksoz', correct: 'egzoz', title: 'TDK: Doğru yazımı "egzoz"dur' },
+    { wrong: 'cok', correct: 'çok', title: 'Türkçe Karakter: "çok"' },
+    { wrong: 'gecti', correct: 'geçti', title: 'Türkçe Karakter: "geçti"' },
+    { wrong: 'guzel', correct: 'güzel', title: 'Türkçe Karakter: "güzel"' }
+  ];
+
+  const issues = [];
+
+  texts.forEach(item => {
+    let currentText = item.text || '';
+    let updatedText = currentText;
+
+    // 1. TDK Sözlük Taraması
+    dictionary.forEach(rule => {
+      const reg = new RegExp('\\b' + rule.wrong + '\\b', 'gi');
+      if (reg.test(currentText)) {
+        const matches = currentText.match(reg) || [rule.wrong];
+        const originalSnippet = matches[0];
+        const suggestedSnippet = rule.correct;
+        const fullCorrected = currentText.replace(reg, rule.correct);
+
+        issues.push({
+          elementId: item.id,
+          type: 'spelling',
+          severity: 'critical',
+          title: rule.title,
+          desc: `"${originalSnippet}" sözcüğü Türk Dil Kurumu standartlarına göre "${suggestedSnippet}" şeklinde yazılmalıdır.`,
+          originalSnippet,
+          suggestedSnippet,
+          fullCorrectedText: fullCorrected,
+          actionLabel: `🪄 "${suggestedSnippet}" Yap`
+        });
+      }
+    });
+
+    // 2. Gereksiz Sözcük / Anlatım Bozukluğu Taraması
+    if (/arkadaşlarımla\s+beraber/i.test(currentText)) {
+      issues.push({
+        elementId: item.id,
+        type: 'grammar',
+        severity: 'warning',
+        title: 'Anlatım Bozukluğu: Gereksiz Sözcük Kullanımı',
+        desc: '"-la/-le" eki zaten birliktelik anlamı kattığı için "beraber" sözcüğü anlatımı düşürmektedir.',
+        originalSnippet: 'arkadaşlarımla beraber',
+        suggestedSnippet: 'arkadaşlarımla',
+        fullCorrectedText: currentText.replace(/arkadaşlarımla\s+beraber/gi, 'arkadaşlarımla'),
+        actionLabel: '🪄 "arkadaşlarımla" Yap'
+      });
+    }
+
+    // 3. Mizanpaj & Tipografi Hiyerarşisi
+    if ((item.fontSize || 14) > 20 && currentText.length > 200) {
+      issues.push({
+        elementId: item.id,
+        type: 'hierarchy',
+        severity: 'warning',
+        title: 'Tipografi Uyarısı: Gövde Metni Çok Büyük',
+        desc: 'Uzun metin bloklarında 20px ve üzeri punto sayfa sınırlarını zorlar; dergi standardı 12-14px aralığıdır.',
+        originalSnippet: `${Math.round(item.fontSize)}px punto`,
+        suggestedSnippet: '13px standart punto',
+        fullCorrectedText: currentText,
+        actionLabel: '🪄 13px Puntoya Ayarla'
+      });
+    }
+  });
+
+  const overallScore = Math.max(50, 100 - (issues.length * 10));
+  const summary = issues.length === 0
+    ? 'Sayfa metinleri ve imlası dergi yayın standardına uygundur.'
+    : `Sayfada ${issues.length} adet TDK imla ve anlatım düzeltmesi tespit edildi.`;
+
+  return {
+    summary,
+    overallScore,
+    issues
+  };
+}
+
 // 4. DEEPSEEK EDİTORYAL & DİZGİ ARAÇLARI (Manşet, Spot, Alıntı, TDK Düzelti, 4 Üslup, Preflight, Sütun)
 app.post('/api/ai/editorial-tools', async (req, res) => {
   const { action, text, context, genre, tone } = req.body || {};
@@ -1321,6 +1584,14 @@ app.get('/editor', (req, res) => {
 
 app.get('/editor/:id', (req, res) => {
   res.sendFile(path.join(PUBLIC_DIR, 'editor.html'));
+});
+
+app.get('/gonder', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'gonder.html'));
+});
+
+app.get('/gonder/:id', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'gonder.html'));
 });
 
 app.use((req, res) => {

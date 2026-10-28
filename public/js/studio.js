@@ -359,6 +359,60 @@ function buildSamplePagesForPreset(presetId) {
   ];
 }
 
+function startPureBlankMagazine(silent = false) {
+  currentMagazine = null;
+  currentIssue = null;
+
+  window.magazineData = {
+    id: 'blank-' + Date.now(),
+    title: 'Yeni Dergi',
+    schoolName: 'Okul E-Dergimiz',
+    issueMonth: 'Sayı 01',
+    issueInfo: 'Sayı 01 • ' + new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
+    status: 'draft',
+    pages: [
+      {
+        id: 'p_1_' + Date.now(),
+        type: 'blank',
+        navTitle: 'Sayfa 1 (Bembeyaz Boş)',
+        bgColor: '#ffffff',
+        isCustomized: true,
+        fabricJSON: { version: '5.3.0', objects: [] },
+        showMasterPage: false
+      }
+    ]
+  };
+
+  selectedEditIndex = 0;
+  currentIndex = 0;
+  selectedElementId = null;
+
+  const magSel = document.getElementById('magazineSelector');
+  if (magSel) magSel.value = 'blank-new';
+
+  const issueSelector = document.getElementById('issueSelector');
+  if (issueSelector) {
+    issueSelector.innerHTML = '<option value="sayi1">Sayı 01 (Boş)</option>';
+  }
+
+  // Aktif Fabric tuvalini temizle
+  if (window.fabricCanvases) {
+    Object.keys(window.fabricCanvases).forEach(k => {
+      try { window.fabricCanvases[k].dispose(); } catch(e){}
+    });
+    window.fabricCanvases = {};
+  }
+  window.activeFabricCanvas = null;
+
+  renderAll();
+  saveAllChangesToServer(true);
+
+  if (!silent) {
+    showToast('📄 Bomboş bembeyaz sayfa açıldı! Sıfırdan dilediğiniz gibi kutularınızı çizebilirsiniz.');
+  }
+}
+window.startPureBlankMagazine = startPureBlankMagazine;
+
 function loadFullTemplatePreset(presetId, silent = false) {
   const preset = MAGAZINE_PRESETS.find(p => p.id === Number(presetId)) || MAGAZINE_PRESETS[0];
   activeTemplatePresetId = preset.id;
@@ -471,18 +525,13 @@ async function loadAllMagazines() {
   if (magSelector) {
     magSelector.innerHTML = '';
 
-    // 1. Şablon Örnekleri Grubu (Her zaman doğrudan seçilebilir!)
-    const tplGroup = document.createElement('optgroup');
-    tplGroup.label = '🎨 Hazır Dergi Şablon Örnekleri (Tıkla & Düzenle)';
-    MAGAZINE_PRESETS.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = `preset-${p.id}`;
-      opt.textContent = `Şablon ${p.id}: ${p.name}`;
-      tplGroup.appendChild(opt);
-    });
-    magSelector.appendChild(tplGroup);
+    // 0. EN ÜSTTE VE VARSAYILAN: BOMBOŞ BEYAZ SAYFA İLE SIFIRDAN BAŞLA
+    const blankOpt = document.createElement('option');
+    blankOpt.value = 'blank-new';
+    blankOpt.textContent = '⬜ Bomboş Dergi (Sıfırdan Tasarla)';
+    magSelector.appendChild(blankOpt);
 
-    // 2. Eğer kullanıcı dergi kaydettiyse Kayıtlı Dergiler Grubu
+    // 1. Eğer kullanıcı dergi kaydettiyse Kayıtlı Dergiler Grubu
     if (allMagazines.length > 0) {
       const savedGroup = document.createElement('optgroup');
       savedGroup.label = '📁 Kayıtlı Dergileriniz';
@@ -494,6 +543,17 @@ async function loadAllMagazines() {
       });
       magSelector.appendChild(savedGroup);
     }
+
+    // 2. Hazır Dergi Şablon Örnekleri Grubu (Opsiyonel İlham İçin)
+    const tplGroup = document.createElement('optgroup');
+    tplGroup.label = '🎨 Hazır Şablon Örnekleri (İlham & Kopya)';
+    MAGAZINE_PRESETS.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = `preset-${p.id}`;
+      opt.textContent = `Şablon ${p.id}: ${p.name}`;
+      tplGroup.appendChild(opt);
+    });
+    magSelector.appendChild(tplGroup);
   }
 
   if (keyMagSelect) {
@@ -508,7 +568,7 @@ async function loadAllMagazines() {
 
   renderRegisteredMagazinesList();
 
-  // Eğer kayıtlı dergi varsa ve URL'de istenmişse onu aç, yoksa doğrudan Şablon #1 (Kamer) örneğini aç!
+  // Eğer kayıtlı dergi varsa ve URL'de istenmişse onu aç, yoksa DOĞRUDAN BOMBOŞ SAYFA AÇ!
   const urlParams = new URLSearchParams(window.location.search);
   const targetMagId = urlParams.get('magId');
 
@@ -523,14 +583,15 @@ async function loadAllMagazines() {
     updateMagazineHeaderUI();
     await loadAllIssues(currentMagazine.id);
   } else {
-    // Kayıtlı dergi yok: Doğrudan Şablon #1 (Kamer) örneğini yükle!
+    // Kayıtlı dergi yok: DOĞRUDAN BOMBOŞ BEYAZ SAYFA İLE SIFIRDAN BAŞLA! (ASLA HAZIR ŞABLON AÇMAZ)
     currentMagazine = null;
     currentIssue = null;
-    if (magSelector) magSelector.value = 'preset-1';
+    if (magSelector) magSelector.value = 'blank-new';
     if (issueSelector) {
-      issueSelector.innerHTML = '<option value="tpl">Şablon Örneği (6 Sayfa)</option>';
+      issueSelector.innerHTML = '<option value="sayi1">Sayı 01 (Boş)</option>';
+      issueSelector.disabled = false;
     }
-    loadFullTemplatePreset(1, true);
+    startPureBlankMagazine(true);
   }
 }
 
@@ -566,11 +627,11 @@ function renderRegisteredMagazinesList() {
 
 async function clearAllSavedMagazines() {
   if (allMagazines.length === 0) {
-    loadFullTemplatePreset(activeTemplatePresetId || 1);
-    showToast("✨ Şablon örneği sıfırlandı!");
+    startPureBlankMagazine();
+    showToast("📄 Bembeyaz boş sayfa açıldı!");
     return;
   }
-  if (!confirm("Sistemde kayıtlı tüm örnek dergileri silip temiz Şablon Tasarım Masasına geçmek istiyor musunuz?")) {
+  if (!confirm("Sistemde kayıtlı dergileri silip bembeyaz boş çalışma masasına geçmek istiyor musunuz?")) {
     return;
   }
   try {
@@ -583,8 +644,8 @@ async function clearAllSavedMagazines() {
     currentMagazine = null;
     currentIssue = null;
     window.history.pushState({}, '', '/editor');
-    await loadAllMagazines();
-    showToast("🗑️ Tüm kayıtlı örnek dergiler silindi! Şablon örnekleri aktif.");
+    startPureBlankMagazine();
+    showToast("🗑️ Tüm dergiler silindi, tertemiz boş sayfa açıldı!");
   } catch (err) {
     showToast("Sunucu hatası!");
   }
@@ -668,6 +729,9 @@ const ALL_PAGE_TEMPLATES_CATALOG = [
 ];
 
 function openAllTemplatesModal() {
+  if (typeof renderWireframesModalGrid === 'function') {
+    renderWireframesModalGrid();
+  }
   const pageGrid = document.getElementById('allPageTypesGrid');
   const presetGrid = document.getElementById('allPresetsGrid');
 
@@ -919,6 +983,11 @@ function convertCurrentPageToTemplate(templateType, subOption = '') {
 }
 
 async function onMagazineChange(newMagId) {
+  if (newMagId === 'blank-new') {
+    startPureBlankMagazine();
+    return;
+  }
+
   if (String(newMagId).startsWith('preset-')) {
     const pId = Number(String(newMagId).replace('preset-', '')) || 1;
     currentMagazine = null;
@@ -1729,6 +1798,7 @@ function goToLastPage() {
 }
 
 function selectPageForEdit(index) {
+  flushActiveFabricCanvases();
   selectedEditIndex = index;
   selectedElementId = null;
   hideFloatingRichTextBar();
@@ -1788,7 +1858,21 @@ function dismissAdminNote() {
 // ==========================================
 // 4. TUVAL (CANVAS) RENDER & SERBEST ELEMANLAR
 // ==========================================
+function flushActiveFabricCanvases() {
+  if (window.fabricCanvases && window.magazineData && Array.isArray(window.magazineData.pages)) {
+    Object.keys(window.fabricCanvases).forEach(pIdx => {
+      const pNum = Number(pIdx);
+      const fCanvas = window.fabricCanvases[pNum];
+      const page = window.magazineData.pages[pNum];
+      if (fCanvas && page && typeof saveFabricPageState === 'function') {
+        saveFabricPageState(pNum, true);
+      }
+    });
+  }
+}
+
 function renderMagazineViewport() {
+  flushActiveFabricCanvases();
   const viewport = document.getElementById('magazineViewport');
   viewport.innerHTML = '';
 
@@ -4648,6 +4732,21 @@ function renderTemplateHTML(page, pageIndex) {
     `;
   }
 
+  if (page.type === 'blank' || page.type === 'freeform' || (page.type && page.type.startsWith('wireframe_'))) {
+    const bg = page.bgColor || '#ffffff';
+    return `
+      <div class="relative w-full h-full flex flex-col justify-between p-6 select-none overflow-hidden" style="background-color: ${bg};">
+        ${(!page.elements || page.elements.length === 0) ? `
+          <div class="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-slate-300/60 rounded-2xl p-6 text-center text-slate-400 space-y-2 pointer-events-none">
+            <i class="ph ph-bounding-box text-4xl text-amber-500/70"></i>
+            <span class="font-bold text-sm text-slate-700">Bembeyaz Boş Sayfa (Özgür Mizanpaj)</span>
+            <span class="text-xs text-slate-400 max-w-xs">Sol menüden Metin Kutusu, Resim Çerçevesi veya Şekil ekleyerek kendi mizanpajınızı oluşturun.</span>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
   return `<div class="p-6">Sayfa</div>`;
 }
 
@@ -5588,12 +5687,31 @@ function triggerElementAction(el) {
     if (titleEl) titleEl.textContent = 'Görsel İnceleme';
     if (bodyEl) bodyEl.innerHTML = `<img src="${escapeHtml(imgUrl)}" class="w-full max-h-[65vh] object-contain rounded-2xl shadow-xl mx-auto">`;
     openModal('actionPopupModal');
-  } else if (act === 'video') {
-    const vidUrl = el.actionValue || el.url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+  } else if (act === 'video' || act === 'popup_video') {
+    const vidUrl = el.actionValue || el.videoUrl || el.url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
     const titleEl = document.getElementById('actionPopupTitle');
     const bodyEl = document.getElementById('actionPopupBody');
-    if (titleEl) titleEl.textContent = 'Video Oynatıcı';
-    if (bodyEl) bodyEl.innerHTML = `<video controls autoplay class="w-full rounded-2xl shadow-xl"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+    if (titleEl) titleEl.textContent = el.title || el.popupTitle || 'Video Oynatıcı';
+    const ytMatch = vidUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    if (ytMatch) {
+      if (bodyEl) bodyEl.innerHTML = `<div class="aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    } else {
+      if (bodyEl) bodyEl.innerHTML = `<video controls autoplay class="w-full rounded-2xl shadow-xl bg-black"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+    }
+    openModal('actionPopupModal');
+  } else if (act === 'audio' || act === 'popup_audio') {
+    const audUrl = el.actionValue || el.audioUrl || el.url || '';
+    const titleEl = document.getElementById('actionPopupTitle');
+    const bodyEl = document.getElementById('actionPopupBody');
+    if (titleEl) titleEl.textContent = el.title || el.popupTitle || 'Ses Oynatıcı';
+    if (bodyEl) bodyEl.innerHTML = `
+      <div class="p-6 text-center space-y-4">
+        <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center text-3xl">
+          <i class="ph ph-headphones"></i>
+        </div>
+        <h4 class="text-white font-bold text-base">${escapeHtml(el.title || el.name || 'Ses Kaydı')}</h4>
+        <audio controls autoplay class="w-full" src="${escapeHtml(audUrl)}"></audio>
+      </div>`;
     openModal('actionPopupModal');
   } else if (act === 'effect') {
     const dom = document.getElementById(`elDom_${el.id}`);
@@ -5910,6 +6028,7 @@ async function uploadPageVideo(event) {
 // 8. SAYFA İŞLEMLERİ & NAVİGASYON
 // ==========================================
 function prevPage() {
+  flushActiveFabricCanvases();
   if (!spreadMode) {
     if (currentIndex > 0) currentIndex--;
   } else {
@@ -5921,6 +6040,7 @@ function prevPage() {
 }
 
 function nextPage() {
+  flushActiveFabricCanvases();
   const total = magazineData.pages.length;
   if (!spreadMode) {
     if (currentIndex < total - 1) currentIndex++;
@@ -6525,6 +6645,12 @@ function getTemplateLabel(type) {
     k3: 'K3 Künye',
     k4: 'K4 Arka Kapak',
     freeform: 'Serbest Tuval',
+    blank: 'Boş Sayfa',
+    wireframe_blank: '📐 Bembeyaz Sayfa',
+    wireframe_article_2col: '📐 Boş 2 Sütun Makale',
+    wireframe_interview_3img: '📐 Boş 3 Fotoğraflı Röportaj',
+    wireframe_gallery_4grid: '📐 Boş 4\'lü Kolaj',
+    wireframe_poetry_author: '📐 Boş Şiir & Portre',
     catalog: 'Katalog',
     video: 'Video Köşesi',
     toc: 'İçindekiler',

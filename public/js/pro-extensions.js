@@ -932,7 +932,7 @@ function buildLayoutWireframeSvg(layoutId, idx) {
 }
 
 // ============================================================================
-// FAZ 9 & 10 & 11: SEÇİLİ ÖĞE ODAKLI 20 BÜYÜK YAYINCILIK GÜCÜ WIDGET'I
+// FAZ 9 & 10 & 11: SEÇİLİ ÖĞE ODAKLI SADE AI KOMUT PANELİ & KATALOG BAĞLANTISI
 // ============================================================================
 function buildSelectedElementAiWidgetHtml(activeObj) {
   if (!activeObj) return '';
@@ -942,98 +942,37 @@ function buildSelectedElementAiWidgetHtml(activeObj) {
   const objTitle = activeObj.name || (isImg ? 'Seçili Görsel' : (isTxt ? 'Seçili Metin Kutusu' : 'Seçili Şekil'));
 
   return `
-    <div class="bg-gradient-to-br from-indigo-950/95 via-slate-900 to-slate-900 p-3 rounded-2xl border border-indigo-500/50 space-y-2.5 text-xs shadow-lg">
+    <div class="bg-gradient-to-br from-indigo-950/95 via-slate-900 to-slate-900 p-3.5 rounded-2xl border border-indigo-500/50 space-y-2.5 text-xs shadow-lg">
       <div class="flex items-center justify-between">
         <span class="font-bold text-indigo-300 flex items-center gap-1.5 truncate">
           <i class="ph ph-sparkle text-amber-400 text-base"></i>
           <span>AI Sihirli Komut (${escapeHtml(objTitle)})</span>
         </span>
-        <span class="text-[9.5px] px-1.5 py-0.5 rounded bg-indigo-500/25 text-indigo-200 font-mono font-bold shrink-0">
-          ${isImg ? 'DeepSeek + Gemini 2.5 Vision' : 'DeepSeek AI Redaksiyon'}
+        <span class="text-[9.5px] px-2 py-0.5 rounded-full bg-indigo-500/25 text-indigo-200 font-mono font-bold shrink-0">
+          ${isImg ? 'Gemini 2.5 Vision' : 'DeepSeek AI'}
         </span>
       </div>
 
       <!-- Doğal Dil Komut Girişi -->
       <div class="flex gap-1.5">
-        <input id="inlineAiMagicInput" type="text" onkeydown="if(event.key==='Enter'){runSmartElementAICommand(this.value);}" placeholder="${isImg ? 'Örn: sağa çevir, siyah beyaz yap, dekupe yap, yüzü odakla...' : 'Örn: imla düzelt, resmi dile çevir, manşet yap, 2 sütuna böl...'}" class="flex-1 bg-slate-950 border border-indigo-500/40 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none">
-        <button onclick="runSmartElementAICommand(document.getElementById('inlineAiMagicInput')?.value)" id="btnRunInlineAi" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center gap-1 shrink-0 transition shadow">
+        <input id="inlineAiMagicInput" type="text" onkeydown="if(event.key==='Enter'){runSmartElementAICommand(this.value);}" placeholder="${isImg ? 'Örn: sağa çevir, siyah beyaz yap, dekupe yap, yüzü odakla...' : 'Örn: imla düzelt, resmi dile çevir, manşet yap, 2 sütuna böl...'}" class="flex-1 bg-slate-950 border border-indigo-500/40 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none">
+        <button onclick="runSmartElementAICommand(document.getElementById('inlineAiMagicInput')?.value)" id="btnRunInlineAi" class="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs flex items-center gap-1 shrink-0 transition shadow">
           <i class="ph ph-magic-wand"></i> Uygula
         </button>
       </div>
 
-      ${isImg ? `
-        <!-- GÖRSEL HIZLI YAYINCILIK & AI AKSIYONLARI -->
-        <div class="space-y-1.5 pt-0.5">
-          <div class="flex flex-wrap gap-1">
-            <button onclick="runAiBackgroundRemoval()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-sky-500/20 hover:bg-sky-500 text-sky-200 hover:text-slate-950 border border-sky-500/40 transition">
-              ✂️ Dekupe (Arka Plan Sil)
-            </button>
-            <button onclick="runAiSmartFaceCentering()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500 text-amber-200 hover:text-slate-950 border border-amber-500/40 transition">
-              🎯 Yüzü/Özneyi Odakla
-            </button>
-            <button onclick="runAiPaletteHarmonizer()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 hover:bg-emerald-500 text-emerald-200 hover:text-slate-950 border border-emerald-500/40 transition">
-              🌈 Renk Paleti Çıkar
-            </button>
-            <button onclick="runAiEnhanceSharpener()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-purple-500/20 hover:bg-purple-500 text-purple-200 hover:text-slate-950 border border-purple-500/40 transition">
-              ✨ Netleştir & Baskıya Hazırla
-            </button>
-            <button onclick="runAiTextBehindSubject()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-500/20 hover:bg-rose-500 text-rose-200 hover:text-slate-950 border border-rose-500/40 transition">
-              🎭 Metni Arkaya Al (Vogue)
-            </button>
-            <button onclick="runAiVisionOcr()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-yellow-500/20 hover:bg-yellow-500 text-yellow-200 hover:text-slate-950 border border-yellow-500/40 transition">
-              📜 OCR Metni Oku
-            </button>
-          </div>
-          <!-- Filtreler ve Döndürme -->
-          <div class="flex flex-wrap gap-1 pt-0.5 border-t border-slate-800">
-            <button onclick="runSmartElementAICommand('sağa 90 derece çevir')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">↻ Sağa 90°</button>
-            <button onclick="runSmartElementAICommand('sola 90 derece çevir')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">↺ Sola 90°</button>
-            <button onclick="applyAiStyleFilter('sketch')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">✏️ Karakalem</button>
-            <button onclick="applyAiStyleFilter('watercolor')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">🎨 Suluboya</button>
-            <button onclick="applyAiStyleFilter('vintage1923')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">🏛️ 1923 Arşiv</button>
-            <button onclick="applyAiStyleFilter('dramaticBw')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">📷 Siyah-Beyaz</button>
-            <button onclick="runSmartElementAICommand('yatay aynala')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">↔️ Aynala</button>
-            <button onclick="runSmartElementAICommand('daire maske içine al')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">⭕ Daire Maske</button>
-          </div>
-        </div>
-      ` : isTxt ? `
-        <!-- METİN HIZLI EDİTORYAL & DİZGİ AKSIYONLARI -->
-        <div class="space-y-1.5 pt-0.5">
-          <div class="flex flex-wrap gap-1">
-            <button onclick="runAiTdkProofread()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 hover:bg-emerald-500 text-emerald-200 hover:text-slate-950 border border-emerald-500/40 transition">
-              🔍 TDK İmla Düzelt
-            </button>
-            <button onclick="runAiHeadlineSpotGenerator()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 hover:bg-amber-500 text-amber-200 hover:text-slate-950 border border-amber-500/40 transition">
-              ✨ Manşet & Spot
-            </button>
-            <button onclick="runAiPullQuoteExtractor()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-purple-500/20 hover:bg-purple-500 text-purple-200 hover:text-slate-950 border border-purple-500/40 transition">
-              💬 Çekme Alıntı Yap
-            </button>
-            <button onclick="toggleDropCap()" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-sky-500/20 hover:bg-sky-500 text-sky-200 hover:text-slate-950 border border-sky-500/40 transition">
-              🔤 Drop Cap İnisiyal
-            </button>
-            <button onclick="runAiMultiColumnSplit(2)" class="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 transition">
-              📰 2 Sütuna Böl
-            </button>
-          </div>
-          <!-- Üslup ve Biçimlendirme -->
-          <div class="flex flex-wrap gap-1 pt-0.5 border-t border-slate-800">
-            <button onclick="runAiTransformTone('resmi')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">🏛️ Resmi Dil</button>
-            <button onclick="runAiTransformTone('genclik')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">⚡ Gençlik Dili</button>
-            <button onclick="runAiTransformTone('edebi')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">✒️ Edebi Yaz</button>
-            <button onclick="runSmartElementAICommand('metni ortala')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">≡ Ortala</button>
-            <button onclick="runSmartElementAICommand('iki yana yasla')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">☰ İki Yana</button>
-            <button onclick="runSmartElementAICommand('satır ve harf aralıklarını artır')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">↕️ Aralık Aç</button>
-            <button onclick="runSmartElementAICommand('paragraf başlarına girinti yap')" class="px-1.5 py-0.5 rounded text-[9.5px] bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">⇥ Girinti Yap</button>
-          </div>
-        </div>
-      ` : `
-        <div class="flex flex-wrap gap-1 pt-0.5">
-          <button onclick="runSmartElementAICommand('sayfada yatay ortala')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">🎯 Ortala</button>
-          <button onclick="runSmartElementAICommand('sağa 5 derece eğik yap')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">↻ Eğik Yap</button>
-          <button onclick="runSmartElementAICommand('köşelerini yuvarlat')" class="px-2 py-1 rounded-lg text-[10px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800">▢ Köşeleri Yuvarlat</button>
-        </div>
-      `}
+      <!-- 100+ Hazır Komut Kataloğu Açılır Pencere Butonu -->
+      <div class="pt-0.5">
+        <button onclick="openAiPromptLibraryModal('${isImg ? 'image' : 'text'}')" class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-indigo-600/30 border border-indigo-500/40 hover:border-indigo-400 text-slate-200 hover:text-white font-bold text-[11px] flex items-center justify-between transition group shadow">
+          <span class="flex items-center gap-1.5 text-amber-300">
+            <i class="ph ph-book-open-text text-base"></i>
+            <span>📖 ${isImg ? '100+ Hazır Görsel Komut Kataloğu' : '100+ Hazır Metin Komut Kataloğu'}</span>
+          </span>
+          <span class="text-[10px] text-slate-400 group-hover:text-amber-300 flex items-center gap-0.5">
+            Canlı Önizlemeli <i class="ph ph-arrow-right"></i>
+          </span>
+        </button>
+      </div>
 
       <div id="inlineAiStatusBox" class="hidden text-[10.5px] px-2.5 py-1.5 rounded-xl bg-slate-950/90 border border-slate-800 text-emerald-300"></div>
     </div>

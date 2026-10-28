@@ -4,6 +4,9 @@ let currentIndex = 0;
 let spreadMode = true;
 let audioEnabled = true;
 let audioCtx = null;
+let pageFlipInstance = null;
+let readerStaticCanvases = [];
+let autoPlayInterval = null;
 
 // URL'den sayı ID'sini al
 const urlParams = new URLSearchParams(window.location.search);
@@ -29,6 +32,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (e.key === 'ArrowRight' || e.key === 'PageDown') nextPage();
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') prevPage();
     if (e.key === 'f' || e.key === 'F') toggleFullScreen();
+    if (e.key === ' ') {
+      e.preventDefault();
+      toggleAutoPlay();
+    }
   });
 });
 
@@ -53,11 +60,23 @@ async function loadIssueData(id) {
 }
 
 function renderMagazine() {
+  const flipWrapper = document.getElementById('flipbookWrapper');
   const viewport = document.getElementById('magazineViewport');
-  viewport.innerHTML = '';
+  if (!flipWrapper || !viewport) return;
+
+  // Önceki örnekleri temizle
+  if (pageFlipInstance) {
+    try { pageFlipInstance.destroy(); } catch (e) {}
+    pageFlipInstance = null;
+  }
+  readerStaticCanvases.forEach(c => {
+    try { c.dispose(); } catch (e) {}
+  });
+  readerStaticCanvases = [];
+  flipWrapper.innerHTML = '';
 
   if (!magazineData || !magazineData.pages || magazineData.pages.length === 0) {
-    viewport.innerHTML = '<div class="text-slate-400 p-8">Bu sayıda henüz sayfa bulunmuyor.</div>';
+    flipWrapper.innerHTML = '<div class="text-slate-400 p-8 text-center">Bu sayıda henüz sayfa bulunmuyor.</div>';
     return;
   }
 
@@ -65,40 +84,284 @@ function renderMagazine() {
   if (currentIndex >= total) currentIndex = total - 1;
   if (currentIndex < 0) currentIndex = 0;
 
+  const isMobile = window.innerWidth < 1024;
+  const useSpread = spreadMode && !isMobile;
+  const hasStPageFlip = window.St && window.St.PageFlip;
+
+  // 1. Sayfa DOM öğelerini hazırla
+  magazineData.pages.forEach((page, idx) => {
+    const pageEl = document.createElement('div');
+    pageEl.className = 'page';
+    pageEl.dataset.pageIndex = idx;
+
+    // Kapak ve arka kapak için sert kapak yoğunluğu (hard cover)
+    if (idx === 0 || idx === total - 1) {
+      pageEl.dataset.density = 'hard';
+    } else {
+      pageEl.dataset.density = 'soft';
+    }
+
+    const hasFabric = page.fabricJSON && page.fabricJSON.objects && page.fabricJSON.objects.length > 0;
+
+    if (hasFabric && window.fabric) {
+      // Fabric Canvas sarmalayıcısı
+      const canvasWrap = document.createElement('div');
+      canvasWrap.className = 'flipbook-page-canvas-wrap w-full h-full relative';
+      canvasWrap.style.backgroundColor = page.bgColor || '#ffffff';
+
+      const canvasEl = document.createElement('canvas');
+      canvasEl.id = `readerCanvas_${idx}`;
+      canvasEl.width = 550;
+      canvasEl.height = 778;
+      canvasEl.className = 'w-full h-full block';
+      canvasWrap.appendChild(canvasEl);
+
+      // Medya ve Etkileşim Katmanı
+      const mediaLayer = document.createElement('div');
+      mediaLayer.id = `readerMediaLayer_${idx}`;
+      mediaLayer.className = 'absolute inset-0 pointer-events-none overflow-hidden';
+      canvasWrap.appendChild(mediaLayer);
+
+      // Sayfa alt numarası (varsa)
+      if (idx > 0 && idx < total - 1) {
+        const footerEl = document.createElement('div');
+        footerEl.className = 'absolute bottom-2 inset-x-6 flex items-center justify-between text-[10px] text-slate-400 pointer-events-none z-10';
+        footerEl.innerHTML = `<span>${escapeHtml(magazineData.schoolName || '')}</span><span class="font-bold text-slate-700 bg-slate-100/90 px-2 py-0.5 rounded">${idx + 1}</span><span>${escapeHtml(magazineData.issueMonth || magazineData.issueInfo || '')}</span>`;
+        canvasWrap.appendChild(footerEl);
+      }
+
+      pageEl.appendChild(canvasWrap);
+    } else {
+      // Şablon ve serbest eleman görünümü
+      pageEl.innerHTML = createPageInnerHTML(page, idx, total);
+    }
+
+    flipWrapper.appendChild(pageEl);
+  });
+
+  // 2. Fabric Static Canvases yükle
+  magazineData.pages.forEach((page, idx) => {
+    const hasFabric = page.fabricJSON && page.fabricJSON.objects && page.fabricJSON.objects.length > 0;
+    if (hasFabric && window.fabric) {
+      const cEl = document.getElementById(`readerCanvas_${idx}`);
+      if (cEl) {
+        try {
+          const sCanvas = new fabric.StaticCanvas(cEl, {
+            width: 550,
+            height: 778,
+            backgroundColor: page.bgColor || page.fabricJSON.background || '#ffffff',
+            renderOnAddRemove: false
+          });
+          readerStaticCanvases.push(sCanvas);
+
+          sCanvas.loadFromJSON(page.fabricJSON, () => {
+            sCanvas.renderAll();
+            mountMediaOverlays(page, idx);
+          });
+        } catch (err) {
+          console.warn(`Sayfa ${idx} Fabric render hatası:`, err);
+        }
+      }
+    }
+  });
+
+  // 3. StPageFlip motorunu başlat
+  if (hasStPageFlip) {
+    try {
+      pageFlipInstance = new St.PageFlip(flipWrapper, {
+        width: 550,
+        height: 778,
+        size: 'stretch',
+        minWidth: 320,
+        maxWidth: 880,
+        minHeight: 450,
+        maxHeight: 1240,
+        maxShadowOpacity: 0.5,
+        showCover: true,
+        mobileScrollSupport: true,
+        usePortrait: !useSpread
+      });
+
+      pageFlipInstance.loadFromHTML(flipWrapper.querySelectorAll('.page'));
+
+      pageFlipInstance.on('flip', (e) => {
+        currentIndex = e.data;
+        playPageTurnSound();
+        updateReaderNavUI();
+      });
+
+      pageFlipInstance.on('init', (e) => {
+        updateReaderNavUI();
+      });
+
+      if (currentIndex > 0 && currentIndex < total) {
+        setTimeout(() => {
+          try { pageFlipInstance.flip(currentIndex); } catch (e) {}
+        }, 80);
+      }
+    } catch (err) {
+      console.warn('StPageFlip başlatılamadı, statik fallback moduna geçiliyor:', err);
+      setupFallbackReader();
+    }
+  } else {
+    setupFallbackReader();
+  }
+
+  updateReaderNavUI();
+}
+
+function setupFallbackReader() {
+  const flipWrapper = document.getElementById('flipbookWrapper');
+  if (!flipWrapper || !magazineData || !magazineData.pages) return;
+  flipWrapper.innerHTML = '';
+  const total = magazineData.pages.length;
   const heightClass = 'h-[72vh] sm:h-[78vh] md:h-[83vh]';
 
-  // Kapak (0) veya son sayfa (total-1) tek gösterilebilir
   if (!spreadMode || currentIndex === 0 || currentIndex === total - 1) {
-    // TEK SAYFA MODU
     const pageData = magazineData.pages[currentIndex];
     const pageEl = createPageDOM(pageData, currentIndex, 'single', heightClass);
-    viewport.appendChild(pageEl);
-
-    document.getElementById('pageIndicatorText').textContent = `Sayfa ${currentIndex + 1} / ${total}`;
+    flipWrapper.appendChild(pageEl);
   } else {
-    // ÇİFT SAYFA (SPREAD) MODU
     const leftIndex = currentIndex % 2 === 1 ? currentIndex : currentIndex - 1;
     const rightIndex = leftIndex + 1;
-
-    const leftPageData = magazineData.pages[leftIndex];
-    const leftEl = createPageDOM(leftPageData, leftIndex, 'left', heightClass);
-    viewport.appendChild(leftEl);
+    const leftEl = createPageDOM(magazineData.pages[leftIndex], leftIndex, 'left', heightClass);
+    flipWrapper.appendChild(leftEl);
 
     if (rightIndex < total) {
-      const rightPageData = magazineData.pages[rightIndex];
-      const rightEl = createPageDOM(rightPageData, rightIndex, 'right', heightClass);
-      viewport.appendChild(rightEl);
-      document.getElementById('pageIndicatorText').textContent = `Sayfa ${leftIndex + 1}-${rightIndex + 1} / ${total}`;
+      const rightEl = createPageDOM(magazineData.pages[rightIndex], rightIndex, 'right', heightClass);
+      flipWrapper.appendChild(rightEl);
+    }
+  }
+}
+
+function mountMediaOverlays(page, idx) {
+  const layer = document.getElementById(`readerMediaLayer_${idx}`);
+  if (!layer || !page.fabricJSON || !page.fabricJSON.objects) return;
+
+  page.fabricJSON.objects.forEach((obj) => {
+    // 1. Canlı video döngüsü (loop video) veya video nesnesi
+    if (obj.isLoopVideo || obj.videoUrl || obj.customType === 'interactive_video') {
+      const vidSrc = obj.videoUrl || 'https://assets.mixkit.co/videos/preview/mixkit-waving-flag-of-turkey-42898-large.mp4';
+      const vEl = document.createElement('video');
+      vEl.src = vidSrc;
+      vEl.autoplay = true;
+      vEl.loop = true;
+      vEl.muted = true;
+      vEl.playsInline = true;
+      vEl.className = 'absolute object-cover shadow-md pointer-events-auto';
+
+      const lPct = (obj.left / 550) * 100;
+      const tPct = (obj.top / 778) * 100;
+      const wPct = (((obj.width || 100) * (obj.scaleX || 1)) / 550) * 100;
+      const hPct = (((obj.height || 100) * (obj.scaleY || 1)) / 778) * 100;
+
+      vEl.style.left = `${lPct}%`;
+      vEl.style.top = `${tPct}%`;
+      vEl.style.width = `${wPct}%`;
+      vEl.style.height = `${hPct}%`;
+      vEl.style.borderRadius = `${obj.cornerRadiusPx || 8}px`;
+      layer.appendChild(vEl);
+    }
+
+    // 2. Kinetik Tipografi Animasyonları (typewriter, fade_in, shimmer, pulse)
+    if (obj.textAnimation || obj.kineticAnim) {
+      const animType = obj.textAnimation || obj.kineticAnim;
+      const animClass = `anim-${String(animType).replace('_', '-')}`;
+
+      const tEl = document.createElement('div');
+      tEl.className = `absolute pointer-events-auto ${animClass}`;
+      const lPct = (obj.left / 550) * 100;
+      const tPct = (obj.top / 778) * 100;
+      const wPct = (((obj.width || 200) * (obj.scaleX || 1)) / 550) * 100;
+
+      tEl.style.left = `${lPct}%`;
+      tEl.style.top = `${tPct}%`;
+      tEl.style.width = `${wPct}%`;
+      tEl.style.fontSize = `${(obj.fontSize || 14) * (obj.scaleY || 1)}px`;
+      tEl.style.fontFamily = obj.fontFamily || 'Inter';
+      tEl.style.fontWeight = obj.fontWeight || 'normal';
+      tEl.style.color = obj.fill || '#0f172a';
+      tEl.style.lineHeight = obj.lineHeight || 1.3;
+      tEl.textContent = obj.text || '';
+      layer.appendChild(tEl);
+    }
+
+    // 3. Sıcak Nokta / Etkileşimli Eylem (Hotspot / Popup)
+    if (obj.actionType && obj.actionType !== 'none') {
+      const actEl = document.createElement('div');
+      actEl.className = 'absolute cursor-pointer pointer-events-auto flex items-center justify-center';
+      const lPct = (obj.left / 550) * 100;
+      const tPct = (obj.top / 778) * 100;
+      const wPct = (((obj.width || 40) * (obj.scaleX || 1)) / 550) * 100;
+      const hPct = (((obj.height || 40) * (obj.scaleY || 1)) / 778) * 100;
+      actEl.style.left = `${lPct}%`;
+      actEl.style.top = `${tPct}%`;
+      actEl.style.width = `${wPct}%`;
+      actEl.style.height = `${hPct}%`;
+      actEl.title = obj.popupTitle || 'Detayı Görüntüle';
+      actEl.onclick = () => {
+        if (obj.actionType === 'popup') {
+          document.getElementById('readerPopupTitle').textContent = obj.popupTitle || 'Bilgi';
+          document.getElementById('readerPopupBody').innerHTML = `<p>${escapeHtml(obj.popupText || obj.actionValue || '')}</p>`;
+          document.getElementById('readerActionPopupModal').classList.remove('hidden');
+        } else if (obj.actionType === 'link' && obj.actionValue) {
+          window.open(obj.actionValue, '_blank');
+        } else if (obj.actionType === 'page' && obj.actionValue !== undefined) {
+          goToPage(parseInt(obj.actionValue, 10));
+        }
+      };
+      layer.appendChild(actEl);
+    }
+  });
+}
+
+function updateReaderNavUI() {
+  if (!magazineData || !magazineData.pages) return;
+  const total = magazineData.pages.length;
+
+  const ind = document.getElementById('pageIndicatorText');
+  if (ind) {
+    if (spreadMode && currentIndex > 0 && currentIndex < total - 1 && window.innerWidth >= 1024) {
+      ind.textContent = `Sayfa ${currentIndex + 1}-${Math.min(currentIndex + 2, total)} / ${total}`;
     } else {
-      document.getElementById('pageIndicatorText').textContent = `Sayfa ${leftIndex + 1} / ${total}`;
+      ind.textContent = `Sayfa ${currentIndex + 1} / ${total}`;
     }
   }
 
-  // Buton aktiflik durumları
-  document.getElementById('btnPrev').disabled = currentIndex === 0;
-  const isAtEnd = (!spreadMode && currentIndex >= total - 1) || 
-                  (spreadMode && currentIndex >= total - 1);
-  document.getElementById('btnNext').disabled = isAtEnd;
+  const btnPrev = document.getElementById('btnPrev');
+  if (btnPrev) btnPrev.disabled = (currentIndex === 0);
+
+  const btnNext = document.getElementById('btnNext');
+  if (btnNext) btnNext.disabled = (currentIndex >= total - 1);
+
+  updateSpreadUI();
+}
+
+function createPageInnerHTML(page, pageIndex, total) {
+  const bodyHtml = renderTemplateHTML(page, pageIndex);
+  let elementsHtml = '';
+  if (page.elements && page.elements.length > 0) {
+    elementsHtml = page.elements.map(el => renderReaderElement(el, pageIndex)).join('');
+  }
+
+  const isCoverSurface = page.type === 'cover' || page.type === 'k1' || page.type === 'k4';
+  const footerHtml = isCoverSurface ? '' : `
+    <div class="px-6 py-2 border-t border-slate-200 flex items-center justify-between text-[10px] font-medium text-slate-400 bg-white/95 shrink-0 z-10">
+      <span class="truncate max-w-[180px]">${escapeHtml(magazineData.schoolName || '')}</span>
+      <span class="font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded">${pageIndex + 1}</span>
+      <span>${escapeHtml(magazineData.issueMonth || magazineData.issueInfo || '')}</span>
+    </div>
+  `;
+
+  return `
+    <div class="flipbook-page-canvas-wrap flex flex-col justify-between overflow-hidden relative w-full h-full" style="background-color: ${page.bgColor || '#ffffff'};">
+      <div class="flex-1 overflow-hidden flex flex-col relative">
+        ${bodyHtml}
+        ${elementsHtml}
+      </div>
+      ${footerHtml}
+    </div>
+  `;
 }
 
 function createPageDOM(page, pageIndex, position, heightClass) {
@@ -179,6 +442,16 @@ function renderReaderElement(el, pageIndex) {
 
   if (el.type === 'image') {
     const fit = el.objectFit || 'cover';
+    if (el.isLoopVideo || el.customType === 'interactive_video') {
+      const vidSrc = el.videoUrl || el.actionValue || el.url;
+      return `
+        <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}">
+          <video autoplay loop muted playsinline class="w-full h-full shadow-md" style="object-fit:${fit}; border-radius:${radius}px; ${shadowCss} ${clipCss}">
+            <source src="${escapeHtml(vidSrc)}" type="video/mp4">
+          </video>
+        </div>
+      `;
+    }
     return `
       <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'}" ${actionAttr}${style}">
         <img src="${escapeHtml(el.url)}" class="w-full h-full shadow-md" style="object-fit:${fit}; border-radius:${radius}px; ${shadowCss} ${clipCss}" alt="">
@@ -311,8 +584,13 @@ function renderReaderElement(el, pageIndex) {
     const lineHt = el.lineHeight ? `line-height:${el.lineHeight};` : '';
     const colsCss = Number(el.columns) === 2 ? 'columns: 2; column-gap: 14px;' : '';
     const strokeCss = el.hasStroke ? '-webkit-text-stroke: 0.6px currentColor;' : '';
+    let animClass = '';
+    if (el.textAnimation === 'typewriter') animClass = 'animate-fade tracking-normal';
+    else if (el.textAnimation === 'fade_in') animClass = 'animate-fade duration-1000';
+    else if (el.textAnimation === 'pulse') animClass = 'animate-pulse';
+    else if (el.textAnimation === 'shimmer') animClass = 'transition duration-500 hover:brightness-125';
     return `
-      <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'} p-3 border leading-relaxed overflow-hidden shadow-sm" ${actionAttr}${style} ${bgStyle} border-color:${el.borderColor || 'transparent'}; border-radius:${radius}px; font-family:${el.fontFamily || 'inherit'}; font-size:${el.fontSize || 12}px; color:${el.color || '#0f172a'}; text-align:${el.textAlign || 'left'}; ${letterSp} ${lineHt} ${colsCss} ${strokeCss} ${shadowCss}">
+      <div class="canvas-element ${hasAction ? '' : 'pointer-events-none'} ${animClass} p-3 border leading-relaxed overflow-hidden shadow-sm" ${actionAttr}${style} ${bgStyle} border-color:${el.borderColor || 'transparent'}; border-radius:${radius}px; font-family:${el.fontFamily || 'inherit'}; font-size:${el.fontSize || 12}px; color:${el.color || '#0f172a'}; text-align:${el.textAlign || 'left'}; ${letterSp} ${lineHt} ${colsCss} ${strokeCss} ${shadowCss}">
         ${el.content || ''}
       </div>
     `;
@@ -350,10 +628,27 @@ window.triggerReaderElementAction = function(pageIndex, elId) {
     document.getElementById('readerPopupTitle').textContent = 'Görsel İnceleme';
     document.getElementById('readerPopupBody').innerHTML = `<img src="${escapeHtml(imgUrl)}" class="w-full max-h-[60vh] object-contain rounded-2xl mx-auto">`;
     document.getElementById('readerActionPopupModal').classList.remove('hidden');
-  } else if (act === 'video') {
-    const vidUrl = el.actionValue || el.url || '';
-    document.getElementById('readerPopupTitle').textContent = 'Video Oynatıcı';
-    document.getElementById('readerPopupBody').innerHTML = `<video controls autoplay class="w-full rounded-2xl"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+  } else if (act === 'video' || act === 'popup_video') {
+    const vidUrl = el.actionValue || el.videoUrl || el.url || '';
+    document.getElementById('readerPopupTitle').textContent = el.title || el.popupTitle || 'Video Oynatıcı';
+    const ytMatch = vidUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    if (ytMatch) {
+      document.getElementById('readerPopupBody').innerHTML = `<div class="aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+    } else {
+      document.getElementById('readerPopupBody').innerHTML = `<video controls autoplay class="w-full rounded-2xl shadow-xl bg-black"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+    }
+    document.getElementById('readerActionPopupModal').classList.remove('hidden');
+  } else if (act === 'audio' || act === 'popup_audio') {
+    const audUrl = el.actionValue || el.audioUrl || el.url || '';
+    document.getElementById('readerPopupTitle').textContent = el.title || el.popupTitle || 'Ses Oynatıcı';
+    document.getElementById('readerPopupBody').innerHTML = `
+      <div class="p-6 text-center space-y-4">
+        <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center text-3xl">
+          <i class="ph ph-headphones"></i>
+        </div>
+        <h4 class="text-white font-bold text-base">${escapeHtml(el.title || el.name || 'Ses Kaydı')}</h4>
+        <audio controls autoplay class="w-full" src="${escapeHtml(audUrl)}"></audio>
+      </div>`;
     document.getElementById('readerActionPopupModal').classList.remove('hidden');
   }
 };
@@ -1040,8 +1335,17 @@ window.checkReaderQuiz = function(pageIndex, optIdx) {
   }
 };
 
-// Navigasyon
+// Navigasyon (StPageFlip 3D & Statik Fallback Uyumlu)
 function prevPage() {
+  if (pageFlipInstance) {
+    try {
+      pageFlipInstance.flipPrev();
+      return;
+    } catch (e) {
+      console.warn('flipPrev hata:', e);
+    }
+  }
+  // Fallback
   if (!spreadMode) {
     if (currentIndex > 0) currentIndex--;
   } else {
@@ -1049,11 +1353,21 @@ function prevPage() {
     else if (currentIndex > 1) currentIndex -= 2;
   }
   playPageTurnSound();
-  renderMagazine();
+  setupFallbackReader();
+  updateReaderNavUI();
 }
 
 function nextPage() {
-  const total = magazineData.pages.length;
+  if (pageFlipInstance) {
+    try {
+      pageFlipInstance.flipNext();
+      return;
+    } catch (e) {
+      console.warn('flipNext hata:', e);
+    }
+  }
+  // Fallback
+  const total = magazineData ? magazineData.pages.length : 0;
   if (!spreadMode) {
     if (currentIndex < total - 1) currentIndex++;
   } else {
@@ -1062,18 +1376,29 @@ function nextPage() {
     else if (currentIndex + 1 < total) currentIndex += 1;
   }
   playPageTurnSound();
-  renderMagazine();
+  setupFallbackReader();
+  updateReaderNavUI();
 }
 
 function goToPage(idx) {
   closeTocModal();
+  if (pageFlipInstance) {
+    try {
+      pageFlipInstance.flip(idx);
+      return;
+    } catch (e) {
+      try { pageFlipInstance.turnToPage(idx); return; } catch (e2) {}
+    }
+  }
+  // Fallback
   if (!spreadMode) {
     currentIndex = idx;
   } else {
     currentIndex = idx === 0 ? 0 : (idx % 2 === 1 ? idx : idx - 1);
   }
   playPageTurnSound();
-  renderMagazine();
+  setupFallbackReader();
+  updateReaderNavUI();
 }
 
 function toggleSpreadMode() {
@@ -1085,6 +1410,37 @@ function toggleSpreadMode() {
 function updateSpreadUI() {
   const txt = document.getElementById('spreadToggleText');
   if (txt) txt.textContent = spreadMode ? "Çift Sayfa" : "Tek Sayfa";
+}
+
+function toggleAutoPlay() {
+  const icon = document.getElementById('autoPlayIcon');
+  if (autoPlayInterval) {
+    clearInterval(autoPlayInterval);
+    autoPlayInterval = null;
+    if (icon) icon.className = "ph ph-play text-lg";
+    showToast("Otomatik sayfa çevirme durduruldu.");
+  } else {
+    if (icon) icon.className = "ph ph-pause text-lg text-emerald-400";
+    showToast("Otomatik sayfa çevirme başlatıldı (5 saniye).");
+    autoPlayInterval = setInterval(() => {
+      if (!magazineData || !magazineData.pages) return;
+      const total = magazineData.pages.length;
+      if (pageFlipInstance) {
+        const cur = pageFlipInstance.getCurrentPageIndex();
+        if (cur >= total - 1) {
+          pageFlipInstance.flip(0);
+        } else {
+          pageFlipInstance.flipNext();
+        }
+      } else {
+        if (currentIndex >= total - 1) {
+          goToPage(0);
+        } else {
+          nextPage();
+        }
+      }
+    }, 5000);
+  }
 }
 
 // Kağıt Çevirme Sesi (Web Audio API)
