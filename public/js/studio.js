@@ -5,6 +5,15 @@ let currentMagazine = null;
 let allIssues = [];
 let currentIssue = null;
 let magazineData = null;
+try {
+  Object.defineProperty(window, 'magazineData', {
+    get: () => magazineData,
+    set: (val) => { magazineData = val; },
+    configurable: true
+  });
+} catch (e) {
+  window.magazineData = null;
+}
 let selectedEditIndex = 0;
 let currentIndex = 0;
 let spreadMode = true;
@@ -363,13 +372,14 @@ function startPureBlankMagazine(silent = false) {
   currentMagazine = null;
   currentIssue = null;
 
-  window.magazineData = {
+  magazineData = {
     id: 'blank-' + Date.now(),
     title: 'Yeni Dergi',
     schoolName: 'Okul E-Dergimiz',
     issueMonth: 'Sayı 01',
     issueInfo: 'Sayı 01 • ' + new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' }),
     status: 'draft',
+    isPureBlank: true,
     pages: [
       {
         id: 'p_1_' + Date.now(),
@@ -378,10 +388,12 @@ function startPureBlankMagazine(silent = false) {
         bgColor: '#ffffff',
         isCustomized: true,
         fabricJSON: { version: '5.3.0', objects: [] },
+        elements: [],
         showMasterPage: false
       }
     ]
   };
+  window.magazineData = magazineData;
 
   selectedEditIndex = 0;
   currentIndex = 0;
@@ -1485,7 +1497,16 @@ function switchRightInspectorTab(tabName) {
 }
 
 function renderAll() {
+  if (!magazineData) {
+    if (window.magazineData && Array.isArray(window.magazineData.pages)) {
+      magazineData = window.magazineData;
+    } else {
+      startPureBlankMagazine(true);
+      return;
+    }
+  }
   if (!magazineData || !magazineData.pages) return;
+  window.magazineData = magazineData;
   pushHistoryState();
   const total = magazineData.pages.length;
   const badge = document.getElementById('totalPagesBadge');
@@ -1731,6 +1752,7 @@ function insertPageAfter(idx, ev) {
 }
 
 function addSpreadPages() {
+  if (!magazineData || !magazineData.pages) return;
   const insertPos = magazineData.pages.length > 1 ? magazineData.pages.length - 1 : magazineData.pages.length;
   const accent = currentMagazine?.themeColor || '#2563eb';
   const leftPage = {
@@ -1874,7 +1896,13 @@ function flushActiveFabricCanvases() {
 function renderMagazineViewport() {
   flushActiveFabricCanvases();
   const viewport = document.getElementById('magazineViewport');
+  if (!viewport) return;
   viewport.innerHTML = '';
+
+  if (!magazineData || !magazineData.pages || magazineData.pages.length === 0) {
+    viewport.innerHTML = '<div class="text-slate-400 p-8 text-center text-xs">Henüz sayfa yüklenmedi.</div>';
+    return;
+  }
 
   const total = magazineData.pages.length;
   if (currentIndex >= total) currentIndex = total - 1;
@@ -6029,6 +6057,7 @@ async function uploadPageVideo(event) {
 // ==========================================
 function prevPage() {
   flushActiveFabricCanvases();
+  if (!magazineData || !magazineData.pages) return;
   if (!spreadMode) {
     if (currentIndex > 0) currentIndex--;
   } else {
@@ -6041,6 +6070,7 @@ function prevPage() {
 
 function nextPage() {
   flushActiveFabricCanvases();
+  if (!magazineData || !magazineData.pages) return;
   const total = magazineData.pages.length;
   if (!spreadMode) {
     if (currentIndex < total - 1) currentIndex++;
@@ -6757,7 +6787,6 @@ window.togglePanMode = togglePanMode;
 window.switchRightInspectorTab = switchRightInspectorTab;
 window.toggleLayersPopover = toggleLayersPopover;
 window.renderLayersPopover = renderLayersPopover;
-window.addAiGeneratedBlock = addAiGeneratedBlock;
 window.undoAction = undoAction;
 window.redoAction = redoAction;
 window.openQuickTemplateForPage = openQuickTemplateForPage;
@@ -6767,11 +6796,8 @@ window.addSpreadPages = addSpreadPages;
 window.deletePageAtIndex = deletePageAtIndex;
 window.goToLastPage = goToLastPage;
 window.convertTemplateToFreeformObjects = convertTemplateToFreeformObjects;
-window.updateTableCellLive = updateTableCellLive;
 window.addTableRow = addTableRow;
 window.removeTableRow = removeTableRow;
-window.stepSlide = stepSlide;
-window.addSlideshowImagePrompt = addSlideshowImagePrompt;
 window.triggerElementActionById = triggerElementActionById;
 window.triggerElementAction = triggerElementAction;
 window.setElementActionType = setElementActionType;
@@ -6784,14 +6810,8 @@ window.applyBulkFontToPage = applyBulkFontToPage;
 window.toggleImageFitMode = toggleImageFitMode;
 window.setElementImageAsPageBg = setElementImageAsPageBg;
 window.syncElementAcrossAllPages = syncElementAcrossAllPages;
-window.stepSelectedFontSize = stepSelectedFontSize;
-window.toggleSelectedStyleFormat = toggleSelectedStyleFormat;
-window.setSelectedTextAlign = setSelectedTextAlign;
-window.applyFloatingColor = applyFloatingColor;
-window.applyFloatingBgColor = applyFloatingBgColor;
 window.duplicateSelectedCanvasElement = duplicateSelectedCanvasElement;
 window.selectCanvasElement = selectCanvasElement;
-window.deselectAllElements = deselectAllElements;
 window.loadFullTemplatePreset = loadFullTemplatePreset;
 window.clearAllSavedMagazines = clearAllSavedMagazines;
 window.toggleRightSidebarCollapse = toggleRightSidebarCollapse;

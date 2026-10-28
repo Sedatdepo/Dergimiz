@@ -2331,8 +2331,9 @@ window.renderSmartLeftDrawerTemplates = function() {
 function initProExtensions() {
   injectCanvaGridsAndFramesIntoDrawer();
   // Eğer mevcut derginin Sayfa 4 (toc) sayfasında eski fabricJSON veya elements kalıntısı varsa temizle
-  if (window.magazineData && Array.isArray(magazineData.pages)) {
-    magazineData.pages.forEach((p, idx) => {
+  const mag = window.magazineData || (typeof magazineData !== 'undefined' ? magazineData : null);
+  if (mag && Array.isArray(mag.pages)) {
+    mag.pages.forEach((p, idx) => {
       if (p.type === 'toc') {
         p.elements = [];
         if (p.fabricJSON && JSON.stringify(p.fabricJSON).includes('1-')) {

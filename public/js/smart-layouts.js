@@ -1430,10 +1430,14 @@ window.switchRightInspectorTab = function(tabName) {
 
 // Tüm Şablonlarda ve Kayıtlı Dergilerde Resmi Sabit Sayfaları (K1 Kapak -> K2 Türk Bayrağı & İstiklal Marşı -> Atatürk & Gençliğe Hitabe -> Editörden & İçindekiler -> İç Sayfalar -> K3 Künye -> K4 Arka Kapak) Otomatik Garanti Altına Al
 function ensureOfficialBackbonePages(forceRebuild = false) {
-  if (!window.magazineData || !Array.isArray(magazineData.pages) || magazineData.pages.length === 0) return;
+  const mag = window.magazineData || (typeof magazineData !== 'undefined' ? magazineData : null);
+  if (!mag || !Array.isArray(mag.pages) || mag.pages.length === 0) return;
 
-  const pages = magazineData.pages;
-  const school = magazineData.schoolName || 'Okul & Kültür Dergisi';
+  // Kullanıcı bomboş sayfa üzerinde çalışıyorsa ASLA resmi sayfaları zorla ekleme!
+  if (mag.isPureBlank || mag.pages.some(p => p.type === 'blank')) return;
+
+  const pages = mag.pages;
+  const school = mag.schoolName || 'Okul & Kültür Dergisi';
   const accent = pages[0]?.accentColor || '#4f46e5';
 
   // 1. Türk Bayrağı & İstiklal Marşı sayfası var mı kontrol et
