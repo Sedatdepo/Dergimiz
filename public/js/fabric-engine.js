@@ -21,7 +21,13 @@ const FABRIC_CUSTOM_PROPS = [
   'filterSaturation',
   'filterBlur',
   'filterPreset',
-  'lockUniScaling'
+  'lockUniScaling',
+  'textAnimation',
+  'isLoopVideo',
+  'videoUrl',
+  'audioUrl',
+  'isGridSlot',
+  'isMasterPageObject'
 ];
 
 // Sayfa bazlı aktif Fabric.Canvas örnekleri
@@ -179,9 +185,14 @@ function initFabricForPageDOM(page, pageIndex, wrapper) {
   attachSmartAlignmentGuides(fCanvas);
   attachFabricCanvasEvents(fCanvas, page, pageIndex);
 
-  if (page.fabricJSON && page.fabricJSON.objects && page.fabricJSON.objects.length > 0) {
+  // KULLANICI BU SAYFADA BİR ŞEY SİLMİŞ, DEĞİŞTİRMİŞ VEYA BOŞ BIRAKMIŞSA (isCustomized VEYA fabricJSON VARSA)
+  // ASLA buildFabricObjectsForTemplatePage ÇAĞRILMAZ! SİLİNEN ÖĞELER GERİ GELMEZ!
+  const hasSavedState = Boolean(page.isCustomized || (page.fabricJSON && Array.isArray(page.fabricJSON.objects)));
+
+  if (hasSavedState) {
     isRestoringFabricState = true;
-    fCanvas.loadFromJSON(page.fabricJSON, () => {
+    const jsonToLoad = page.fabricJSON || { version: "5.3.0", objects: [] };
+    fCanvas.loadFromJSON(jsonToLoad, () => {
       applyReadOrEditModeToCanvas(fCanvas, isEditable);
       fCanvas.requestRenderAll();
       isRestoringFabricState = false;
@@ -193,6 +204,7 @@ function initFabricForPageDOM(page, pageIndex, wrapper) {
     });
   } else {
     buildFabricObjectsForTemplatePage(page, pageIndex, fCanvas, () => {
+      page.isCustomized = true; // İlk kez oluştuktan sonra artık özelleştirildi olarak mühürlenir
       applyReadOrEditModeToCanvas(fCanvas, isEditable);
       fCanvas.requestRenderAll();
       saveFabricPageState(pageIndex, true);
@@ -346,7 +358,32 @@ function attachFabricCanvasEvents(fCanvas, page, pageIndex) {
   });
 
   fCanvas.on('object:moving', (e) => {
-    if (e.target) syncLiveGeometryInputs(e.target);
+    if (e.target) {
+      syncLiveGeometryInputs(e.target);
+      // Metin Akıtma (Text Wrap / Runaround): Engel sürüklendikçe etrafındaki metinleri otomatik akıt
+      if (e.target.isTextWrap && typeof applyTextWrapEngine === 'function') {
+        applyTextWrapEngine(fCanvas, e.target);
+      }
+      // Drop Cap (Büyük Baş Harf) Senkronize Taşıma
+      if (e.target._dropCapObj) {
+        const dc = e.target._dropCapObj;
+        const dcW = dc.getScaledWidth() || 40;
+        dc.set({ left: e.target.left - dcW - 8, top: e.target.top - 2 });
+        dc.setCoords();
+      } else if (e.target._parentTextObj) {
+        const pTxt = e.target._parentTextObj;
+        const dcW = e.target.getScaledWidth() || 40;
+        pTxt.set({ left: e.target.left + dcW + 8, top: e.target.top + 2 });
+        pTxt.setCoords();
+      }
+    }
+  });
+
+  fCanvas.on('mouse:dblclick', (e) => {
+    if (e.target && (e.target.isGridSlot || e.target.customType === 'photo_slot')) {
+      fCanvas.setActiveObject(e.target);
+      document.getElementById('gridSlotFileInput')?.click();
+    }
   });
 
   fCanvas.on('object:rotating', (e) => {
@@ -388,8 +425,11 @@ function attachFabricCanvasEvents(fCanvas, page, pageIndex) {
     if (typeof renderLayersPopover === 'function') renderLayersPopover();
   });
 
-  fCanvas.on('object:modified', () => {
+  fCanvas.on('object:modified', (e) => {
     if (isRestoringFabricState) return;
+    if (e && e.target && e.target.isTextWrap && typeof applyTextWrapEngine === 'function') {
+      applyTextWrapEngine(fCanvas, e.target);
+    }
     saveFabricPageState(pageIndex);
     pushFabricHistory(pageIndex);
     renderRightEditorPanel();
@@ -404,8 +444,23 @@ function attachFabricCanvasEvents(fCanvas, page, pageIndex) {
     saveFabricPageState(pageIndex);
   });
 
-  // Okuma modunda tıklama eylemlerini çalıştır
+  // Sağ Tık (Context Menu) Dinleyicisi
+  if (fCanvas.upperCanvasEl) {
+    fCanvas.upperCanvasEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openFabricContextMenu(e, fCanvas, pageIndex);
+    });
+  }
+
+  // Okuma modunda tıklama eylemlerini çalıştır + Sağ tık yakalama
   fCanvas.on('mouse:down', (opt) => {
+    if (opt.e && (opt.e.button === 2 || opt.e.which === 3)) {
+      opt.e.preventDefault();
+      opt.e.stopPropagation();
+      openFabricContextMenu(opt.e, fCanvas, pageIndex);
+      return;
+    }
     if (appMode === 'read' && opt.target && opt.target.actionType && opt.target.actionType !== 'none') {
       triggerElementAction(opt.target);
     }
@@ -467,6 +522,7 @@ function saveFabricPageState(pageIndex, skipServer = false) {
   const page = magazineData?.pages?.[pageIndex];
   if (!fCanvas || !page) return;
 
+  page.isCustomized = true; // Sayfa üzerinde herhangi bir değişiklik veya silme yapıldığında kalıcı mühürlenir
   // Rehber çizgilerini hariç tutarak JSON kaydet
   const json = fCanvas.toJSON(FABRIC_CUSTOM_PROPS);
   json.objects = (json.objects || []).filter(o => !o.isGuideLine);
@@ -768,6 +824,547 @@ function loadFabricImageIntoSlot(fCanvas, url, fallbackUrl, opts, onDone) {
       if (onDone) onDone(null);
     }
   }, { crossOrigin: 'anonymous' });
+}
+
+// ============================================================================
+// 4B. CANVA IZGARALARI & ÇERÇEVELERİ (7 HAZIR MODEL & FIT TO SLOT)
+// ============================================================================
+function createGridSlotFabricObject(opts) {
+  const isCircle = opts.maskType === 'circle';
+  const isArch = opts.maskType === 'arch';
+  const w = opts.width || 200;
+  const h = opts.height || 200;
+
+  let bgShape;
+  if (isCircle) {
+    bgShape = new fabric.Circle({
+      radius: w / 2,
+      fill: '#f8fafc',
+      stroke: '#94a3b8',
+      strokeWidth: 2,
+      strokeDashArray: [6, 4],
+      originX: 'center',
+      originY: 'center'
+    });
+  } else if (isArch) {
+    bgShape = new fabric.Rect({
+      width: w,
+      height: h,
+      rx: w / 2,
+      ry: w / 2,
+      fill: '#f8fafc',
+      stroke: '#94a3b8',
+      strokeWidth: 2,
+      strokeDashArray: [6, 4],
+      originX: 'center',
+      originY: 'center'
+    });
+  } else {
+    bgShape = new fabric.Rect({
+      width: w,
+      height: h,
+      rx: opts.cornerRadiusPx !== undefined ? opts.cornerRadiusPx : 12,
+      ry: opts.cornerRadiusPx !== undefined ? opts.cornerRadiusPx : 12,
+      fill: '#f8fafc',
+      stroke: '#94a3b8',
+      strokeWidth: 2,
+      strokeDashArray: [6, 4],
+      originX: 'center',
+      originY: 'center'
+    });
+  }
+
+  const labelText = isCircle ? '⭕\nPortre Bırakın\n(Dairesel)' : (isArch ? '🏛️\nFotoğraf Bırakın\n(Kemerli)' : '🖼️\nFotoğraf Bırakın\n(Canva Cover)');
+  const label = new fabric.Textbox(labelText, {
+    width: Math.max(80, w - 24),
+    fontSize: Math.min(12, Math.max(9, Math.round(w / 15))),
+    fontFamily: 'Plus Jakarta Sans',
+    fontWeight: 'bold',
+    fill: '#64748b',
+    textAlign: 'center',
+    originX: 'center',
+    originY: 'center'
+  });
+
+  const grp = new fabric.Group([bgShape, label], {
+    left: opts.left,
+    top: opts.top,
+    name: opts.name || 'Izgara Çerçevesi',
+    isGridSlot: true,
+    customType: 'photo_slot',
+    maskType: opts.maskType || 'none',
+    cornerRadiusPx: opts.cornerRadiusPx !== undefined ? opts.cornerRadiusPx : 12
+  });
+
+  return grp;
+}
+
+function addCanvaGrid(gridType) {
+  const fCanvas = getCurrentFabricCanvas();
+  if (!fCanvas) return;
+  pushFabricHistory(selectedEditIndex);
+
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (page) page.isCustomized = true;
+
+  const canvasW = fCanvas.width || 550;
+  const padX = 35;
+  const topY = 120;
+  const availW = canvasW - (padX * 2); // 480
+  const availH = 500; // leaves header & footer room
+
+  let slots = [];
+
+  if (gridType === 'split_2_col') {
+    // 1. 2'li Yan Yana Dikey Izgara
+    const gap = 16;
+    const slotW = (availW - gap) / 2; // 232
+    slots.push(
+      createGridSlotFabricObject({ left: padX, top: topY, width: slotW, height: availH, name: 'Sol Fotoğraf Alanı' }),
+      createGridSlotFabricObject({ left: padX + slotW + gap, top: topY, width: slotW, height: availH, name: 'Sağ Fotoğraf Alanı' })
+    );
+    showToast('🖼️ 2\'li Yan Yana Dikey Izgara eklendi.');
+
+  } else if (gridType === 'stack_2_row') {
+    // 2. 2'li Alt Alta Yatay Izgara
+    const gap = 16;
+    const slotH = (availH - gap) / 2; // 242
+    slots.push(
+      createGridSlotFabricObject({ left: padX, top: topY, width: availW, height: slotH, name: 'Üst Yatay Fotoğraf' }),
+      createGridSlotFabricObject({ left: padX, top: topY + slotH + gap, width: availW, height: slotH, name: 'Alt Yatay Fotoğraf' })
+    );
+    showToast('🖼️ 2\'li Alt Alta Yatay Izgara eklendi.');
+
+  } else if (gridType === 't_grid_3') {
+    // 3. 3'lü T-Izgara (Sol 1 büyük, sağ 2 küçük)
+    const gap = 16;
+    const colW = (availW - gap) / 2; // 232
+    const subH = (availH - gap) / 2; // 242
+    slots.push(
+      createGridSlotFabricObject({ left: padX, top: topY, width: colW, height: availH, name: 'Sol Büyük Fotoğraf' }),
+      createGridSlotFabricObject({ left: padX + colW + gap, top: topY, width: colW, height: subH, name: 'Sağ Üst Fotoğraf' }),
+      createGridSlotFabricObject({ left: padX + colW + gap, top: topY + subH + gap, width: colW, height: subH, name: 'Sağ Alt Fotoğraf' })
+    );
+    showToast('🖼️ 3\'lü T-Izgara eklendi.');
+
+  } else if (gridType === 'cols_3') {
+    // 4. 3'lü Eşit Dikey Sütun Izgarası
+    const gap = 14;
+    const colW = Math.round((availW - (gap * 2)) / 3); // ~150
+    slots.push(
+      createGridSlotFabricObject({ left: padX, top: topY, width: colW, height: availH, name: '1. Sütun Fotoğrafı' }),
+      createGridSlotFabricObject({ left: padX + colW + gap, top: topY, width: colW, height: availH, name: '2. Sütun Fotoğrafı' }),
+      createGridSlotFabricObject({ left: padX + (colW + gap) * 2, top: topY, width: colW, height: availH, name: '3. Sütun Fotoğrafı' })
+    );
+    showToast('🖼️ 3\'lü Eşit Sütun Izgarası eklendi.');
+
+  } else if (gridType === 'matrix_4') {
+    // 5. 4'lü 2x2 Kolaj Izgarası
+    const gap = 16;
+    const cellW = (availW - gap) / 2; // 232
+    const cellH = (availH - gap) / 2; // 242
+    slots.push(
+      createGridSlotFabricObject({ left: padX, top: topY, width: cellW, height: cellH, name: 'Sol Üst Fotoğraf' }),
+      createGridSlotFabricObject({ left: padX + cellW + gap, top: topY, width: cellW, height: cellH, name: 'Sağ Üst Fotoğraf' }),
+      createGridSlotFabricObject({ left: padX, top: topY + cellH + gap, width: cellW, height: cellH, name: 'Sol Alt Fotoğraf' }),
+      createGridSlotFabricObject({ left: padX + cellW + gap, top: topY + cellH + gap, width: cellW, height: cellH, name: 'Sağ Alt Fotoğraf' })
+    );
+    showToast('🖼️ 4\'lü Kolaj Izgarası eklendi.');
+
+  } else if (gridType === 'frame_circle') {
+    // 6. Yuvarlak Dairesel Portre Çerçevesi
+    const diam = 220;
+    slots.push(
+      createGridSlotFabricObject({
+        left: Math.round((canvasW - diam) / 2),
+        top: topY + 40,
+        width: diam,
+        height: diam,
+        maskType: 'circle',
+        cornerRadiusPx: diam / 2,
+        name: 'Dairesel Portre Çerçevesi'
+      })
+    );
+    showToast('⭕ Yuvarlak Dairesel Portre Çerçevesi eklendi.');
+
+  } else if (gridType === 'frame_arch') {
+    // 7. Kemerli Mimari Çerçeve (Arch Frame)
+    const archW = 270;
+    const archH = 380;
+    slots.push(
+      createGridSlotFabricObject({
+        left: Math.round((canvasW - archW) / 2),
+        top: topY + 20,
+        width: archW,
+        height: archH,
+        maskType: 'arch',
+        name: 'Kemerli Mimari Çerçeve'
+      })
+    );
+    showToast('🏛️ Kemerli Mimari Çerçeve eklendi.');
+  }
+
+  slots.forEach(slot => fCanvas.add(slot));
+  if (slots.length > 0) {
+    fCanvas.setActiveObject(slots[0]);
+  }
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  renderRightEditorPanel();
+}
+
+function fitImageIntoGridSlot(slot, imgSrc, fCanvas = null) {
+  if (!fCanvas) fCanvas = getCurrentFabricCanvas();
+  if (!fCanvas || !slot) return;
+
+  pushFabricHistory(selectedEditIndex);
+  showToast('🖼️ Fotoğraf ızgara hücresine tam oturtuluyor (Cover)...');
+
+  fabric.Image.fromURL(imgSrc, (newImg) => {
+    if (!newImg || !newImg.width) return;
+    const targetW = slot.getScaledWidth() || slot.width || 200;
+    const targetH = slot.getScaledHeight() || slot.height || 200;
+
+    const natW = newImg.width;
+    const natH = newImg.height;
+    const targetRatio = targetW / targetH;
+    const natRatio = natW / natH;
+
+    let cropX = 0, cropY = 0, cropW = natW, cropH = natH;
+
+    if (natRatio > targetRatio) {
+      cropW = Math.round(natH * targetRatio);
+      cropX = Math.round((natW - cropW) / 2);
+    } else {
+      cropH = Math.round(natW / targetRatio);
+      cropY = Math.round((natH - cropH) / 2);
+    }
+
+    newImg.set({
+      id: 'img-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+      left: slot.left,
+      top: slot.top,
+      cropX: cropX,
+      cropY: cropY,
+      width: cropW,
+      height: cropH,
+      scaleX: targetW / cropW,
+      scaleY: targetH / cropH,
+      originX: 'left',
+      originY: 'top',
+      angle: slot.angle || 0,
+      opacity: slot.opacity !== undefined ? slot.opacity : 1,
+      isGridSlot: true,
+      name: slot.name || 'Izgara Fotoğrafı',
+      cornerRadiusPx: slot.cornerRadiusPx !== undefined ? slot.cornerRadiusPx : 12,
+      maskType: slot.maskType || 'none',
+      isTextWrap: slot.isTextWrap || false,
+      textWrapMargin: slot.textWrapMargin || 16
+    });
+
+    if (typeof applyImageCornerAndMask === 'function') {
+      applyImageCornerAndMask(newImg, newImg.maskType, newImg.cornerRadiusPx);
+    }
+
+    fCanvas.remove(slot);
+    fCanvas.add(newImg);
+    fCanvas.setActiveObject(newImg);
+    if (newImg.isTextWrap && typeof applyTextWrapEngine === 'function') {
+      applyTextWrapEngine(fCanvas, newImg);
+    }
+    fCanvas.requestRenderAll();
+    saveFabricPageState(selectedEditIndex);
+    renderRightEditorPanel();
+    showToast('✨ Fotoğraf ızgara hücresine kusursuz sığdırıldı!');
+  }, { crossOrigin: 'anonymous' });
+}
+
+// ============================================================================
+// 4C. METİN AKITMA (TEXT WRAP / RUNAROUND) MOTORU (INDESIGN / QUARKXPRESS)
+// ============================================================================
+function toggleTextWrapOnActiveObject() {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!fCanvas || !active) {
+    showToast('⚠️ Lütfen önce etrafından metin akıtmak istediğiniz görsel veya kutuyu seçin.');
+    return;
+  }
+  pushFabricHistory(selectedEditIndex);
+
+  active.isTextWrap = !active.isTextWrap;
+  if (active.isTextWrap && !active.textWrapMargin) {
+    active.textWrapMargin = 16;
+  }
+
+  if (active.isTextWrap) {
+    applyTextWrapEngine(fCanvas, active);
+    showToast('🌊 Metin Akıtma (Text Wrap) AKTİF: Metin kutuları nesnenin etrafından akacak.');
+  } else {
+    restoreTextWrapEngine(fCanvas, active);
+    showToast('Metin Akıtma kapatıldı.');
+  }
+
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  renderRightEditorPanel();
+}
+
+function updateActiveTextWrapMargin(val) {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!active) return;
+  active.textWrapMargin = Number(val) || 16;
+  if (active.isTextWrap) {
+    applyTextWrapEngine(fCanvas, active);
+  }
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+}
+
+function applyTextWrapEngine(fCanvas, obstacle) {
+  if (!fCanvas || !obstacle || !obstacle.isTextWrap) return;
+  const margin = Number(obstacle.textWrapMargin) || 16;
+
+  const oLeft = obstacle.left - margin;
+  const oTop = obstacle.top - margin;
+  const oWidth = obstacle.getScaledWidth() + (margin * 2);
+  const oHeight = obstacle.getScaledHeight() + (margin * 2);
+  const oRight = oLeft + oWidth;
+  const oBottom = oTop + oHeight;
+  const oCenterX = obstacle.left + (obstacle.getScaledWidth() / 2);
+
+  const canvasWidth = fCanvas.width || 550;
+  const allObjects = fCanvas.getObjects();
+
+  allObjects.forEach(obj => {
+    if (obj === obstacle || obj.type !== 'textbox' || obj.isDropCap || obj.isGuideLine) return;
+
+    const tLeft = obj.left;
+    const tTop = obj.top;
+    const tWidth = obj.getScaledWidth();
+    const tHeight = obj.getScaledHeight();
+    const tRight = tLeft + tWidth;
+    const tBottom = tTop + tHeight;
+
+    const verticalOverlap = (tTop < oBottom && tBottom > oTop);
+    const horizontalOverlap = (tLeft < oRight && tRight > oLeft);
+
+    if (verticalOverlap && horizontalOverlap) {
+      if (!obj._origWrapGeometry) {
+        obj._origWrapGeometry = {
+          left: obj.left,
+          top: obj.top,
+          width: obj.width
+        };
+      }
+
+      const origR = obj._origWrapGeometry.left + obj._origWrapGeometry.width;
+
+      if (oCenterX < canvasWidth * 0.45 || oLeft <= obj.left + 50) {
+        const newLeft = oRight;
+        const availableW = Math.max(120, origR - newLeft);
+        obj.set({
+          left: newLeft,
+          width: availableW
+        });
+      } else if (oCenterX > canvasWidth * 0.55 || oRight >= tRight - 50) {
+        const availableW = Math.max(120, oLeft - obj._origWrapGeometry.left);
+        obj.set({
+          left: obj._origWrapGeometry.left,
+          width: availableW
+        });
+      } else {
+        obj.set({
+          top: oBottom + 10
+        });
+      }
+      obj.setCoords();
+    }
+  });
+
+  fCanvas.requestRenderAll();
+}
+
+function restoreTextWrapEngine(fCanvas, obstacle) {
+  if (!fCanvas) return;
+  const allObjects = fCanvas.getObjects();
+  allObjects.forEach(obj => {
+    if (obj._origWrapGeometry) {
+      obj.set({
+        left: obj._origWrapGeometry.left,
+        top: obj._origWrapGeometry.top,
+        width: obj._origWrapGeometry.width
+      });
+      obj.setCoords();
+      delete obj._origWrapGeometry;
+    }
+  });
+  fCanvas.requestRenderAll();
+}
+
+function addQuarkRunaroundLayout() {
+  const fCanvas = getCurrentFabricCanvas();
+  if (!fCanvas) return;
+  pushFabricHistory(selectedEditIndex);
+
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (page) page.isCustomized = true;
+
+  const title = new fabric.Textbox('EDEBİYAT & İNSAN RUHUNUN DERİNLİKLERİ', {
+    left: 45,
+    top: 90,
+    width: 460,
+    fontSize: 22,
+    fontFamily: 'Playfair Display',
+    fontWeight: 'bold',
+    fill: '#0f172a',
+    lineHeight: 1.2,
+    name: 'Manşet Başlık'
+  });
+
+  const spot = new fabric.Textbox('Sanatın ve edebiyatın insan bilincini aydınlatan gücü üzerine düşünceler...', {
+    left: 45,
+    top: 145,
+    width: 460,
+    fontSize: 13,
+    fontFamily: 'Plus Jakarta Sans',
+    fontStyle: 'italic',
+    fill: '#475569',
+    lineHeight: 1.3,
+    name: 'Spot Yazısı'
+  });
+
+  const portraitSlot = createGridSlotFabricObject({
+    left: 45,
+    top: 200,
+    width: 170,
+    height: 170,
+    maskType: 'circle',
+    cornerRadiusPx: 85,
+    name: 'Yazar Portresi (Metin Akıtma)'
+  });
+  portraitSlot.isTextWrap = true;
+  portraitSlot.textWrapMargin = 16;
+
+  const bodyText = new fabric.Textbox('Bir dergi sayfasının kalbi, düşüncelerin kelimelerle buluştuğu bu satırlarda atar. Edebiyat, yalnızca geçmişi değil, bugünü ve geleceği de aydınlatan bir meşaledir. İnsan ruhunun en mahrem köşelerine uzanan her kelime, okuyucunun zihninde yeni ufuklar açar.\n\nZamanın hızla aktığı bu çağda, bir kitabın sayfaları arasında kaybolmak ya da bir edebiyat dergisinin kokusunu içine çekmek, insanın kendisine verebileceği en kıymetli moladır. Bu sayfalarda paylaşılan her düşünce, geleceğe bırakılmış bir izdir.', {
+    left: 235,
+    top: 200,
+    width: 270,
+    fontSize: 13.5,
+    fontFamily: 'Plus Jakarta Sans',
+    fill: '#1e293b',
+    lineHeight: 1.45,
+    name: 'Akan Gövde Metni',
+    _origWrapGeometry: { left: 45, top: 200, width: 460 }
+  });
+
+  fCanvas.add(title, spot, portraitSlot, bodyText);
+  fCanvas.setActiveObject(portraitSlot);
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  renderRightEditorPanel();
+  showToast('🌊 Portre + Metin Akıtma (Runaround) mizanpajı eklendi!');
+}
+
+// ============================================================================
+// 4D. DROP CAP (BÜYÜK İNİSİYAL BAŞ HARF) DESTEĞİ
+// ============================================================================
+function toggleDropCapForActiveText() {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!fCanvas || !active) {
+    showToast('⚠️ Lütfen önce bir metin kutusu seçin.');
+    return;
+  }
+  pushFabricHistory(selectedEditIndex);
+
+  if (active.isDropCap && active._parentTextObj) {
+    removeDropCap(fCanvas, active._parentTextObj, active);
+    return;
+  }
+
+  if (active.type !== 'textbox' && active.type !== 'i-text') {
+    showToast('⚠️ Drop Cap sadece metin kutularına uygulanabilir.');
+    return;
+  }
+
+  if (active._dropCapObj) {
+    removeDropCap(fCanvas, active, active._dropCapObj);
+    return;
+  }
+
+  const textContent = (active.text || '').trimStart();
+  if (!textContent || textContent.length < 2) {
+    showToast('⚠️ Metin kutusunda yeterli metin bulunmuyor.');
+    return;
+  }
+
+  const firstChar = textContent.charAt(0);
+  const remainingText = textContent.slice(1).trimStart();
+
+  const dropCapSize = Math.max(48, Math.round((active.fontSize || 16) * 3.2));
+  const dropCapWidth = Math.round(dropCapSize * 0.82);
+
+  const dropCap = new fabric.Textbox(firstChar, {
+    left: active.left,
+    top: active.top - 2,
+    width: dropCapWidth,
+    fontSize: dropCapSize,
+    fontFamily: (active.fontFamily && ['Playfair Display', 'Cinzel'].includes(active.fontFamily)) ? active.fontFamily : 'Cinzel',
+    fontWeight: 'bold',
+    fill: '#d97706',
+    textAlign: 'center',
+    isDropCap: true,
+    name: `Drop Cap (${firstChar})`,
+    selectable: true
+  });
+
+  const originalLeft = active.left;
+  const originalWidth = active.width;
+  active.set({
+    left: originalLeft + dropCapWidth + 8,
+    width: Math.max(100, originalWidth - dropCapWidth - 8),
+    text: remainingText
+  });
+  active.setCoords();
+
+  active._dropCapObj = dropCap;
+  active._origDropCapState = {
+    firstChar: firstChar,
+    left: originalLeft,
+    width: originalWidth
+  };
+  dropCap._parentTextObj = active;
+  dropCap._originalLetter = firstChar;
+
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (page) page.isCustomized = true;
+
+  fCanvas.add(dropCap);
+  fCanvas.setActiveObject(dropCap);
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  renderRightEditorPanel();
+  showToast(`🔠 "${firstChar}" harfi için Drop Cap (Büyük Baş Harf) oluşturuldu!`);
+}
+
+function removeDropCap(fCanvas, textObj, dropCapObj) {
+  if (textObj._origDropCapState) {
+    textObj.set({
+      left: textObj._origDropCapState.left,
+      width: textObj._origDropCapState.width,
+      text: textObj._origDropCapState.firstChar + textObj.text
+    });
+    delete textObj._origDropCapState;
+  }
+  delete textObj._dropCapObj;
+
+  fCanvas.remove(dropCapObj);
+  fCanvas.setActiveObject(textObj);
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  renderRightEditorPanel();
+  showToast('Drop Cap kaldırıldı, metin birleştirildi.');
 }
 
 // ============================================================================
@@ -1543,6 +2140,128 @@ function buildFabricObjectsForTemplatePage(page, pageIndex, fCanvas, onComplete)
     return;
   }
 
+  // 10. BEMBEYAZ BOŞ SAYFA (SIFIRDAN TASARLA - HİÇBİR ZORUNLU METİN/GÖRSEL EKLENMEZ)
+  if (page.type === 'blank' || page.type === 'wireframe_blank') {
+    fCanvas.setBackgroundColor(page.bgColor || '#ffffff', fCanvas.renderAll.bind(fCanvas));
+    if (page.showMasterPage !== false && typeof renderMasterPageOverlay === 'function') {
+      renderMasterPageOverlay(fCanvas, pageIndex);
+    }
+    checkDone();
+    return;
+  }
+
+  // 11. BOŞ 2 SÜTUNLU MAKALE İSKELETİ
+  if (page.type === 'wireframe_article_2col') {
+    fCanvas.setBackgroundColor(page.bgColor || '#ffffff', fCanvas.renderAll.bind(fCanvas));
+    addFabText(fCanvas, '+ Makale Başlığını Buraya Yazın', {
+      name: 'Makale Başlığı', left: 36, top: 45, width: 478, fontSize: 26, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: '#0f172a'
+    });
+    addFabText(fCanvas, '+ Buraya konuyu özetleyen çarpıcı bir manşet spotu yazın...', {
+      name: 'Manşet Spotu', left: 36, top: 88, width: 478, fontSize: 13, fontFamily: 'Inter', fontStyle: 'italic', fill: '#475569'
+    });
+    addFabRect(fCanvas, {
+      name: 'Yatay Ayırıcı', left: 36, top: 125, width: 478, height: 1.5, fill: '#cbd5e1'
+    });
+    addFabText(fCanvas, '1. Sütun metninizi buraya yapıştırın veya yazın.\n\nQuark ve InDesign standartlarında profesyonel dergi mizanpajı için iki eşit genişlikte sütun hazırlanmıştır.', {
+      name: '1. Metin Sütunu', left: 36, top: 145, width: 230, fontSize: 12.5, fontFamily: 'Inter', fill: '#334155', lineHeight: 1.6
+    });
+    addFabText(fCanvas, '2. Sütun metninizi buraya yapıştırın veya yazın.\n\nYazılarınızı istediğiniz punto ve renkte düzenleyebilir, araya çekme alıntılar veya fotoğraflar ekleyebilirsiniz.', {
+      name: '2. Metin Sütunu', left: 284, top: 145, width: 230, fontSize: 12.5, fontFamily: 'Inter', fill: '#334155', lineHeight: 1.6
+    });
+    if (page.showMasterPage !== false && typeof renderMasterPageOverlay === 'function') {
+      renderMasterPageOverlay(fCanvas, pageIndex);
+    }
+    checkDone();
+    return;
+  }
+
+  // 12. BOŞ 3 FOTOĞRAFLI RÖPORTAJ İSKELETİ
+  if (page.type === 'wireframe_interview_3img') {
+    fCanvas.setBackgroundColor(page.bgColor || '#ffffff', fCanvas.renderAll.bind(fCanvas));
+    addFabRect(fCanvas, {
+      name: 'Büyük Fotoğraf Kutusu', isGridSlot: true, left: 36, top: 45, width: 230, height: 380, rx: 12, ry: 12, fill: '#f1f5f9', stroke: '#cbd5e1', strokeWidth: 1.5, strokeDashArray: [6, 4]
+    });
+    addFabText(fCanvas, '📷 Fotoğraf Yükle', {
+      name: 'İpucu', left: 85, top: 220, fontSize: 13, fontFamily: 'Inter', fontWeight: 'bold', fill: '#64748b'
+    });
+    addFabRect(fCanvas, {
+      name: 'Küçük Fotoğraf 1', isGridSlot: true, left: 36, top: 440, width: 110, height: 150, rx: 8, ry: 8, fill: '#f8fafc', stroke: '#cbd5e1', strokeWidth: 1.5, strokeDashArray: [4, 4]
+    });
+    addFabRect(fCanvas, {
+      name: 'Küçük Fotoğraf 2', isGridSlot: true, left: 156, top: 440, width: 110, height: 150, rx: 8, ry: 8, fill: '#f8fafc', stroke: '#cbd5e1', strokeWidth: 1.5, strokeDashArray: [4, 4]
+    });
+    addFabText(fCanvas, 'AYIN RÖPORTAJI', {
+      name: 'Üst Başlık', left: 284, top: 45, width: 230, fontSize: 11, fontFamily: 'Inter', fontWeight: 'bold', fill: '#6366f1'
+    });
+    addFabText(fCanvas, '+ Konuk Adı & Başlık', {
+      name: 'Röportaj Başlığı', left: 284, top: 65, width: 230, fontSize: 22, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: '#0f172a'
+    });
+    addFabText(fCanvas, 'Soru 1: Kendinizi ve okul projenizi kısaca tanıtır mısınız?\n\nCevap: [Cevabınızı buraya yazın veya öğrenci havuzundan aktarın]\n\nSoru 2: Bu çalışmada sizi en çok ne motive etti?\n\nCevap: [Cevabınızı buraya yazın]', {
+      name: 'Soru-Cevap Bloğu', left: 284, top: 125, width: 230, fontSize: 12, fontFamily: 'Inter', fill: '#334155', lineHeight: 1.6
+    });
+    if (page.showMasterPage !== false && typeof renderMasterPageOverlay === 'function') {
+      renderMasterPageOverlay(fCanvas, pageIndex);
+    }
+    checkDone();
+    return;
+  }
+
+  // 13. BOŞ 4\'LÜ FOTOĞRAF KOLAJI (CANVA IZGARASI)
+  if (page.type === 'wireframe_gallery_4grid') {
+    fCanvas.setBackgroundColor(page.bgColor || '#ffffff', fCanvas.renderAll.bind(fCanvas));
+    addFabText(fCanvas, '+ Etkinlik & Fotoğraf Galerisi', {
+      name: 'Galeri Başlığı', left: 36, top: 40, width: 478, fontSize: 24, fontFamily: 'Playfair Display', fontWeight: 'bold', fill: '#0f172a'
+    });
+    const boxW = 230, boxH = 260;
+    const gridCoords = [
+      { left: 36, top: 90 },
+      { left: 284, top: 90 },
+      { left: 36, top: 370 },
+      { left: 284, top: 370 }
+    ];
+    gridCoords.forEach((coord, i) => {
+      addFabRect(fCanvas, {
+        name: `Fotoğraf Kutusu ${i + 1}`, isGridSlot: true, left: coord.left, top: coord.top, width: boxW, height: boxH, rx: 12, ry: 12, fill: '#f8fafc', stroke: '#cbd5e1', strokeWidth: 1.5, strokeDashArray: [6, 4]
+      });
+      addFabText(fCanvas, `📷 Görsel Seç ${i + 1}`, {
+        name: `Etiket ${i + 1}`, left: coord.left + 65, top: coord.top + 120, fontSize: 12, fontFamily: 'Inter', fontWeight: 'bold', fill: '#94a3b8'
+      });
+    });
+    addFabText(fCanvas, '+ Fotoğraflar hakkında ortak açıklama veya dipnotunuzu buraya yazın...', {
+      name: 'Galeri Açıklaması', left: 36, top: 655, width: 478, fontSize: 12, fontFamily: 'Inter', fontStyle: 'italic', fill: '#64748b'
+    });
+    if (page.showMasterPage !== false && typeof renderMasterPageOverlay === 'function') {
+      renderMasterPageOverlay(fCanvas, pageIndex);
+    }
+    checkDone();
+    return;
+  }
+
+  // 14. BOŞ ŞİİR & YAZAR PORTRESİ İSKELETİ
+  if (page.type === 'wireframe_poetry_author') {
+    fCanvas.setBackgroundColor(page.bgColor || '#fdfbf7', fCanvas.renderAll.bind(fCanvas));
+    addFabCircle(fCanvas, {
+      name: 'Yazar Portresi', isGridSlot: true, left: 220, top: 45, radius: 55, fill: '#f1f5f9', stroke: '#cbd5e1', strokeWidth: 2, strokeDashArray: [5, 4]
+    });
+    addFabText(fCanvas, '📷 Portre', {
+      name: 'Etiket', left: 247, top: 92, fontSize: 11, fontFamily: 'Inter', fontWeight: 'bold', fill: '#94a3b8'
+    });
+    addFabText(fCanvas, '+ ŞAİR / YAZAR ADI', {
+      name: 'Yazar Adı', left: 36, top: 175, width: 478, fontSize: 14, fontFamily: 'Inter', fontWeight: 'bold', textAlign: 'center', fill: '#475569'
+    });
+    addFabText(fCanvas, '+ Şiir / Deneme Başlığı', {
+      name: 'Şiir Başlığı', left: 36, top: 205, width: 478, fontSize: 24, fontFamily: 'Playfair Display', fontWeight: 'bold', textAlign: 'center', fill: '#0f172a'
+    });
+    addFabText(fCanvas, 'Bir bahar akşamı süzülür içime,\nAkşamın serinliği, gölgelerin dansı.\nKalemden dökülen her hecede,\nSaklıdır gençliğin o eşsiz rüyası.\n\n[Dilediğiniz dizeleri veya denemenizi buraya yazın]', {
+      name: 'Şiir Dörtlükleri', left: 75, top: 265, width: 400, fontSize: 13.5, fontFamily: 'Playfair Display', fontStyle: 'italic', textAlign: 'center', fill: '#334155', lineHeight: 1.8
+    });
+    if (page.showMasterPage !== false && typeof renderMasterPageOverlay === 'function') {
+      renderMasterPageOverlay(fCanvas, pageIndex);
+    }
+    checkDone();
+    return;
+  }
+
   // Varsayılan / Quiz / Video / Serbest Sayfa
   fCanvas.setBackgroundColor(page.bgColor || '#ffffff', fCanvas.renderAll.bind(fCanvas));
   addFabText(fCanvas, page.title || page.questionTitle || page.navTitle || 'DERGİ SAYFASI', {
@@ -1785,6 +2504,12 @@ function handleCanvasImageUpload(event, replaceActive = false) {
 
 function applyUploadedImageToFabric(fCanvas, url, replaceActive) {
   const active = fCanvas.getActiveObject();
+  if (active && (active.isGridSlot || active.customType === 'photo_slot')) {
+    if (typeof fitImageIntoGridSlot === 'function') {
+      fitImageIntoGridSlot(active, url, fCanvas);
+      return;
+    }
+  }
   if (replaceActive && active && active.type === 'image') {
     const oldW = active.getScaledWidth();
     const oldH = active.getScaledHeight();
@@ -1972,21 +2697,350 @@ function duplicateSelectedCanvasElement() {
 // Seçili Öğeyi Sil (Delete)
 function deleteSelectedCanvasElement() {
   const fCanvas = getCurrentFabricCanvas();
+  const page = magazineData?.pages?.[selectedEditIndex];
   const active = fCanvas ? fCanvas.getActiveObject() : null;
   if (!active) return;
 
+  // Drop Cap veya Text Wrap temizliği
+  if (active._dropCapObj) {
+    fCanvas.remove(active._dropCapObj);
+  } else if (active._parentTextObj) {
+    active._parentTextObj._dropCapObj = null;
+  }
+  if (active.isTextWrap && typeof restoreTextWrapEngine === 'function') {
+    restoreTextWrapEngine(fCanvas, active);
+  }
+
   if (active.type === 'activeSelection') {
-    active.getObjects().forEach(obj => fCanvas.remove(obj));
+    active.getObjects().forEach(obj => {
+      if (obj._dropCapObj) fCanvas.remove(obj._dropCapObj);
+      if (obj.isTextWrap && typeof restoreTextWrapEngine === 'function') restoreTextWrapEngine(fCanvas, obj);
+      fCanvas.remove(obj);
+    });
   } else {
     fCanvas.remove(active);
   }
   fCanvas.discardActiveObject();
   fCanvas.requestRenderAll();
+  if (page) page.isCustomized = true;
   saveFabricPageState(selectedEditIndex);
   pushFabricHistory(selectedEditIndex);
   renderRightEditorPanel();
   if (typeof renderLayersPopover === 'function') renderLayersPopover();
   showToast('🗑️ Seçili öğe silindi.');
+}
+
+// ============================================================================
+// BAĞLAMSAL SAĞ TIK MENÜSÜ & PANO (CLIPBOARD) MOTORU
+// ============================================================================
+window.fabricClipboard = null;
+window.fabricContextMenuPointer = null;
+
+function copyActiveCanvasElement() {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!active || active.isMasterPageObject) {
+    showToast('Kopyalamak için önce bir öğe seçin.');
+    return;
+  }
+  active.clone((cloned) => {
+    window.fabricClipboard = cloned;
+    showToast('📋 Öğe panoya kopyalandı (Ctrl+C)');
+  }, FABRIC_CUSTOM_PROPS);
+}
+
+function pasteCanvasElement(targetPointer = null) {
+  if (!window.fabricClipboard) {
+    showToast('Panoda kopyalanmış bir öğe yok. Önce bir öğeyi kopyalayın.');
+    return;
+  }
+  const fCanvas = getCurrentFabricCanvas();
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (!fCanvas || !page) return;
+
+  window.fabricClipboard.clone((clonedObj) => {
+    fCanvas.discardActiveObject();
+    const posX = targetPointer ? targetPointer.x : (clonedObj.left || 50) + 24;
+    const posY = targetPointer ? targetPointer.y : (clonedObj.top || 50) + 24;
+    clonedObj.set({
+      id: 'copy_' + Date.now(),
+      left: Math.max(10, Math.min(520, posX)),
+      top: Math.max(10, Math.min(740, posY)),
+      evented: true
+    });
+    if (clonedObj.type === 'activeSelection') {
+      clonedObj.canvas = fCanvas;
+      clonedObj.forEachObject(obj => fCanvas.add(obj));
+      clonedObj.setCoords();
+    } else {
+      fCanvas.add(clonedObj);
+    }
+    fCanvas.setActiveObject(clonedObj);
+    fCanvas.requestRenderAll();
+    page.isCustomized = true;
+    saveFabricPageState(selectedEditIndex);
+    pushFabricHistory(selectedEditIndex);
+    renderRightEditorPanel();
+    showToast('📋 Öğe sayfaya yapıştırıldı (Ctrl+V)');
+  }, FABRIC_CUSTOM_PROPS);
+}
+
+function centerObjectHorizontally() {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!active) return;
+  active.centerH();
+  active.setCoords();
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  showToast('📐 Öğe sayfada yatay ortalandı.');
+}
+
+function toggleLockActiveObject() {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!active) return;
+  const isLocked = Boolean(active.lockedByUser || active.lockMovementX);
+  const newLock = !isLocked;
+  active.set({
+    lockedByUser: newLock,
+    lockMovementX: newLock,
+    lockMovementY: newLock,
+    lockScalingX: newLock,
+    lockScalingY: newLock,
+    lockRotation: newLock,
+    hasControls: !newLock
+  });
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  renderRightEditorPanel();
+  showToast(newLock ? '🔒 Öğe kilitlendi.' : '🔓 Öğe kilidi açıldı.');
+}
+
+function clearCurrentPageObjects() {
+  const fCanvas = getCurrentFabricCanvas();
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (!fCanvas || !page) return;
+  if (!confirm('Bu sayfadaki tüm öğeleri silip bembeyaz boşaltmak istediğinize emin misiniz?')) return;
+  fCanvas.clear();
+  fCanvas.setBackgroundColor(page.bgColor || '#ffffff', fCanvas.renderAll.bind(fCanvas));
+  page.isCustomized = true;
+  page.fabricJSON = { version: '5.3.0', objects: [] };
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  pushFabricHistory(selectedEditIndex);
+  renderRightEditorPanel();
+  showToast('📄 Sayfa bembeyaz boşaltıldı.');
+}
+
+function moveFabricObjectLayer(direction) {
+  const fCanvas = getCurrentFabricCanvas();
+  const active = fCanvas ? fCanvas.getActiveObject() : null;
+  if (!active) return;
+  if (direction === 'front') active.bringToFront();
+  else if (direction === 'forward') active.bringForward();
+  else if (direction === 'backward') active.sendBackwards();
+  else if (direction === 'back') active.sendToBack();
+  fCanvas.requestRenderAll();
+  saveFabricPageState(selectedEditIndex);
+  pushFabricHistory(selectedEditIndex);
+  if (typeof renderLayersPopover === 'function') renderLayersPopover();
+}
+
+function closeFabricContextMenu() {
+  const menu = document.getElementById('fabricContextMenu');
+  if (menu) menu.classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#fabricContextMenu')) {
+    closeFabricContextMenu();
+  }
+});
+
+document.addEventListener('scroll', closeFabricContextMenu, true);
+
+function openFabricContextMenu(e, fCanvas, pageIndex) {
+  const menu = document.getElementById('fabricContextMenu');
+  if (!menu || !fCanvas) return;
+
+  const target = fCanvas.findTarget(e, false);
+  if (target && !target.isMasterPageObject) {
+    fCanvas.setActiveObject(target);
+    fCanvas.requestRenderAll();
+    renderRightEditorPanel();
+  } else if (!target) {
+    fCanvas.discardActiveObject();
+    fCanvas.requestRenderAll();
+    renderRightEditorPanel();
+  }
+
+  const active = fCanvas.getActiveObject();
+  const pointer = fCanvas.getPointer(e);
+  window.fabricContextMenuPointer = pointer;
+
+  let itemsHtml = '';
+
+  if (active && !active.isMasterPageObject) {
+    const isText = active.type === 'textbox' || active.type === 'i-text';
+    const isImage = active.type === 'image' || active.isGridSlot;
+    const isLocked = Boolean(active.lockedByUser || active.lockMovementX);
+
+    itemsHtml += `
+      <div class="px-2.5 py-1.5 mb-1 text-[10.5px] font-bold text-slate-400 border-b border-slate-800 flex items-center justify-between">
+        <span class="truncate max-w-[140px] text-white">${escapeHtml(active.name || (isText ? 'Metin Kutusu' : isImage ? 'Görsel Kutusu' : 'Şekil'))}</span>
+        <span class="text-[9.5px] text-indigo-400 font-mono font-bold">${isText ? 'METİN' : isImage ? 'GÖRSEL' : 'NESNE'}</span>
+      </div>
+
+      <button onclick="copyActiveCanvasElement(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-copy text-sm text-slate-300"></i><span>Kopyala</span></div>
+        <kbd class="ctx-kbd">Ctrl+C</kbd>
+      </button>
+      <button onclick="pasteCanvasElement(window.fabricContextMenuPointer); closeFabricContextMenu();" class="ctx-item ${!window.fabricClipboard ? 'opacity-40 pointer-events-none' : ''}">
+        <div class="flex items-center gap-2"><i class="ph ph-clipboard text-sm text-slate-300"></i><span>Yapıştır</span></div>
+        <kbd class="ctx-kbd">Ctrl+V</kbd>
+      </button>
+      <button onclick="duplicateSelectedCanvasElement(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-copy-simple text-sm text-amber-400"></i><span>Çoğalt</span></div>
+        <kbd class="ctx-kbd">Ctrl+D</kbd>
+      </button>
+      <button onclick="deleteSelectedCanvasElement(); closeFabricContextMenu();" class="ctx-item text-rose-400 hover:text-rose-300 hover:bg-rose-500/20">
+        <div class="flex items-center gap-2"><i class="ph ph-trash text-sm"></i><span>Sil</span></div>
+        <kbd class="ctx-kbd">Del</kbd>
+      </button>
+
+      <div class="my-1 border-t border-slate-800"></div>
+
+      <button onclick="moveFabricObjectLayer('front'); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-arrow-fat-line-up text-sm text-indigo-400"></i><span>En Öne Getir</span></div>
+        <kbd class="ctx-kbd">Ctrl+]</kbd>
+      </button>
+      <button onclick="moveFabricObjectLayer('back'); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-arrow-fat-line-down text-sm text-indigo-400"></i><span>En Arkaya Gönder</span></div>
+        <kbd class="ctx-kbd">Ctrl+[</kbd>
+      </button>
+      <button onclick="toggleLockActiveObject(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ${isLocked ? 'ph-lock-open text-emerald-400' : 'ph-lock text-amber-400'} text-sm"></i><span>${isLocked ? 'Kilidi Aç' : 'Kilitle'}</span></div>
+      </button>
+      <button onclick="centerObjectHorizontally(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-align-center-horizontal text-sm text-slate-300"></i><span>Sayfada Ortala (Yatay)</span></div>
+      </button>
+      <button onclick="toggleTextWrapOnActiveObject(); closeFabricContextMenu();" class="ctx-item ${active.isTextWrap ? 'text-sky-300 bg-sky-500/10' : ''}">
+        <div class="flex items-center gap-2"><i class="ph ph-waves text-sm text-sky-400"></i><span>Metin Akıt (Text Wrap) ${active.isTextWrap ? '✓' : ''}</span></div>
+      </button>
+    `;
+
+    if (isText) {
+      itemsHtml += `
+        <div class="my-1 border-t border-slate-800"></div>
+        <div class="px-2 py-1 text-[9.5px] font-bold text-amber-400 uppercase tracking-wider">Hızlı Metin Araçları</div>
+        <button onclick="toggleDropCapForActiveText(); closeFabricContextMenu();" class="ctx-item text-amber-300 hover:bg-amber-500/20">
+          <div class="flex items-center gap-2"><i class="ph ph-text-aa text-sm"></i><span>Drop Cap (Büyük Baş Harf)</span></div>
+        </button>
+        <button onclick="runSmartElementAICommand('tdk imla düzelt'); closeFabricContextMenu();" class="ctx-item text-teal-300 hover:bg-teal-500/20">
+          <div class="flex items-center gap-2"><i class="ph ph-spell-check text-sm"></i><span>TDK İmla Düzelt</span></div>
+          <span class="text-[9px] bg-teal-500/20 px-1.5 py-0.5 rounded text-teal-300">AI</span>
+        </button>
+        <button onclick="runSmartElementAICommand('2 sütuna böl'); closeFabricContextMenu();" class="ctx-item">
+          <div class="flex items-center gap-2"><i class="ph ph-columns text-sm text-indigo-400"></i><span>2 Sütuna Böl</span></div>
+        </button>
+        <button onclick="runSmartElementAICommand('çekme alıntı yap'); closeFabricContextMenu();" class="ctx-item">
+          <div class="flex items-center gap-2"><i class="ph ph-quotes text-sm text-amber-400"></i><span>Çekme Alıntı Yap</span></div>
+        </button>
+      `;
+    }
+
+    if (isImage) {
+      itemsHtml += `
+        <div class="my-1 border-t border-slate-800"></div>
+        <div class="px-2 py-1 text-[9.5px] font-bold text-sky-400 uppercase tracking-wider">Görsel Araçları</div>
+        <button onclick="document.getElementById('gridSlotFileInput')?.click(); closeFabricContextMenu();" class="ctx-item text-sky-300 hover:bg-sky-500/20">
+          <div class="flex items-center gap-2"><i class="ph ph-upload-simple text-sm"></i><span>Fotoğraf Yükle / Değiştir</span></div>
+        </button>
+        <button onclick="flipSelectedFabricImage('X'); closeFabricContextMenu();" class="ctx-item">
+          <div class="flex items-center gap-2"><i class="ph ph-arrows-left-right text-sm text-slate-300"></i><span>Yatay Aynala (Flip X)</span></div>
+        </button>
+        <button onclick="flipSelectedFabricImage('Y'); closeFabricContextMenu();" class="ctx-item">
+          <div class="flex items-center gap-2"><i class="ph ph-arrows-down-up text-sm text-slate-300"></i><span>Dikey Aynala (Flip Y)</span></div>
+        </button>
+        <button onclick="convertActiveImageToLoop(); closeFabricContextMenu();" class="ctx-item text-rose-300 hover:bg-rose-500/20">
+          <div class="flex items-center gap-2"><i class="ph ph-video text-sm text-rose-400"></i><span>Canlı Bayrak / Video Yap</span></div>
+          <span class="text-[9px] bg-rose-500/20 px-1.5 py-0.5 rounded text-rose-300">Canlı</span>
+        </button>
+      `;
+    }
+
+  } else {
+    itemsHtml += `
+      <div class="px-2.5 py-1.5 mb-1 text-[10.5px] font-bold text-slate-400 border-b border-slate-800 flex items-center justify-between">
+        <span>Sayfa ${pageIndex + 1} İşlemleri</span>
+        <span class="text-[9.5px] text-emerald-400 font-mono font-bold">TUVAL</span>
+      </div>
+
+      <button onclick="pasteCanvasElement(window.fabricContextMenuPointer); closeFabricContextMenu();" class="ctx-item ${!window.fabricClipboard ? 'opacity-40 pointer-events-none' : ''}">
+        <div class="flex items-center gap-2"><i class="ph ph-clipboard text-sm text-slate-300"></i><span>Buraya Yapıştır</span></div>
+        <kbd class="ctx-kbd">Ctrl+V</kbd>
+      </button>
+
+      <div class="my-1 border-t border-slate-800"></div>
+
+      <button onclick="addCanvaGrid('split_2_col'); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-grid-four text-sm text-sky-400"></i><span>2'li Dikey Izgara Ekle</span></div>
+      </button>
+      <button onclick="addQuarkRunaroundLayout(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-layout text-sm text-indigo-400"></i><span>Portre + Metin Akıtma Düzeni</span></div>
+      </button>
+
+      <div class="my-1 border-t border-slate-800"></div>
+
+      <button onclick="addQuarkFrame('text'); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-textbox text-sm text-indigo-400"></i><span>Boş Metin Kutusu Çiz</span></div>
+      </button>
+      <button onclick="addQuarkFrame('image'); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-image-square text-sm text-sky-400"></i><span>Boş Resim Kutusu Çiz</span></div>
+      </button>
+      <button onclick="addQuarkFrame('divider'); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-minus text-sm text-slate-400"></i><span>Yatay Çizgi Ekle</span></div>
+      </button>
+
+      <div class="my-1 border-t border-slate-800"></div>
+
+      <button onclick="runLayoutDoctor(); closeFabricContextMenu();" class="ctx-item text-teal-300 hover:bg-teal-500/20">
+        <div class="flex items-center gap-2"><i class="ph ph-first-aid text-sm text-teal-400"></i><span>AI Doktoru ile İncele</span></div>
+      </button>
+      <button onclick="toggleMasterPageForCurrentPage(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-copy-simple text-sm text-amber-400"></i><span>Kalıp Sayfa (Master Page) Aç/Kapa</span></div>
+      </button>
+      <button onclick="saveCurrentPageAsUserTemplate(); closeFabricContextMenu();" class="ctx-item">
+        <div class="flex items-center gap-2"><i class="ph ph-star text-sm text-amber-400"></i><span>Bu Sayfayı Şablon Kaydet</span></div>
+      </button>
+
+      <div class="my-1 border-t border-slate-800"></div>
+
+      <button onclick="clearCurrentPageObjects(); closeFabricContextMenu();" class="ctx-item text-rose-400 hover:text-rose-300 hover:bg-rose-500/20">
+        <div class="flex items-center gap-2"><i class="ph ph-trash text-sm"></i><span>Sayfayı Bembeyaz Boşalt</span></div>
+      </button>
+    `;
+  }
+
+  menu.innerHTML = itemsHtml;
+  menu.classList.remove('hidden');
+
+  const menuW = 240;
+  const menuH = 320;
+  const screenW = window.innerWidth;
+  const screenH = window.innerHeight;
+
+  let left = e.clientX;
+  let top = e.clientY;
+
+  if (left + menuW > screenW - 10) left = screenW - menuW - 10;
+  if (top + menuH > screenH - 10) top = screenH - menuH - 10;
+  if (left < 10) left = 10;
+  if (top < 10) top = 10;
+
+  menu.style.left = `${left}px`;
+  menu.style.top = `${top}px`;
 }
 
 // Görsel Aynalama (Flip X / Flip Y)
@@ -2173,6 +3227,26 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
             <button onclick="setFabricPageBackgroundColor('${col}')" class="h-6 rounded-lg border border-slate-700 transition transform hover:scale-105" style="background:${col};" title="${col}"></button>
           `).join('')}
         </div>
+
+        <!-- Kalıp Sayfa (Master Page) & Şablon Kaydetme Aksiyonları -->
+        <div class="pt-2 border-t border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+              <i class="ph ph-copy-simple text-amber-400"></i> Kalıp Sayfa (Master Page)
+            </span>
+            <button onclick="toggleMasterPageForCurrentPage()" class="px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition ${page.showMasterPage !== false ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400'}">
+              ${page.showMasterPage !== false ? '✓ Aktif' : 'Gizli'}
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-1.5 pt-1">
+            <button onclick="promptSaveUserTemplate()" class="py-1.5 px-2 rounded-xl bg-slate-950 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 font-bold text-[10.5px] flex items-center justify-center gap-1 transition shadow">
+              <i class="ph ph-star"></i> Şablon Kaydet
+            </button>
+            <button onclick="addBlankPage()" class="py-1.5 px-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 font-bold text-[10.5px] flex items-center justify-center gap-1 transition">
+              <i class="ph ph-file-plus"></i> + Boş Sayfa
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Mizanpaj Ekolü / Şablon Düzeni Değiştirici -->
@@ -2314,6 +3388,40 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
         </div>
       </div>
     </div>
+
+    <!-- 2B. METİN AKITMA (TEXT WRAP / RUNAROUND) KUTUSU (INDESIGN / QUARKXPRESS) -->
+    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs">
+      <div class="flex items-center justify-between">
+        <span class="font-bold text-white flex items-center gap-1.5">
+          <i class="ph ph-waves text-sky-400"></i> Metin Akıtma (Text Wrap)
+        </span>
+        <button onclick="toggleTextWrapOnActiveObject()" class="px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition ${active.isTextWrap ? 'bg-sky-600 text-white shadow' : 'bg-slate-800 text-slate-400 hover:text-white'}">
+          ${active.isTextWrap ? '✓ Aktif' : 'Kapalı'}
+        </button>
+      </div>
+      <p class="text-[10px] text-slate-400 leading-tight">Bu nesne hareket ettirildikçe metin kutuları etrafından otomatik dolanır.</p>
+      ${active.isTextWrap ? `
+        <div class="pt-1.5 border-t border-slate-800 flex items-center justify-between">
+          <span class="text-slate-300 font-semibold text-[11px]">Kenar Boşluğu:</span>
+          <div class="flex items-center gap-1.5">
+            <input type="range" min="4" max="48" value="${active.textWrapMargin || 16}" oninput="updateActiveTextWrapMargin(this.value); const l = document.getElementById('lblWrapMargin'); if (l) l.textContent = this.value + ' px';" class="w-20 accent-sky-500 cursor-pointer">
+            <span id="lblWrapMargin" class="font-mono text-white text-[11px] w-10 text-right">${active.textWrapMargin || 16} px</span>
+          </div>
+        </div>
+      ` : ''}
+    </div>
+
+    ${(active.isGridSlot && active.customType === 'photo_slot') ? `
+      <div class="bg-slate-900 p-3 rounded-2xl border border-sky-500/40 space-y-2 text-xs">
+        <span class="font-bold text-sky-300 flex items-center gap-1.5">
+          <i class="ph ph-image-square text-base"></i> Boş Izgara / Resim Çerçevesi
+        </span>
+        <p class="text-[10px] text-slate-400">İçine fotoğraf bırakabilir veya aşağıdaki butondan doğrudan resim seçebilirsiniz.</p>
+        <button onclick="document.getElementById('gridSlotFileInput')?.click()" class="w-full py-2 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center gap-1.5 shadow transition">
+          <i class="ph ph-upload-simple text-sm"></i> Fotoğraf Yükle ve Sığdır (Cover)
+        </button>
+      </div>
+    ` : ''}
   `;
 
   // -------------------------------------------------------------------------
@@ -2387,6 +3495,34 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
               <span class="font-mono text-white">${active.charSpacing || 0}</span>
             </div>
             <input type="range" min="-50" max="400" step="10" value="${active.charSpacing || 0}" oninput="updateFabricActiveProp('charSpacing', Number(this.value))" class="w-full accent-amber-500 cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Hızlı AI Eylemleri & Kinetik Animasyon Seçici -->
+        <div class="pt-2 border-t border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between text-[10px] font-bold text-amber-300">
+            <span>✨ Hızlı AI Dönüşümleri</span>
+            <button onclick="openAiPromptLibraryModal('text')" class="text-amber-400 hover:underline">Tümünü Gör (100) →</button>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-[10px] font-bold">
+            <button onclick="runSmartElementAICommand('tdk imla düzelt')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200">🔍 TDK İmla</button>
+            <button onclick="runSmartElementAICommand('manşet ve spot yap')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200">✨ Manşet & Spot</button>
+            <button onclick="runSmartElementAICommand('çekme alıntı yap')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200">💬 Çekme Alıntı</button>
+            <button onclick="runSmartElementAICommand('2 sütuna böl')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200">📰 2 Sütun Yap</button>
+          </div>
+          <button onclick="toggleDropCapForActiveText()" class="w-full py-1.5 px-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/35 border border-amber-500/40 text-amber-300 font-bold text-[10.5px] flex items-center justify-center gap-1.5 transition shadow">
+            <i class="ph ph-text-aa text-sm"></i>
+            <span>${active._dropCapObj ? 'Drop Cap\'i Kaldır (Birleştir)' : '🔠 Drop Cap (Büyük Baş Harf)'}</span>
+          </button>
+          <div class="pt-1 flex items-center justify-between">
+            <span class="text-slate-400 text-[10px]">Animasyon:</span>
+            <select onchange="applyTextAnimation(this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-0.5 text-[10px] text-amber-300 font-semibold">
+              <option value="">Yok (Sabit)</option>
+              <option value="typewriter" ${active.textAnimation === 'typewriter' ? 'selected' : ''}>⌨️ Daktilo</option>
+              <option value="fade_in" ${active.textAnimation === 'fade_in' ? 'selected' : ''}>🌊 Süzülme</option>
+              <option value="shimmer" ${active.textAnimation === 'shimmer' ? 'selected' : ''}>✨ Işık / Neon</option>
+              <option value="pulse" ${active.textAnimation === 'pulse' ? 'selected' : ''}>💓 Vurgu Nabzı</option>
+            </select>
           </div>
         </div>
       </div>
@@ -2486,6 +3622,20 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
           <div>
             <div class="flex justify-between text-[11px] text-slate-400"><span>Bulanıklık (Blur)</span><span class="font-mono text-white">${blurVal}</span></div>
             <input type="range" min="0" max="60" value="${blurVal}" oninput="applyFabricImageFilter('filterBlur', this.value)" class="w-full accent-sky-500 cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Hızlı Görsel AI & Canlı Döngü -->
+        <div class="pt-2 border-t border-slate-800 space-y-1.5">
+          <div class="flex items-center justify-between text-[10px] font-bold text-sky-300">
+            <span>🎨 Hızlı Filtre & Canlı Görsel</span>
+            <button onclick="openAiPromptLibraryModal('image')" class="text-sky-400 hover:underline">Tümünü Gör (100) →</button>
+          </div>
+          <div class="grid grid-cols-2 gap-1 text-[10px] font-bold">
+            <button onclick="runSmartElementAICommand('sepya eskitme')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200">🎨 Sepya Eskitme</button>
+            <button onclick="runSmartElementAICommand('siyah beyaz')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-200">🖤 Siyah Beyaz</button>
+            <button onclick="convertActiveImageToLoop('flag')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-sky-600/30 border border-sky-500/30 text-sky-200">🇹🇷 Canlı Bayrak</button>
+            <button onclick="convertActiveImageToLoop('nature')" class="py-1 px-2 rounded-lg bg-slate-950 hover:bg-emerald-600/30 border border-emerald-500/30 text-emerald-200">🌊 Canlı Doğa</button>
           </div>
         </div>
       </div>
@@ -2792,6 +3942,20 @@ window.addEventListener('keydown', (e) => {
   const active = fCanvas ? fCanvas.getActiveObject() : null;
   if (active && active.isEditing) return; // Fabric Textbox içinde yazı yazılıyorsa kısayolları çalıştırma
 
+  if (e.key === 'Escape') {
+    closeFabricContextMenu();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && active) {
+    e.preventDefault();
+    copyActiveCanvasElement();
+    return;
+  }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+    e.preventDefault();
+    pasteCanvasElement();
+    return;
+  }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
     e.preventDefault();
     undoAction();
@@ -2894,3 +4058,20 @@ window.selectFabricObjectByIndex = selectFabricObjectByIndex;
 window.toggleFabricObjectVisibility = toggleFabricObjectVisibility;
 window.undoAction = undoAction;
 window.redoAction = redoAction;
+window.openFabricContextMenu = openFabricContextMenu;
+window.closeFabricContextMenu = closeFabricContextMenu;
+window.copyActiveCanvasElement = copyActiveCanvasElement;
+window.pasteCanvasElement = pasteCanvasElement;
+window.centerObjectHorizontally = centerObjectHorizontally;
+window.toggleLockActiveObject = toggleLockActiveObject;
+window.clearCurrentPageObjects = clearCurrentPageObjects;
+window.moveFabricObjectLayer = moveFabricObjectLayer;
+window.createGridSlotFabricObject = createGridSlotFabricObject;
+window.addCanvaGrid = addCanvaGrid;
+window.fitImageIntoGridSlot = fitImageIntoGridSlot;
+window.toggleTextWrapOnActiveObject = toggleTextWrapOnActiveObject;
+window.updateActiveTextWrapMargin = updateActiveTextWrapMargin;
+window.applyTextWrapEngine = applyTextWrapEngine;
+window.restoreTextWrapEngine = restoreTextWrapEngine;
+window.addQuarkRunaroundLayout = addQuarkRunaroundLayout;
+window.toggleDropCapForActiveText = toggleDropCapForActiveText;
