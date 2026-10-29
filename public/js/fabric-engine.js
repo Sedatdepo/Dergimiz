@@ -132,8 +132,13 @@ function syncFabricCanvasScale(pageIndex, wrapper) {
   }
 
   const zoomPct = Number(window.canvasZoom || window.canvasZoomPercent || 100);
-  const vhRatio = (window.appMode === 'read' || window.isZenMode) ? 0.82 : 0.75;
-  const baseH = Math.max(440, Math.min(860, Math.round(window.innerHeight * vhRatio)));
+  const ws = document.getElementById('mainCanvasWorkspace');
+  // Çalışma alanının net yüksekliği (üst barlar otomatik düşülür)
+  const wsHeight = (ws && ws.clientHeight > 200) ? ws.clientHeight : (window.innerHeight - 150);
+  // Alt navigasyon barı (38px) + üst/alt nefes alma payı için net 84px boşluk
+  const availableH = Math.max(340, wsHeight - 84);
+
+  const baseH = Math.min(availableH, 920);
   const baseW = Math.round(baseH * (FABRIC_W / FABRIC_H));
 
   const displayW = Math.round(baseW * (zoomPct / 100));

@@ -78,6 +78,14 @@
 </head>
 <body class="flip-v2-theme bg-[#f0f2f5] text-slate-900 font-sans h-screen flex flex-col overflow-hidden">
 
+  <!-- SABİT YÜZEN ÜST BAR GERİ GETİRME HAPI (FLOATING RESTORE PILL) -->
+  <div id="floatingTopBarRestore" class="fixed top-2 left-1/2 -translate-x-1/2 z-50 transition-all duration-200 hidden pointer-events-auto">
+    <button onclick="toggleTopToolbarCollapse(false)" class="flex items-center gap-2 px-4 py-1.5 bg-slate-900/95 hover:bg-black text-white rounded-full shadow-2xl border border-slate-700 text-xs font-semibold backdrop-blur transition hover:scale-105 active:scale-95 cursor-pointer" title="Üst Menüyü Göster">
+      <i class="ph ph-caret-down text-amber-400 font-bold text-sm"></i>
+      <span>Üst Menüyü Göster</span>
+    </button>
+  </div>
+
   <!-- ÜST ARAÇ ÇUBUĞU (FLIPHTML5 V2 BİREBİR BEYAZ HEADER) -->
   <header id="topToolbar" class="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between z-40 shrink-0 gap-3 shadow-sm select-none">
     <!-- Sol: Hamburger Menü + Geri Butonu + Belge Başlığı -->
@@ -156,7 +164,7 @@
     <!-- Sağ: Önizle + Kaydet + Kullanıcı Profil Avatarı -->
     <div class="flex items-center gap-2 shrink-0">
       <!-- Önizle Butonu (FlipHTML5 Birebir) -->
-      <button onclick="setAppMode('read')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold transition shadow-sm" title="3D Gerçekçi Dergi Olarak Önizle">
+      <button id="btnTogglePreview" onclick="setAppMode(appMode === 'read' ? 'edit' : 'read')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold transition shadow-sm cursor-pointer" title="3D Gerçekçi Dergi Olarak Önizle">
         <i class="ph ph-play-fill text-blue-600 text-sm"></i>
         <span class="hidden sm:inline">Önizle</span>
       </button>
@@ -693,7 +701,7 @@
     </aside>
 
     <!-- 3. ORTA ALAN: DERGİ TUVALİ (TAMAMEN TEMİZ ÇALIŞMA EKRANI — ÜSTTE HİÇBİR PANEL YOK) -->
-    <main id="mainCanvasWorkspace" class="flex-1 bg-[#f0f2f5] text-slate-900 flex flex-col items-center justify-center p-2 md:p-4 overflow-auto relative">
+    <main id="mainCanvasWorkspace" class="flex-1 bg-[#f0f2f5] text-slate-900 flex flex-col items-center justify-start p-3 md:p-6 overflow-y-auto overflow-x-auto relative">
 
       <!-- FLIPHTML5 BİREBİR YÜZEN HIZLI BİÇİMLENDİRME ÇUBUĞU (FLOATING CONTEXT BAR) -->
       <!-- Floating bar üst şeride taşındı (#topContextBar) -->
@@ -705,7 +713,7 @@
       <div id="adminStickyNoteBox" class="hidden"><span id="adminStickyNoteText"></span></div>
 
       <!-- DERGİ GÖRÜNÜM ALANI (ORTA TUVAL & YAN GEÇİŞ OKLARI) -->
-      <div class="my-auto flex items-center justify-center w-full py-1 relative">
+      <div id="magazineViewportContainer" class="m-auto flex items-center justify-center w-full py-2 relative">
         <!-- Sol Geçiş Oku -->
         <button onclick="prevPage()" id="btnPrev" class="w-8 h-16 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-slate-950 border border-slate-200 shadow-md transition mr-2 md:mr-4 disabled:opacity-20 disabled:pointer-events-none flex flex-col items-center justify-center gap-1" title="Önceki Sayfa">
           <i class="ph ph-caret-left text-xl"></i>

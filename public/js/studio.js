@@ -1336,19 +1336,45 @@ function toggleCanvasActionBar() {
   }
 }
 
-function toggleTopToolbarCollapse() {
+function toggleTopToolbarCollapse(forceState) {
   const header = document.getElementById('topToolbar');
   const restoreBtn = document.getElementById('btnRestoreHeader');
+  const floatingRestore = document.getElementById('floatingTopBarRestore');
   if (!header) return;
-  isTopToolbarCollapsed = !isTopToolbarCollapsed;
+
+  if (typeof forceState === 'boolean') {
+    isTopToolbarCollapsed = forceState;
+  } else {
+    isTopToolbarCollapsed = !isTopToolbarCollapsed;
+  }
+  window.isTopToolbarCollapsed = isTopToolbarCollapsed;
+
   if (isTopToolbarCollapsed) {
     header.classList.add('hidden');
     if (restoreBtn) restoreBtn.classList.remove('hidden');
+    if (floatingRestore) floatingRestore.classList.remove('hidden');
   } else {
     header.classList.remove('hidden');
     if (restoreBtn) restoreBtn.classList.add('hidden');
+    if (floatingRestore) floatingRestore.classList.add('hidden');
   }
+
+  if (typeof window.updateTopContextBar === 'function') {
+    window.updateTopContextBar();
+  }
+
+  setTimeout(() => {
+    if (typeof window.syncFabricCanvasScale === 'function') {
+      Object.keys(window.fabricCanvases || {}).forEach(idx => {
+        window.syncFabricCanvasScale(Number(idx));
+      });
+    }
+  }, 60);
 }
+window.toggleTopToolbarCollapse = toggleTopToolbarCollapse;
+window.restoreTopToolbar = function() {
+  toggleTopToolbarCollapse(false);
+};
 
 function toggleZenCanvasMode() {
   isZenMode = !isZenMode;
@@ -1357,6 +1383,7 @@ function toggleZenCanvasMode() {
   const topBar = document.getElementById('topToolbar');
   const actionBar = document.getElementById('canvasActionBar');
   const restoreBtn = document.getElementById('btnRestoreHeader');
+  const floatingRestore = document.getElementById('floatingTopBarRestore');
   const txtZen = document.getElementById('txtZenMode');
   const txtLeft = document.getElementById('txtToggleLeft');
   const txtRight = document.getElementById('txtToggleRight');
@@ -1365,11 +1392,13 @@ function toggleZenCanvasMode() {
     isLeftDrawerCollapsed = true;
     isRightSidebarCollapsed = true;
     isTopToolbarCollapsed = true;
+    window.isTopToolbarCollapsed = true;
     if (leftBar) leftBar.classList.add('hidden');
     if (rightBar) rightBar.classList.add('hidden');
     if (topBar) topBar.classList.add('hidden');
     if (actionBar) actionBar.classList.add('hidden');
     if (restoreBtn) restoreBtn.classList.remove('hidden');
+    if (floatingRestore) floatingRestore.classList.remove('hidden');
     if (txtZen) txtZen.textContent = 'Panelleri Göster';
     if (txtLeft) txtLeft.textContent = 'Sol Paneli Aç';
     if (txtRight) txtRight.textContent = 'Sağ Paneli Aç';
@@ -1378,16 +1407,28 @@ function toggleZenCanvasMode() {
     isLeftDrawerCollapsed = false;
     isRightSidebarCollapsed = false;
     isTopToolbarCollapsed = false;
+    window.isTopToolbarCollapsed = false;
     if (leftBar) leftBar.classList.remove('hidden');
     if (rightBar) rightBar.classList.remove('hidden');
     if (topBar) topBar.classList.remove('hidden');
     if (restoreBtn) restoreBtn.classList.add('hidden');
+    if (floatingRestore) floatingRestore.classList.add('hidden');
     if (txtZen) txtZen.textContent = 'Panelleri Gizle';
     if (txtLeft) txtLeft.textContent = 'Sol Paneli Kapat';
     if (txtRight) txtRight.textContent = 'Sağ Paneli Kapat';
     showToast("Paneller tekrar açıldı");
   }
+  if (typeof window.updateTopContextBar === 'function') {
+    window.updateTopContextBar();
+  }
   renderMagazineViewport();
+  setTimeout(() => {
+    if (typeof window.syncFabricCanvasScale === 'function') {
+      Object.keys(window.fabricCanvases || {}).forEach(idx => {
+        window.syncFabricCanvasScale(Number(idx));
+      });
+    }
+  }, 60);
 }
 
 function toggleMorePopupMenu(ev) {
@@ -1530,6 +1571,7 @@ function renderAll() {
 
 function setAppMode(mode) {
   appMode = mode;
+  window.appMode = mode;
   const leftRail = document.getElementById('leftIconRail');
   const leftBar = document.getElementById('leftSidebar');
   const rightBar = document.getElementById('rightSidebar');
@@ -1539,6 +1581,7 @@ function setAppMode(mode) {
   const btnEdit = document.getElementById('btnEditMode');
   const btnRead = document.getElementById('btnReadMode');
   const floatBar = document.getElementById('floatingContextToolbar');
+  const btnTogglePreview = document.getElementById('btnTogglePreview');
 
   if (mode === 'read') {
     if (leftRail) leftRail.classList.add('hidden');
@@ -1548,19 +1591,42 @@ function setAppMode(mode) {
     if (actionBar) actionBar.classList.add('hidden');
     if (stickyNote) stickyNote.classList.add('hidden');
     if (floatBar) floatBar.classList.add('hidden');
-    btnRead.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
-    btnEdit.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white";
+    if (btnRead) btnRead.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
+    if (btnEdit) btnEdit.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white";
+    if (btnTogglePreview) {
+      btnTogglePreview.innerHTML = '<i class="ph ph-pencil-simple text-sm text-amber-300"></i><span class="hidden sm:inline font-bold">Düzenle</span>';
+      btnTogglePreview.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition shadow-sm cursor-pointer";
+    }
+    showToast("👁️ Okuma / Önizleme modu aktif");
   } else {
     if (leftRail) leftRail.classList.remove('hidden');
     if (leftBar && !isLeftDrawerCollapsed) leftBar.classList.remove('hidden');
     if (rightBar) rightBar.classList.remove('hidden');
     if (centerStrip) centerStrip.classList.remove('hidden');
     if (actionBar) actionBar.classList.remove('hidden');
-    btnEdit.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
-    btnRead.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white";
+    if (btnEdit) btnEdit.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow";
+    if (btnRead) btnRead.className = "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white";
+    if (btnTogglePreview) {
+      btnTogglePreview.innerHTML = '<i class="ph ph-play-fill text-blue-600 text-sm"></i><span class="hidden sm:inline font-semibold">Önizle</span>';
+      btnTogglePreview.className = "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold transition shadow-sm cursor-pointer";
+    }
     updateTopReviewBanner();
+    showToast("✏️ Editör modu aktif");
   }
+
+  if (typeof window.updateTopContextBar === 'function') {
+    window.updateTopContextBar();
+  }
+
   renderMagazineViewport();
+
+  setTimeout(() => {
+    if (typeof window.syncFabricCanvasScale === 'function') {
+      Object.keys(window.fabricCanvases || {}).forEach(idx => {
+        window.syncFabricCanvasScale(Number(idx));
+      });
+    }
+  }, 60);
 }
 
 function toggleSpreadMode() {

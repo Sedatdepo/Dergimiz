@@ -75,6 +75,36 @@
     window.updateTopContextBar(null);
   };
 
+  
+  function getTopBarControlsPrefix() {
+    const isHeaderCollapsed = Boolean(window.isTopToolbarCollapsed);
+    const isReadMode = (window.appMode === 'read');
+
+    return `
+      <div class="flex items-center gap-1.5 shrink-0 mr-1.5">
+        ${isHeaderCollapsed ? `
+          <button onclick="toggleTopToolbarCollapse(false)" class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-2xs cursor-pointer" title="Üst Menüyü Göster">
+            <i class="ph ph-caret-down font-bold text-xs"></i>
+            <span>Üst Menü</span>
+          </button>
+        ` : `
+          <button onclick="toggleTopToolbarCollapse(true)" class="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 text-xs transition shrink-0 cursor-pointer" title="Üst Menüyü Gizle">
+            <i class="ph ph-caret-up text-xs"></i>
+          </button>
+        `}
+
+        ${isReadMode ? `
+          <button onclick="setAppMode('edit')" class="flex items-center gap-1 px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition shadow-2xs cursor-pointer" title="Düzenleme Moduna Dön">
+            <i class="ph ph-pencil-simple text-xs"></i>
+            <span>Düzenle</span>
+          </button>
+        ` : ''}
+
+        <div class="h-4 w-px bg-slate-200"></div>
+      </div>
+    `;
+  }
+
   function renderTopContextBarContent(bar, activeObj, studioEl, inlineKey, inlineType, fCanvas) {
     // 1. FABRIC.JS NESNESİ SEÇİLİYSE
     if (activeObj) {
@@ -85,6 +115,7 @@
         const curOpacity = Math.round((activeObj.opacity !== undefined ? activeObj.opacity : 1) * 100);
         bar.innerHTML = `
           <div class="flex items-center gap-2 min-w-0">
+            ${getTopBarControlsPrefix()}
             <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 font-bold text-xs flex items-center gap-1.5 shrink-0 border border-blue-200">
               <i class="ph ph-image text-sm"></i>
               <span>Görsel</span>
@@ -161,6 +192,7 @@
 
         bar.innerHTML = `
           <div class="flex items-center gap-2 min-w-0">
+            ${getTopBarControlsPrefix()}
             <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center gap-1.5 shrink-0 border border-indigo-200">
               <i class="ph ph-textbox text-sm"></i>
               <span>Metin</span>
@@ -241,6 +273,7 @@
 
       bar.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
+          ${getTopBarControlsPrefix()}
           <span class="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-bold text-xs flex items-center gap-1.5 shrink-0 border border-amber-200">
             <i class="ph ph-shapes text-sm"></i>
             <span>Şekil</span>
@@ -293,6 +326,7 @@
       if (inlineType === 'image') {
         bar.innerHTML = `
           <div class="flex items-center gap-2 min-w-0">
+            ${getTopBarControlsPrefix()}
             <span class="px-2 py-0.5 rounded-md bg-blue-50 text-blue-600 font-bold text-xs flex items-center gap-1.5 shrink-0 border border-blue-200">
               <i class="ph ph-image text-sm"></i>
               <span>Şablon Fotoğrafı</span>
@@ -317,6 +351,7 @@
 
       bar.innerHTML = `
         <div class="flex items-center gap-2 min-w-0">
+          ${getTopBarControlsPrefix()}
           <span class="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center gap-1.5 shrink-0 border border-indigo-200">
             <i class="ph ph-textbox text-sm"></i>
             <span>Şablon Metin Kutusu</span>
@@ -341,6 +376,7 @@
 
     bar.innerHTML = `
       <div class="flex items-center gap-2.5 min-w-0">
+        ${getTopBarControlsPrefix()}
         <span class="px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-semibold text-xs flex items-center gap-1.5 shrink-0 border border-slate-200">
           <i class="ph ph-file-text text-sm text-blue-600"></i>
           <span>Sayfa ${curPIdx + 1} / ${totalPages}</span>
@@ -686,6 +722,15 @@
         window.updateTopContextBar();
       }
     }, 200);
+  });
+
+  
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey && e.key === '\\') || (e.key === 'Escape' && window.isTopToolbarCollapsed)) {
+      if (typeof window.toggleTopToolbarCollapse === 'function') {
+        window.toggleTopToolbarCollapse(false);
+      }
+    }
   });
 
   console.log('✅ FlipHTML5 V2 Top Context Bar Hazır!');
