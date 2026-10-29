@@ -495,5 +495,24 @@
     }
   };
 
+  // 6. BAŞLIK DÜZENLEME (INLINE TITLE EDIT)
+  window.editMagazineTitleInline = function() {
+    const el = document.getElementById('magazineTitleDisplay');
+    const currentTitle = (window.magazineData?.title || el?.textContent || '').trim();
+    const newTitle = prompt('Dergi / Belge Başlığını Düzenleyin:', currentTitle);
+    if (newTitle !== null && newTitle.trim() !== '') {
+      if (window.magazineData) {
+        window.magazineData.title = newTitle.trim();
+      }
+      if (el) el.textContent = newTitle.trim();
+      if (typeof window.saveAllChangesToServer === 'function') {
+        window.saveAllChangesToServer();
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast('Belge başlığı güncellendi: ' + newTitle.trim());
+      }
+    }
+  };
+
   console.log("✅ FlipHTML5 V2 UI Engine Hazır!");
 })();

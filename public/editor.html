@@ -13,14 +13,15 @@
   <!-- Fabric.js 5.3.0 Profesyonel Tuval Motoru -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
   <link rel="stylesheet" href="/css/style.css?v=20261027_16">
+  <link rel="stylesheet" href="/css/flip-theme.css?v=20261029_07_flip">
   <style>
     select {
-      color-scheme: dark;
+      color-scheme: light;
     }
     select option,
     select optgroup {
-      background-color: #0f172a !important;
-      color: #f8fafc !important;
+      background-color: #ffffff !important;
+      color: #1f2937 !important;
       padding: 6px 10px;
     }
     .ctx-item {
@@ -75,165 +76,113 @@
     }
   </script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans h-screen flex flex-col overflow-hidden">
+<body class="flip-v2-theme bg-[#f0f2f5] text-slate-900 font-sans h-screen flex flex-col overflow-hidden">
 
-  <!-- ÜST ARAÇ ÇUBUĞU (TEK SATIR KOMPAKT & GİZLENEBİLİR YÖNETİM BARI) -->
-  <header id="topToolbar" class="bg-slate-950 border-b border-slate-800 px-3 py-1.5 flex items-center justify-between z-40 shrink-0 gap-2">
-    <!-- Sol: Ana Sayfa + Şablonlar + Dergi/Sayı Seçici -->
-    <div class="flex items-center gap-2 min-w-0 flex-wrap">
-      <a href="/" class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow hover:scale-105 transition shrink-0" title="Kitaplığa Dön">
-        <i class="ph ph-book-open-text text-lg text-white"></i>
+  <!-- ÜST ARAÇ ÇUBUĞU (FLIPHTML5 V2 BİREBİR BEYAZ HEADER) -->
+  <header id="topToolbar" class="bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between z-40 shrink-0 gap-3 shadow-sm select-none">
+    <!-- Sol: Hamburger Menü + Geri Butonu + Belge Başlığı -->
+    <div class="flex items-center gap-2.5 min-w-0">
+      <button onclick="openModal('projectModal')" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition" title="Menü">
+        <i class="ph ph-list text-xl"></i>
+      </button>
+
+      <a href="/" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition" title="Gösterge paneline dön">
+        <i class="ph ph-arrow-left text-lg"></i>
       </a>
 
-      <!-- 📄 BOMBOŞ DERGİ İLE BAŞLA BUTONU -->
-      <button onclick="startPureBlankMagazine()" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow transition" title="Tüm hazır şablonları kaldır ve bembeyaz boş tuval ile başla">
-        <i class="ph ph-file-plus text-sm"></i>
-        <span>Bomboş Başla</span>
+      <div class="h-4 w-px bg-slate-200"></div>
+
+      <!-- Tıklanıp Düzenlenebilen Belge Başlığı -->
+      <div class="flex items-center gap-1.5 max-w-[220px] sm:max-w-xs md:max-w-md truncate">
+        <span id="magazineTitleDisplay" onclick="editMagazineTitleInline()" class="text-xs md:text-sm font-semibold text-slate-800 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-slate-100 cursor-pointer truncate transition" title="Başlığı Değiştirmek İçin Tıklayın">
+          Dergimiz E-Kitap Şablonu
+        </span>
+      </div>
+
+      <!-- Hızlı Şablon ve Bomboş Butonları -->
+      <button onclick="startPureBlankMagazine()" class="hidden md:flex px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold items-center gap-1 transition" title="Tertemiz Bembeyaz Tuval">
+        <i class="ph ph-file-plus text-xs text-blue-600"></i>
+        <span>Boş Tuval</span>
       </button>
 
-      <button onclick="openAllTemplatesModal()" class="px-2 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold flex items-center gap-1 shadow transition" title="Tüm 20 Dergi Konsepti ve Sayfa Şablonlarını Gör">
-        <i class="ph ph-palette text-sm"></i>
-        <span class="hidden md:inline">Şablonlar</span>
+      <button onclick="openAllTemplatesModal()" class="hidden md:flex px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold items-center gap-1 transition" title="Şablon Galerisi">
+        <i class="ph ph-layout text-xs text-amber-600"></i>
+        <span>Şablonlar</span>
       </button>
 
-      <div class="flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
-        <i class="ph ph-Notebook text-amber-400 text-xs"></i>
-        <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="bg-slate-900 text-white border-0 text-xs font-bold focus:outline-none cursor-pointer max-w-[150px] sm:max-w-[190px]">
-          <!-- JS ile dolar -->
+      <!-- Gizli Seçiciler (Geriye dönük uyumluluk) -->
+      <select id="magazineSelector" onchange="onMagazineChange(this.value)" class="hidden"></select>
+      <select id="issueSelector" onchange="onIssueChange(this.value)" class="hidden"></select>
+      <button id="btnNewMagModal" onclick="openModal('newMagazineModal')" class="hidden"></button>
+      <button id="btnDeleteMag" onclick="clearAllSavedMagazines()" class="hidden"></button>
+      <button id="btnDeleteIssue" onclick="deleteCurrentIssue()" class="hidden"></button>
+      <span id="issueStatusBadge" class="hidden">Taslak</span>
+      <span id="saveStatusIndicator" class="hidden"></span>
+      <span id="headerSchoolText" class="hidden"></span>
+    </div>
+
+    <!-- Orta: Durum Rozeti + Yakınlaştırma (Zoom) + El Aracı -->
+    <div class="flex items-center gap-3 shrink-0">
+      <!-- Paylaşım Kısıtlaması Rozeti (FlipHTML5 Birebir Kırmızı Rozet) -->
+      <span class="hidden sm:flex items-center gap-1.5 bg-rose-50 border border-rose-200 text-rose-600 px-3 py-1 rounded-full text-xs font-semibold">
+        <i class="ph ph-warning-circle-fill text-sm"></i>
+        <span>Paylaşım Kısıtlaması</span>
+      </span>
+
+      <!-- Yakınlaştırma (%) Dropdown (FlipHTML5 Birebir) -->
+      <div class="flex items-center bg-white border border-slate-300 rounded-lg px-2 py-1 shadow-sm">
+        <select id="zoomSelector" onchange="setCanvasZoom(Number(this.value))" class="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
+          <option value="25">25%</option>
+          <option value="50">50%</option>
+          <option value="64" selected>64%</option>
+          <option value="75">75%</option>
+          <option value="100">100%</option>
+          <option value="125">125%</option>
+          <option value="150">150%</option>
         </select>
       </div>
 
-      <select id="issueSelector" onchange="onIssueChange(this.value)" class="bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-semibold text-slate-200 focus:outline-none cursor-pointer hidden sm:block max-w-[120px]">
-        <!-- JS ile doldurulur -->
-      </select>
-
-      <button id="btnNewMagModal" onclick="openModal('newMagazineModal')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-amber-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition" title="Yeni Dergi Kaydet veya Mevcutları Yönet">
-        <i class="ph ph-plus-circle text-xs"></i>
-        <span class="hidden lg:inline">+ Dergi</span>
+      <!-- El Aracı (Pan Modu) -->
+      <button id="btnPanMode" onclick="togglePanMode()" class="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs transition shadow-sm" title="El Aracı (Sayfayı Kaydır)">
+        <i class="ph ph-hand-grabbing text-base"></i>
       </button>
 
-      <button id="btnDeleteMag" onclick="clearAllSavedMagazines()" class="p-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 text-xs transition" title="Kayıtlı Örnek Dergileri Sil ve Şablon Masasına Sıfırla">
-        <i class="ph ph-trash text-xs"></i>
-      </button>
-
-      <button id="btnDeleteIssue" onclick="deleteCurrentIssue()" class="hidden"></button>
-      <span id="issueStatusBadge" class="hidden">Taslak</span>
-      <span id="saveStatusIndicator" class="text-[11px] text-slate-400 hidden 2xl:flex items-center gap-1">
-        <i class="ph ph-cloud-check text-emerald-400 text-sm"></i>
-        <span>Hazır</span>
-      </span>
-      <span id="headerSchoolText" class="hidden">Tasarım Stüdyosu</span>
-    </div>
-
-    <!-- ORTA: 3 ADOBE ÇALIŞMA MASASI (WORKSPACES) & SİHİRLİ KOMUT PALETİ -->
-    <div class="flex items-center gap-1.5 shrink-0">
-      <!-- 3 Çalışma Masası -->
-      <div class="flex items-center gap-0.5 bg-slate-900/95 p-0.5 rounded-xl border border-slate-800 shadow-inner">
-        <button id="wsBtn_layout" onclick="switchEditorWorkspace('layout')" class="px-2 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 text-slate-300 hover:text-white hover:bg-slate-800" title="Sayfa akışı, iskelet ve mizanpaj şablonları">
-          <i class="ph ph-layout text-sm"></i>
-          <span>Mizanpaj</span>
-        </button>
-        <button id="wsBtn_design" onclick="switchEditorWorkspace('design')" class="px-2 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 bg-indigo-600 text-white shadow ring-2 ring-indigo-400/50" title="Yazı ve fotoğraf kutuları, tipografi">
-          <i class="ph ph-paint-brush text-sm"></i>
-          <span>Tasarım</span>
-        </button>
-        <button id="wsBtn_publish" onclick="switchEditorWorkspace('publish')" class="px-2 py-1 rounded-lg text-[11px] font-bold transition flex items-center gap-1 text-slate-300 hover:text-white hover:bg-slate-800" title="Video, ses, animasyonlar ve yayın">
-          <i class="ph ph-broadcast text-sm"></i>
-          <span>İnteraktif</span>
-        </button>
-      </div>
-
-      <!-- Sihirli Komut Paleti (Ctrl+K) -->
-      <button onclick="openMagicCommandPalette()" class="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-xs text-slate-300 hover:text-white transition shadow-sm group" title="Sihirli Komut Paletini Aç (Kısayol: Ctrl+K veya /)">
-        <i class="ph ph-magnifying-glass text-amber-400 group-hover:scale-110 transition"></i>
-        <span class="hidden md:inline text-[11px]">Komut Ara</span>
-        <kbd class="px-1 py-0.5 bg-slate-950 border border-slate-700 rounded text-[9px] font-mono text-slate-400">Ctrl+K</kbd>
-      </button>
-
-      <!-- 🩺 AI Mizanpaj Doktoru -->
-      <button onclick="runLayoutDoctor()" class="flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-teal-500/20 to-emerald-500/20 hover:from-teal-500/30 hover:to-emerald-500/30 border border-teal-500/40 text-teal-300 hover:text-white rounded-xl text-xs font-bold transition shadow-sm" title="Taşan yazıları, imla hatalarını ve hizaları otomatik düzelt">
-        <i class="ph ph-first-aid text-sm text-teal-400"></i>
-        <span class="hidden sm:inline text-[11px]">AI Doktor</span>
-      </button>
-
-      <!-- 📬 Öğrenci Katkı Havuzu -->
-      <button onclick="openStudentSubmissionsModal()" class="flex items-center gap-1 px-2 py-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/40 text-indigo-300 hover:text-white rounded-xl text-xs font-bold transition shadow-sm" title="Öğrencilerden gelen yazı, şiir ve resim havuzunu aç">
-        <i class="ph ph-tray text-sm text-indigo-400"></i>
-        <span class="hidden sm:inline text-[11px]">Öğrenci Havuzu</span>
-      </button>
-
-      <!-- 📐 Kalıp Sayfa (Master Page) -->
-      <button onclick="toggleMasterPageForCurrentPage()" class="flex items-center gap-1 px-2 py-1 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 hover:text-white rounded-xl text-xs font-bold transition shadow-sm" title="Bu sayfada Üst Bilgi ve Sayfa Numarasını aç/kapat">
-        <i class="ph ph-ruler text-sm text-amber-400"></i>
-        <span class="hidden md:inline text-[11px]">Kalıp</span>
-      </button>
-
-      <!-- 📖 Çift Sayfa Açılışı (Spread View) -->
-      <button id="btnSpreadViewToggle" onclick="toggleSpreadView()" class="p-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition" title="Çift Sayfa (Kitap Açılışı) Görünümü">
+      <!-- Çift Sayfa Görünümü -->
+      <button id="btnSpreadViewToggle" onclick="toggleSpreadView()" class="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs transition shadow-sm" title="Çift Sayfa / Tek Sayfa">
         <i class="ph ph-book-open text-base"></i>
       </button>
     </div>
 
-    <!-- Sağ: Zoom (%), El Aracı, Önizle, Kaydet & Panel Gizleme -->
-    <div class="flex items-center gap-1.5 shrink-0">
-      <!-- Yakınlaştırma (Zoom %) Kontrolü -->
-      <div class="hidden md:flex items-center bg-slate-900 border border-slate-800 rounded-xl px-1.5 py-0.5 gap-0.5">
-        <button onclick="stepCanvasZoom(-15)" class="w-6 h-6 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs" title="Uzaklaştır (-)">
-          <i class="ph ph-minus"></i>
-        </button>
-        <select id="zoomSelector" onchange="setCanvasZoom(Number(this.value))" class="bg-slate-900 text-xs font-bold text-slate-200 focus:outline-none cursor-pointer px-0.5">
-          <option value="50">50%</option>
-          <option value="65">65%</option>
-          <option value="75">75%</option>
-          <option value="85">85%</option>
-          <option value="100" selected>100%</option>
-          <option value="125">125%</option>
-          <option value="150">150%</option>
-        </select>
-        <button onclick="stepCanvasZoom(15)" class="w-6 h-6 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center justify-center text-xs" title="Yakınlaştır (+)">
-          <i class="ph ph-plus"></i>
-        </button>
-      </div>
-
-      <!-- El Aracı (Pan) -->
-      <button id="btnPanMode" onclick="togglePanMode()" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition" title="El Aracı ile Tuvali Kaydır (Pan)">
-        <i class="ph ph-hand-grabbing text-base"></i>
+    <!-- Sağ: Önizle + Kaydet + Kullanıcı Profil Avatarı -->
+    <div class="flex items-center gap-2 shrink-0">
+      <!-- Önizle Butonu (FlipHTML5 Birebir) -->
+      <button onclick="setAppMode('read')" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-800 text-xs font-semibold transition shadow-sm" title="3D Gerçekçi Dergi Olarak Önizle">
+        <i class="ph ph-play-fill text-blue-600 text-sm"></i>
+        <span class="hidden sm:inline">Önizle</span>
       </button>
 
-      <!-- Önizle / Tasarım Modu Geçişi -->
-      <div class="flex items-center bg-slate-900 p-0.5 rounded-xl border border-slate-800">
-        <button id="btnEditMode" onclick="setAppMode('edit')" class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all bg-blue-600 text-white shadow">
-          <i class="ph ph-pencil-simple-line text-sm"></i>
-          <span class="hidden sm:inline">Tasarım</span>
-        </button>
-        <button id="btnReadMode" onclick="setAppMode('read')" class="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold transition-all text-slate-300 hover:text-white">
-          <i class="ph ph-play-fill text-sm"></i>
-          <span>Önizle</span>
-        </button>
-      </div>
-
-      <!-- Kaydet Butonu -->
-      <button onclick="saveAllChangesToServer()" class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow transition">
+      <!-- Kaydet Butonu (FlipHTML5 Birebir Canlı Mavi Buton) -->
+      <button onclick="saveAllChangesToServer()" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-bold transition shadow-sm" title="Tüm Değişiklikleri Kaydet">
         <i class="ph ph-floppy-disk text-sm"></i>
         <span>Kaydet</span>
       </button>
 
-      <!-- Admin Özel Butonları -->
-      <div id="adminActions" class="flex items-center gap-1">
-        <button onclick="togglePublishCurrentIssue()" id="btnPublishToggle" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow transition" title="Canlıya Al / Taslağa Çek">
-          <i class="ph ph-rocket-launch text-sm"></i>
-          <span id="btnPublishText" class="hidden xl:inline">Yayınla</span>
-        </button>
-        <button onclick="openModal('projectModal')" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800 text-xs transition" title="Yedek Al veya İndir">
-          <i class="ph ph-download-simple text-base"></i>
-        </button>
+      <!-- Kullanıcı Avatarı (FlipHTML5 S Avatarı) -->
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shadow-sm shrink-0" title="Sedat İleri (sedatileri@gmail.com)">
+        S
       </div>
 
       <!-- Üst Barı Gizle Butonu -->
-      <button onclick="toggleTopToolbarCollapse()" class="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-xs transition" title="Üst Çubuğu Gizle (Çalışma Alanını Büyüt)">
+      <button onclick="toggleTopToolbarCollapse()" class="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 text-xs transition" title="Üst Çubuğu Gizle">
         <i class="ph ph-caret-up text-sm"></i>
       </button>
 
+      <!-- Geriye dönük uyumluluk gizli butonları -->
+      <button id="btnEditMode" onclick="setAppMode('edit')" class="hidden"></button>
+      <button id="btnReadMode" onclick="setAppMode('read')" class="hidden"></button>
+      <div id="adminActions" class="hidden">
+        <button onclick="togglePublishCurrentIssue()" id="btnPublishToggle" class="hidden"><span id="btnPublishText"></span></button>
+      </div>
       <span id="userNameDisplay" class="hidden">Editör</span>
       <span id="userRoleDisplay" class="hidden">Admin</span>
     </div>
@@ -242,22 +191,22 @@
   <!-- ANA ÇALIŞMA ALANI (SOL İKON RAYI + SOL ÇEKMECE + ORTA TUVAL + SAĞ İNCE SÜTUN + SAĞ DENETÇİ PANELİ) -->
   <div class="flex-1 flex overflow-hidden relative">
 
-    <!-- 1. SOL DİKEY SİYAH İKON RAYI (FlipHTML5 v2 - Görsel 1, 8, 9) -->
-    <nav id="leftIconRail" class="w-16 bg-[#141619] border-r border-slate-800/90 flex flex-col items-center justify-between py-3 z-30 shrink-0 select-none">
-      <div class="flex flex-col items-center gap-1.5">
+    <!-- 1. SOL DİKEY İKON RAYI (FlipHTML5 V2 Birebir Beyaz Şerit - 76px) -->
+    <nav id="leftIconRail" class="w-[76px] bg-white border-r border-slate-200 flex flex-col items-center justify-between py-3 z-30 shrink-0 select-none shadow-sm">
+      <div class="flex flex-col items-center gap-1.5 w-full px-1">
         <button id="railBtn_pages" onclick="switchLeftTab('pages')" class="rail-btn active" title="Sayfalar & Minyatür Önizleme">
           <i class="ph ph-files text-xl"></i>
           <span>Sayfa</span>
         </button>
-        <button id="railBtn_templates" onclick="switchLeftTab('templates')" class="rail-btn" title="Şablonlar & 20 Konsept">
+        <button id="railBtn_templates" onclick="switchLeftTab('templates')" class="rail-btn" title="Şablonlar & Hazır Tasarımlar">
           <i class="ph ph-layout text-xl"></i>
           <span>Şablon</span>
         </button>
-        <button id="railBtn_elements" onclick="switchLeftTab('elements')" class="rail-btn" title="Öğeler: Tablo, Şekiller, Düğmeler, Sıcak Noktalar">
+        <button id="railBtn_elements" onclick="switchLeftTab('elements')" class="rail-btn" title="Öğeler: Şekiller, Düğmeler, Tablolar, İkonlar">
           <i class="ph ph-shapes text-xl"></i>
           <span>Öğeler</span>
         </button>
-        <button id="railBtn_links" onclick="switchLeftTab('links')" class="rail-btn" title="Bağlantı, Sayfaya Git & Etkileşim">
+        <button id="railBtn_links" onclick="switchLeftTab('links')" class="rail-btn" title="Bağlantı & Etkileşim">
           <i class="ph ph-link text-xl"></i>
           <span>Bağlantı</span>
         </button>
@@ -267,162 +216,127 @@
         </button>
       </div>
 
-      <div class="flex flex-col items-center gap-1.5">
+      <div class="flex flex-col items-center gap-1.5 w-full px-1">
         <button id="railBtn_uploads" onclick="switchLeftTab('uploads')" class="rail-btn" title="Yüklemeler & Medya Kütüphanesi">
           <i class="ph ph-cloud-arrow-up text-xl"></i>
           <span>Yüklemeler</span>
         </button>
-        <button onclick="toggleLeftDrawerCollapse()" class="w-9 h-9 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition" title="Sol Çekmeceyi Daralt / Aç">
+        <button onclick="toggleLeftDrawerCollapse()" class="w-10 h-10 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center transition" title="Sol Çekmeceyi Daralt / Aç">
           <i id="leftDrawerToggleIcon" class="ph ph-caret-double-left text-base"></i>
         </button>
       </div>
     </nav>
 
-    <!-- SOL "DAHA FAZLA" AÇILIR POPUP MENÜSÜ (Görsel 3 Birebir & Gelişmiş Etkileşim) -->
-    <div id="morePopupMenu" class="fixed left-[68px] top-[230px] w-52 bg-[#181b20] border border-slate-700/90 rounded-2xl shadow-2xl py-2 z-50 hidden select-none">
-      <div class="px-3.5 py-1.5 border-b border-slate-800 text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+    <!-- SOL "DAHA FAZLA" AÇILIR POPUP MENÜSÜ (Geriye Dönük Uyumluluk) -->
+    <div id="morePopupMenu" class="fixed left-[76px] top-[230px] w-52 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 z-50 hidden select-none text-slate-800">
+      <div class="px-3.5 py-1.5 border-b border-slate-100 text-[10px] font-bold text-amber-600 uppercase tracking-wider flex items-center gap-1.5">
         <i class="ph ph-sparkle"></i> İnteraktif Medya Ekle
       </div>
-      <label class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 cursor-pointer transition">
-        <i class="ph ph-image text-base text-sky-400"></i>
+      <label class="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-2.5 cursor-pointer transition">
+        <i class="ph ph-image text-base text-sky-500"></i>
         <span>Görüntü (Fotoğraf)</span>
         <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event); closeMorePopupMenu();" class="hidden">
       </label>
-      <button onclick="addCanvasElement('text'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-text-t text-base text-indigo-400"></i>
+      <button onclick="addCanvasElement('text'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-2.5 transition">
+        <i class="ph ph-text-t text-base text-indigo-500"></i>
         <span>Metin Kutusu</span>
       </button>
-      <button onclick="openInteractiveMediaModal('video'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-video-camera text-base text-purple-400"></i>
+      <button onclick="openInteractiveMediaModal('video'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-2.5 transition">
+        <i class="ph ph-video-camera text-base text-purple-500"></i>
         <span>Video (YouTube / MP4)</span>
       </button>
-      <button onclick="openInteractiveMediaModal('audio'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-music-notes text-base text-emerald-400"></i>
+      <button onclick="openInteractiveMediaModal('audio'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-50 text-slate-700 text-xs font-medium flex items-center gap-2.5 transition">
+        <i class="ph ph-music-notes text-base text-emerald-500"></i>
         <span>Ses & Podcast Çaları</span>
-      </button>
-      <button onclick="switchLeftTab('elements'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-shapes text-base text-amber-400"></i>
-        <span>Şekiller & Çerçeveler</span>
-      </button>
-      <button onclick="openInteractiveMediaModal('button'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-cursor-click text-base text-rose-400"></i>
-        <span>Düğmeler (Bağlantı/Sayfa)</span>
-      </button>
-      <button onclick="openInteractiveMediaModal('hotspot'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-target text-base text-cyan-400"></i>
-        <span>Sıcak Noktalar (Hotspots)</span>
-      </button>
-      <button onclick="openInteractiveMediaModal('slideshow'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-slideshow text-base text-orange-400"></i>
-        <span>Slayt Gösterisi (Mini Galeri)</span>
-      </button>
-      <button onclick="openInteractiveMediaModal('table'); closeMorePopupMenu();" class="w-full px-3.5 py-2 hover:bg-slate-800 text-slate-200 text-xs font-medium flex items-center gap-2.5 transition">
-        <i class="ph ph-table text-base text-teal-400"></i>
-        <span>Widget'lar (Tablo & Anket)</span>
       </button>
     </div>
 
-    <!-- 2. SOL AÇILIR ÇEKMECE PANELİ (Sayfa / Şablon / Öğeler / Bağlantı / Yüklemeler) -->
-    <aside id="leftSidebar" class="w-64 bg-slate-900/95 border-r border-slate-800 flex flex-col z-20 shrink-0 transition-all duration-200 select-none">
+    <!-- 2. SOL AÇILIR ÇEKMECE PANELİ (FlipHTML5 V2 Birebir Beyaz Panel - 310px) -->
+    <aside id="leftSidebar" class="w-[310px] bg-white border-r border-slate-200 flex flex-col z-20 shrink-0 transition-all duration-200 select-none shadow-sm text-slate-800">
 
-      <!-- SEKME A: SAYFA MİNYATÜRLERİ & YÖNETİMİ (Görsel 1 & 10) -->
+      <!-- SEKME A: SAYFA MİNYATÜRLERİ & YÖNETİMİ (FlipHTML5 V2 Birebir) -->
       <div id="leftPanel_pages" class="flex-1 flex flex-col overflow-hidden">
-        <!-- Üst FlipHTML5 Standart "+ Yeni Sayfa Ekle", "+ İki Sayfa", "+ Tek Sayfa" Butonları -->
-        <div class="p-2 border-b border-slate-800 flex flex-col gap-1.5 bg-slate-950/50">
-          <div class="flex items-center gap-1">
-            <button onclick="toggleAddPageMenu(event)" class="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-between transition shadow" title="Yeni Sayfa Ekle (İki Sayfa / Tek Sayfa / PDF)">
-              <span class="flex items-center gap-1.5"><i class="ph ph-plus-circle text-base"></i> + Yeni Sayfa Ekle</span>
-              <i class="ph ph-caret-down text-xs"></i>
-            </button>
-            <button onclick="toggleLeftDrawerCollapse()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs transition" title="Sol Paneli Kapat">
-              <i class="ph ph-caret-double-left text-xs"></i>
-            </button>
-          </div>
-          <div class="flex items-center gap-1">
-            <button onclick="addSpreadPages()" class="flex-1 py-1 px-2 rounded-xl bg-slate-800 hover:bg-blue-600 text-white border border-slate-700 hover:border-blue-500 font-bold text-[10.5px] flex items-center justify-center gap-1 transition shadow" title="Çift Sayfa Ekle">
-              <i class="ph ph-book-open text-xs text-blue-400"></i>
-              <span>+ İki Sayfa</span>
-            </button>
-            <button onclick="addBlankPage()" class="flex-1 py-1 px-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white border border-slate-700 hover:border-emerald-500 font-bold text-[10.5px] flex items-center justify-center gap-1 transition shadow" title="Tek Sayfa Ekle">
-              <i class="ph ph-file-plus text-xs text-emerald-400"></i>
-              <span>+ Tek Sayfa</span>
-            </button>
-            <button onclick="openModal('addPageModal')" id="btnAddPageBtn" class="p-1 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 text-xs transition" title="Şablondan Ekle">
-              <i class="ph ph-layout text-sm"></i>
-            </button>
-          </div>
+        <!-- Üst FlipHTML5 "+ Yeni Boş Sayfa" Butonu -->
+        <div class="p-3 border-b border-slate-200 flex items-center gap-2 bg-slate-50/70">
+          <button onclick="addBlankPage()" class="flex-1 py-2 px-3 rounded-lg border border-slate-300 bg-white hover:border-blue-500 hover:text-blue-600 text-slate-800 font-semibold text-xs flex items-center justify-center gap-1.5 transition shadow-sm" title="Yeni Boş Sayfa Ekle">
+            <i class="ph ph-plus text-sm"></i>
+            <span>+ Yeni Boş Sayfa</span>
+          </button>
+          <button onclick="toggleAddPageMenu(event)" class="p-2 rounded-lg border border-slate-300 bg-white hover:bg-slate-100 text-slate-600 text-xs transition shadow-sm" title="Diğer Sayfa Ekleme Seçenekleri (İki Sayfa / PDF / Resim)">
+            <i class="ph ph-caret-down text-xs"></i>
+          </button>
         </div>
 
         <!-- Sayfa Minyatür Listesi (01, 02-03, 04-05...) -->
         <div id="pageListContainer" class="flex-1 overflow-y-auto p-3 space-y-3 select-none">
-          <!-- JS ile görsel minyatürler ve hover 4 ikon render edilir -->
+          <!-- JS ile görsel minyatürler render edilir -->
         </div>
 
-        <!-- Alt Sayfa Gezgini (`|< < 2-3/16 > >|` + Izgara Görünümü - Görsel 1 & 10) -->
-        <div class="px-3 py-2.5 border-t border-slate-800 bg-slate-950/90 flex items-center justify-between text-xs text-slate-300">
+        <!-- Alt Sayfa Gezgini (`|< < 1/8 > >|` + Izgara Görünümü) -->
+        <div class="px-3 py-2.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs text-slate-600">
           <div class="flex items-center gap-1">
-            <button onclick="goToPage(0)" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white" title="İlk Sayfa"><i class="ph ph-caret-line-left"></i></button>
-            <button onclick="prevPage()" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white" title="Önceki"><i class="ph ph-caret-left"></i></button>
+            <button onclick="goToPage(0)" class="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900" title="İlk Sayfa"><i class="ph ph-caret-line-left"></i></button>
+            <button onclick="prevPage()" class="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900" title="Önceki"><i class="ph ph-caret-left"></i></button>
           </div>
-          <span id="totalPagesBadge" class="text-[11px] font-bold font-mono text-slate-200">1/6</span>
+          <span id="totalPagesBadge" class="text-[11px] font-bold font-mono text-slate-800">1/6</span>
           <div class="flex items-center gap-1">
-            <button onclick="nextPage()" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white" title="Sonraki"><i class="ph ph-caret-right"></i></button>
-            <button onclick="goToLastPage()" class="p-1 rounded hover:bg-slate-800 text-slate-400 hover:text-white" title="Son Sayfa"><i class="ph ph-caret-line-right"></i></button>
-            <button onclick="openAllTemplatesModal()" class="p-1 rounded hover:bg-slate-800 text-amber-400" title="Tüm Şablonlar"><i class="ph ph-squares-four text-sm"></i></button>
+            <button onclick="nextPage()" class="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900" title="Sonraki"><i class="ph ph-caret-right"></i></button>
+            <button onclick="goToLastPage()" class="p-1 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-900" title="Son Sayfa"><i class="ph ph-caret-line-right"></i></button>
+            <button onclick="openAllTemplatesModal()" class="p-1 rounded hover:bg-slate-200 text-amber-600" title="Tüm Şablonlar"><i class="ph ph-squares-four text-sm"></i></button>
           </div>
         </div>
       </div>
 
       <!-- SEKME B: ŞABLONLAR & KONSEPTLER ÇEKMECESİ -->
-      <div id="leftPanel_templates" class="flex-1 flex flex-col overflow-hidden hidden">
-        <div class="p-2 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
-          <!-- Sekmeler: Boş İskeletler vs 40 Hazır vs Özel Şablonlarım -->
-          <div class="flex bg-slate-900 p-0.5 rounded-xl border border-slate-800 text-[10px] font-bold">
-            <button id="btnTplTab_wireframes" onclick="switchTemplatesDrawerTab('wireframes')" class="px-2 py-1 rounded-lg bg-amber-500 text-slate-950 shadow font-bold">
-              📐 Boş İskelet (5)
+      <div id="leftPanel_templates" class="flex-1 flex flex-col overflow-hidden hidden bg-white text-slate-800">
+        <div class="p-2.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <!-- Sekmeler: Boş İskeletler vs Hazır vs Özel -->
+          <div class="flex bg-slate-200/80 p-0.5 rounded-lg border border-slate-200 text-[10.5px] font-semibold">
+            <button id="btnTplTab_wireframes" onclick="switchTemplatesDrawerTab('wireframes')" class="px-2.5 py-1 rounded-md bg-white text-blue-600 shadow-2xs font-bold">
+              📐 Boş İskelet
             </button>
-            <button id="btnTplTab_presets" onclick="switchTemplatesDrawerTab('presets')" class="px-2 py-1 rounded-lg text-slate-400 hover:text-white font-bold">
+            <button id="btnTplTab_presets" onclick="switchTemplatesDrawerTab('presets')" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium">
               🏛️ Hazır (40)
             </button>
-            <button id="btnTplTab_custom" onclick="switchTemplatesDrawerTab('custom')" class="px-2 py-1 rounded-lg text-slate-400 hover:text-white font-bold">
+            <button id="btnTplTab_custom" onclick="switchTemplatesDrawerTab('custom')" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 font-medium">
               ⭐ Özel
             </button>
           </div>
-          <button onclick="toggleLeftDrawerCollapse()" class="p-1 rounded-lg bg-slate-800 text-slate-400 hover:text-white" title="Sol Paneli Kapat">
+          <button onclick="toggleLeftDrawerCollapse()" class="p-1 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition" title="Sol Paneli Kapat">
             <i class="ph ph-x text-xs"></i>
           </button>
         </div>
         <div id="drawerWireframesList" class="flex-1 overflow-y-auto p-3 space-y-2.5">
-          <!-- JS ile 5 boş iskelet doldurulur -->
+          <!-- JS ile doldurulur -->
         </div>
         <div id="drawerTemplatesList" class="flex-1 overflow-y-auto p-3 space-y-2.5 hidden">
           <!-- JS ile doldurulur -->
         </div>
         <div id="drawerCustomTemplatesList" class="flex-1 overflow-y-auto p-3 space-y-2.5 hidden">
-          <!-- JS ile kaydedilen özel şablonlar render edilir -->
+          <!-- JS ile doldurulur -->
         </div>
       </div>
 
       <!-- SEKME C: ELEMENTLER / ÖĞELER KÜTÜPHANESİ (Görsel 9 Birebir) -->
-      <div id="leftPanel_elements" class="flex-1 flex flex-col overflow-hidden hidden">
-        <div class="p-3 border-b border-slate-800 space-y-2.5">
+      <div id="leftPanel_elements" class="flex-1 flex flex-col overflow-hidden hidden bg-white text-slate-800">
+        <div class="p-3 border-b border-slate-200 space-y-2.5 bg-slate-50/60">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-bold text-white">Elementler</span>
-            <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-white" title="Sol Paneli Kapat"><i class="ph ph-x text-sm"></i></button>
+            <span class="text-xs font-bold text-slate-800">Öğeler (Elementler)</span>
+            <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-slate-700 transition" title="Sol Paneli Kapat"><i class="ph ph-x text-sm"></i></button>
           </div>
           <div class="relative">
-            <input type="text" id="elementSearchInput" oninput="filterElementsDrawer(this.value)" placeholder="Element ara (Tablo, Buton, Şekil...)" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3 pr-8 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500">
+            <input type="text" id="elementSearchInput" oninput="filterElementsDrawer(this.value)" placeholder="Element ara (Tablo, Buton, Şekil...)" class="w-full bg-white border border-slate-300 rounded-lg pl-3 pr-8 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 shadow-2xs">
             <i class="ph ph-magnifying-glass absolute right-2.5 top-2 text-slate-400 text-sm"></i>
           </div>
-          <div class="flex border-b border-slate-800 text-[11px] font-semibold">
-            <button class="flex-1 pb-1.5 border-b-2 border-blue-500 text-blue-400">Çevrimiçi Kütüphane</button>
-            <button onclick="showToast('Favori öğeleriniz burada listelenir')" class="flex-1 pb-1.5 text-slate-400 hover:text-white">Favoriler</button>
+          <div class="flex border-b border-slate-200 text-[11px] font-semibold">
+            <button class="flex-1 pb-1.5 border-b-2 border-blue-600 text-blue-600 font-bold">Çevrimiçi Kütüphane</button>
+            <button onclick="showToast('Favori öğeleriniz burada listelenir')" class="flex-1 pb-1.5 text-slate-500 hover:text-slate-800">Favoriler</button>
           </div>
         </div>
 
         <div id="elementsLibraryContainer" class="flex-1 overflow-y-auto p-3 space-y-3.5">
           <!-- 0A. Quark / InDesign Serbest Kutu Modeli (Boş Resim & Metin Çerçeveleri) -->
-          <div class="elem-group p-3 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950/40 border border-amber-500/30 shadow-md">
+          <div class="elem-group p-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs mb-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs font-bold text-amber-300 flex items-center gap-1.5">
                 <i class="ph ph-bounding-box text-sm"></i> Kutu Modeli (Serbest Çizim)
@@ -431,26 +345,26 @@
             </div>
             <p class="text-[10px] text-slate-400 mb-2 leading-tight">Boş çerçeveyi sayfaya koyun; fotoğrafı doğrudan üzerine bırakın.</p>
             <div class="grid grid-cols-2 gap-1.5">
-              <button onclick="addQuarkFrame('image')" class="py-2 px-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-sky-300 border border-sky-500/40 text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow" title="İçine fotoğraf sürüklenebilir boş resim çerçevesi">
+              <button onclick="addQuarkFrame('image')" class="py-2 px-2 rounded-xl bg-slate-50 hover:bg-blue-50/80 text-blue-700 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow" title="İçine fotoğraf sürüklenebilir boş resim çerçevesi">
                 <i class="ph ph-image-square text-base"></i><span>+ Resim Kutusu</span>
               </button>
-              <button onclick="addQuarkFrame('text')" class="py-2 px-2 rounded-xl bg-slate-900 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow" title="Serbest metin kutusu">
+              <button onclick="addQuarkFrame('text')" class="py-2 px-2 rounded-xl bg-slate-50 hover:bg-amber-50/80 text-amber-700 border border-slate-200 text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow" title="Serbest metin kutusu">
                 <i class="ph ph-text-t text-base"></i><span>+ Metin Kutusu</span>
               </button>
-              <button onclick="addQuarkRunaroundLayout()" class="py-2 px-2 rounded-xl bg-slate-900 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-[10.5px] font-bold flex items-center justify-center gap-1 transition shadow" title="Dairesel portre ve etrafından akan makale metni">
+              <button onclick="addQuarkRunaroundLayout()" class="py-2 px-2 rounded-xl bg-slate-50 hover:bg-indigo-50/80 text-indigo-700 border border-slate-200 text-[10.5px] font-bold flex items-center justify-center gap-1 transition shadow" title="Dairesel portre ve etrafından akan makale metni">
                 <i class="ph ph-waves text-base"></i><span>🌊 Metin Akıt Düzeni</span>
               </button>
-              <button onclick="toggleDropCapForActiveText()" class="py-2 px-2 rounded-xl bg-slate-900 hover:bg-amber-600/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold flex items-center justify-center gap-1 transition shadow" title="Paragrafın ilk harfini büyük inisiyal yapar">
+              <button onclick="toggleDropCapForActiveText()" class="py-2 px-2 rounded-xl bg-slate-50 hover:bg-amber-50/80 text-amber-700 border border-slate-200 text-[10.5px] font-bold flex items-center justify-center gap-1 transition shadow" title="Paragrafın ilk harfini büyük inisiyal yapar">
                 <i class="ph ph-text-aa text-base"></i><span>🔠 Drop Cap Baş Harf</span>
               </button>
-              <button onclick="addQuarkFrame('shape')" class="col-span-2 py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 text-[10.5px] font-semibold flex items-center justify-center gap-1.5 transition">
+              <button onclick="addQuarkFrame('shape')" class="col-span-2 py-1.5 px-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-[10.5px] font-semibold flex items-center justify-center gap-1.5 transition">
                 <i class="ph ph-line-segments text-sm text-amber-400"></i><span>+ Edebi Ayraç Çizgisi</span>
               </button>
             </div>
           </div>
 
           <!-- 0B. Canva Izgaraları & Çerçeveler (7 Hazır Model & Otomatik Fit) -->
-          <div class="elem-group p-3 rounded-2xl bg-gradient-to-br from-slate-950 via-slate-900 to-sky-950/40 border border-sky-500/30 shadow-md">
+          <div class="elem-group p-3.5 rounded-xl bg-white border border-slate-200 text-slate-800 shadow-2xs mb-3">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs font-bold text-sky-300 flex items-center gap-1.5">
                 <i class="ph ph-grid-four text-sm"></i> Canva Izgaraları & Çerçeveler
@@ -459,21 +373,21 @@
             </div>
             <p class="text-[10px] text-slate-400 mb-2.5 leading-tight">1 tıkla sayfaya ızgara ekleyin; fotoğrafı sürükleyip doğrudan içine bırakın.</p>
             <div class="grid grid-cols-2 gap-1.5 text-[10.5px]">
-              <button onclick="addCanvaGrid('split_2_col')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
+              <button onclick="addCanvaGrid('split_2_col')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
                 <div class="flex gap-1 w-12 h-8">
                   <div class="w-1/2 h-full bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                   <div class="w-1/2 h-full bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                 </div>
                 <span class="font-semibold text-[10px]">2'li Dikey</span>
               </button>
-              <button onclick="addCanvaGrid('stack_2_row')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
+              <button onclick="addCanvaGrid('stack_2_row')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
                 <div class="flex flex-col gap-1 w-12 h-8">
                   <div class="w-full h-1/2 bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                   <div class="w-full h-1/2 bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                 </div>
                 <span class="font-semibold text-[10px]">2'li Yatay</span>
               </button>
-              <button onclick="addCanvaGrid('t_grid_3')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
+              <button onclick="addCanvaGrid('t_grid_3')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
                 <div class="flex gap-1 w-12 h-8">
                   <div class="w-1/2 h-full bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                   <div class="w-1/2 h-full flex flex-col gap-1">
@@ -483,7 +397,7 @@
                 </div>
                 <span class="font-semibold text-[10px]">3'lü T-Izgara</span>
               </button>
-              <button onclick="addCanvaGrid('cols_3')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
+              <button onclick="addCanvaGrid('cols_3')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
                 <div class="flex gap-1 w-12 h-8">
                   <div class="w-1/3 h-full bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                   <div class="w-1/3 h-full bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
@@ -491,7 +405,7 @@
                 </div>
                 <span class="font-semibold text-[10px]">3'lü Sütun</span>
               </button>
-              <button onclick="addCanvaGrid('matrix_4')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
+              <button onclick="addCanvaGrid('matrix_4')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
                 <div class="grid grid-cols-2 gap-1 w-12 h-8">
                   <div class="bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
                   <div class="bg-sky-500/30 border border-sky-400/50 rounded-sm"></div>
@@ -500,13 +414,13 @@
                 </div>
                 <span class="font-semibold text-[10px]">4'lü Kolaj</span>
               </button>
-              <button onclick="addCanvaGrid('frame_circle')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
+              <button onclick="addCanvaGrid('frame_circle')" class="p-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex flex-col items-center gap-1 transition group">
                 <div class="w-8 h-8 rounded-full bg-sky-500/30 border-2 border-sky-400/50 flex items-center justify-center">
                   <i class="ph ph-user text-xs text-sky-300"></i>
                 </div>
                 <span class="font-semibold text-[10px]">Daire Portre</span>
               </button>
-              <button onclick="addCanvaGrid('frame_arch')" class="col-span-2 py-2 px-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-200 border border-slate-700/80 hover:border-sky-500 flex items-center justify-center gap-2 transition group">
+              <button onclick="addCanvaGrid('frame_arch')" class="col-span-2 py-2 px-2 rounded-xl bg-slate-900 hover:bg-sky-600/30 text-slate-800 border border-slate-700/80 hover:border-sky-500 flex items-center justify-center gap-2 transition group">
                 <div class="w-5 h-6 rounded-t-full bg-sky-500/30 border border-sky-400/50"></div>
                 <span class="font-semibold text-[10px]">🏛️ Kemerli Mimari Çerçeve (Arch Frame)</span>
               </button>
@@ -545,21 +459,21 @@
           <!-- 1. Widget'lar (Görsel 9: AI Asistanı, Harita, Tablo) -->
           <div class="elem-group" data-keywords="widget ai asistan harita tablo">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-200">Widget'lar</span>
+              <span class="text-xs font-bold text-slate-800">Widget'lar</span>
               <span class="text-[10px] text-slate-400">Tıkla & Ekle</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
-              <button onclick="openAiHelperModal()" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center gap-1.5 transition group">
+              <button onclick="openAiHelperModal()" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center gap-1.5 transition group">
                 <i class="ph ph-sparkle text-2xl text-indigo-400 group-hover:scale-110 transition"></i>
-                <span class="text-[10px] font-semibold text-slate-200">AI Asistanı</span>
+                <span class="text-[10px] font-semibold text-slate-800">AI Asistanı</span>
               </button>
-              <button onclick="addCanvasElement('map')" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center gap-1.5 transition group">
+              <button onclick="addCanvasElement('map')" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center gap-1.5 transition group">
                 <i class="ph ph-map-pin-line text-2xl text-emerald-400 group-hover:scale-110 transition"></i>
-                <span class="text-[10px] font-semibold text-slate-200">Harita</span>
+                <span class="text-[10px] font-semibold text-slate-800">Harita</span>
               </button>
-              <button onclick="addCanvasElement('table')" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center gap-1.5 transition group">
+              <button onclick="addCanvasElement('table')" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center gap-1.5 transition group">
                 <i class="ph ph-table text-2xl text-amber-400 group-hover:scale-110 transition"></i>
-                <span class="text-[10px] font-semibold text-slate-200">Tablo</span>
+                <span class="text-[10px] font-semibold text-slate-800">Tablo</span>
               </button>
             </div>
           </div>
@@ -567,33 +481,33 @@
           <!-- 2. Şekiller (Görsel 9: Kare, Daire, Üçgen, Çerçeve, Çizgi, Yıldız) -->
           <div class="elem-group" data-keywords="şekil kare dikdörtgen daire üçgen yıldız çizgi çerçeve">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-200">Şekiller & Çerçeveler</span>
+              <span class="text-xs font-bold text-slate-800">Şekiller & Çerçeveler</span>
               <span class="text-[10px] text-blue-400">8 Şekil</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
-              <button onclick="addCanvasElement('shape', { shapeType: 'rect', bgColor: '#881337' })" class="p-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center justify-center transition">
+              <button onclick="addCanvasElement('shape', { shapeType: 'rect', bgColor: '#881337' })" class="p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center justify-center transition">
                 <div class="w-9 h-9 bg-rose-900 rounded-sm shadow"></div>
-                <span class="text-[9.5px] text-slate-300 mt-1">Kare/Kutu</span>
+                <span class="text-[9.5px] text-slate-700 mt-1">Kare/Kutu</span>
               </button>
-              <button onclick="addCanvasElement('shape', { shapeType: 'circle', bgColor: '#be123c' })" class="p-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center justify-center transition">
+              <button onclick="addCanvasElement('shape', { shapeType: 'circle', bgColor: '#be123c' })" class="p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center justify-center transition">
                 <div class="w-9 h-9 bg-rose-600/80 rounded-full shadow"></div>
-                <span class="text-[9.5px] text-slate-300 mt-1">Daire</span>
+                <span class="text-[9.5px] text-slate-700 mt-1">Daire</span>
               </button>
-              <button onclick="addCanvasElement('shape', { shapeType: 'triangle', bgColor: '#f43f5e' })" class="p-3 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center justify-center transition">
+              <button onclick="addCanvasElement('shape', { shapeType: 'triangle', bgColor: '#f43f5e' })" class="p-3 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center justify-center transition">
                 <div class="w-9 h-9 bg-rose-400" style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%);"></div>
-                <span class="text-[9.5px] text-slate-300 mt-1">Üçgen</span>
+                <span class="text-[9.5px] text-slate-700 mt-1">Üçgen</span>
               </button>
-              <button onclick="addCanvasElement('card')" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-amber-500 flex flex-col items-center justify-center transition">
+              <button onclick="addCanvasElement('card')" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-amber-500 text-slate-800 shadow-2xs flex flex-col items-center justify-center transition">
                 <div class="w-9 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-indigo-900 border border-white/30"></div>
                 <span class="text-[9.5px] text-amber-300 font-semibold mt-1">Degrade Kart</span>
               </button>
-              <button onclick="addCanvasElement('qbox')" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center justify-center transition">
+              <button onclick="addCanvasElement('qbox')" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center justify-center transition">
                 <div class="w-9 h-7 rounded-lg bg-slate-100 border-2 border-indigo-500 flex items-center justify-center text-[8px] font-bold text-indigo-800">S1</div>
-                <span class="text-[9.5px] text-slate-300 mt-1">Soru Çerçevesi</span>
+                <span class="text-[9.5px] text-slate-700 mt-1">Soru Çerçevesi</span>
               </button>
-              <button onclick="addCanvasElement('shape', { shapeType: 'line', bgColor: '#0f172a', height: 2, width: 60 })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex flex-col items-center justify-center transition">
+              <button onclick="addCanvasElement('shape', { shapeType: 'line', bgColor: '#0f172a', height: 2, width: 60 })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex flex-col items-center justify-center transition">
                 <div class="w-9 h-1 bg-slate-200 rounded-full my-3"></div>
-                <span class="text-[9.5px] text-slate-300 mt-1">Ayırıcı Çizgi</span>
+                <span class="text-[9.5px] text-slate-700 mt-1">Ayırıcı Çizgi</span>
               </button>
             </div>
           </div>
@@ -601,20 +515,20 @@
           <!-- 3. Düğmeler (Görsel 9: Ayarlar, Kaydol, Devamını Oku, İzle) -->
           <div class="elem-group" data-keywords="düğme buton link incele oku">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-200">Düğmeler</span>
+              <span class="text-xs font-bold text-slate-800">Düğmeler</span>
               <span class="text-[10px] text-slate-400">Etkileşimli</span>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <button onclick="addCanvasElement('button', { label: 'VIEW MORE', bgColor: '#7f1d1d', color: '#ffffff' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex items-center justify-center">
+              <button onclick="addCanvasElement('button', { label: 'VIEW MORE', bgColor: '#7f1d1d', color: '#ffffff' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex items-center justify-center">
                 <span class="px-3 py-1 rounded-full bg-rose-900 text-white text-[10px] font-bold flex items-center gap-1"><i class="ph ph-gear"></i> İncele</span>
               </button>
-              <button onclick="addCanvasElement('button', { label: 'Devamını Oku', bgColor: '#2563eb', color: '#ffffff' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex items-center justify-center">
+              <button onclick="addCanvasElement('button', { label: 'Devamını Oku', bgColor: '#2563eb', color: '#ffffff' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex items-center justify-center">
                 <span class="px-3 py-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center gap-1"><i class="ph ph-arrow-right"></i> Oku</span>
               </button>
-              <button onclick="addCanvasElement('button', { label: 'Videoyu İzle', bgColor: '#059669', color: '#ffffff' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex items-center justify-center">
+              <button onclick="addCanvasElement('button', { label: 'Videoyu İzle', bgColor: '#059669', color: '#ffffff' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex items-center justify-center">
                 <span class="px-3 py-1 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center gap-1"><i class="ph ph-play-fill"></i> İzle</span>
               </button>
-              <button onclick="addCanvasElement('button', { label: 'Kaydol / Katıl', bgColor: '#d97706', color: '#ffffff' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500 flex items-center justify-center">
+              <button onclick="addCanvasElement('button', { label: 'Kaydol / Katıl', bgColor: '#d97706', color: '#ffffff' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-500 text-slate-800 shadow-2xs flex items-center justify-center">
                 <span class="px-3 py-1 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center gap-1"><i class="ph ph-user-plus"></i> Katıl</span>
               </button>
             </div>
@@ -623,20 +537,20 @@
           <!-- 4. Sıcak Noktalar (Hotspots - Görsel 1 & 9) -->
           <div class="elem-group" data-keywords="sıcak nokta hotspot işaretçi">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-slate-200">Sıcak Noktalar (Hotspot)</span>
+              <span class="text-xs font-bold text-slate-800">Sıcak Noktalar (Hotspot)</span>
             </div>
             <div class="grid grid-cols-3 gap-2">
-              <button onclick="addCanvasElement('hotspot', { bgColor: '#e11d48', popupTitle: 'Detay Notu', popupText: 'Bu nokta hakkında detaylı açıklama metni.' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 flex flex-col items-center gap-1.5">
+              <button onclick="addCanvasElement('hotspot', { bgColor: '#e11d48', popupTitle: 'Detay Notu', popupText: 'Bu nokta hakkında detaylı açıklama metni.' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 shadow-2xs flex flex-col items-center gap-1.5">
                 <div class="w-6 h-6 rounded-full bg-rose-500 border-2 border-white hotspot-pulse"></div>
-                <span class="text-[9.5px] text-slate-300">Kırmızı Nokta</span>
+                <span class="text-[9.5px] text-slate-700">Kırmızı Nokta</span>
               </button>
-              <button onclick="addCanvasElement('hotspot', { bgColor: '#2563eb', popupTitle: 'Bilgi Kartı', popupText: 'Tıklandığında açılan bilgi kutusu.' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 flex flex-col items-center gap-1.5">
+              <button onclick="addCanvasElement('hotspot', { bgColor: '#2563eb', popupTitle: 'Bilgi Kartı', popupText: 'Tıklandığında açılan bilgi kutusu.' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 shadow-2xs flex flex-col items-center gap-1.5">
                 <div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white hotspot-pulse flex items-center justify-center text-[10px] text-white font-bold">i</div>
-                <span class="text-[9.5px] text-slate-300">Bilgi Noktası</span>
+                <span class="text-[9.5px] text-slate-700">Bilgi Noktası</span>
               </button>
-              <button onclick="addCanvasElement('hotspot', { bgColor: '#10b981', popupTitle: 'Yakından Gör', popupText: 'Özel detay açıklaması.' })" class="p-2.5 rounded-xl bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 flex flex-col items-center gap-1.5">
+              <button onclick="addCanvasElement('hotspot', { bgColor: '#10b981', popupTitle: 'Yakından Gör', popupText: 'Özel detay açıklaması.' })" class="p-2.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 shadow-2xs flex flex-col items-center gap-1.5">
                 <div class="w-6 h-6 rounded-full bg-emerald-500 border-2 border-white hotspot-pulse flex items-center justify-center text-[10px] text-white font-bold">+</div>
-                <span class="text-[9.5px] text-slate-300">Artı Nokta</span>
+                <span class="text-[9.5px] text-slate-700">Artı Nokta</span>
               </button>
             </div>
           </div>
@@ -644,116 +558,137 @@
       </div>
 
       <!-- SEKME D: BAĞLANTI & ETKİLEŞİM HIZLI EKLEME -->
-      <div id="leftPanel_links" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-3">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="ph ph-link text-blue-400"></i> Bağlantı & Etkileşim</span>
+      <div id="leftPanel_links" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-3 bg-white text-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5"><i class="ph ph-link text-blue-600"></i> Bağlantı (Hotspot)</span>
+          <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-slate-700"><i class="ph ph-x text-sm"></i></button>
         </div>
-        <p class="text-[11px] text-slate-400 leading-relaxed">Sayfaya tıklanabilir bağlantı alanı, sayfa yönlendirme butonu veya açılır bilgi noktası ekleyin.</p>
-        <button onclick="addCanvasElement('button', { label: 'Web Sitesini Aç', actionType: 'link', actionValue: 'https://meb.gov.tr' })" class="w-full p-3 rounded-xl bg-slate-800 hover:bg-blue-600/30 border border-slate-700 hover:border-blue-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-globe text-lg text-blue-400"></i>
+        <p class="text-[11px] text-slate-500 leading-relaxed">Sayfaya tıklanabilir bağlantı alanı, sayfa yönlendirme butonu veya açılır bilgi noktası ekleyin.</p>
+        <button onclick="addCanvasElement('button', { label: 'Web Sitesini Aç', actionType: 'link', actionValue: 'https://meb.gov.tr' })" class="w-full p-3 rounded-xl bg-white hover:bg-blue-50/60 border border-slate-200 hover:border-blue-500 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-globe text-lg"></i>
+          </div>
           <div>
-            <div>Web Bağlantısı Butonu</div>
-            <div class="text-[10px] text-slate-400">Tıklandığında URL açar</div>
+            <div class="text-slate-800 font-bold">Web Bağlantısı Butonu</div>
+            <div class="text-[10px] text-slate-500">Tıklandığında URL açar</div>
           </div>
         </button>
-        <button onclick="addCanvasElement('button', { label: 'Sayfaya Git →', actionType: 'gotoPage', actionValue: '2' })" class="w-full p-3 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-book-open text-lg text-indigo-400"></i>
+        <button onclick="addCanvasElement('button', { label: 'Sayfaya Git →', actionType: 'gotoPage', actionValue: '2' })" class="w-full p-3 rounded-xl bg-white hover:bg-indigo-50/60 border border-slate-200 hover:border-indigo-500 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-book-open text-lg"></i>
+          </div>
           <div>
-            <div>Sayfaya Git Butonu</div>
-            <div class="text-[10px] text-slate-400">Dergi içinde başka sayfaya zıplar</div>
+            <div class="text-slate-800 font-bold">Sayfaya Git Butonu</div>
+            <div class="text-[10px] text-slate-500">Dergi içinde başka sayfaya zıplar</div>
           </div>
         </button>
-        <button onclick="addCanvasElement('hotspot', { bgColor: '#e11d48', actionType: 'popup', popupTitle: 'Detaylı Bilgi', popupText: 'Açılır pencere içeriğini sağdaki Eylemler sekmesinden düzenleyebilirsiniz.' })" class="w-full p-3 rounded-xl bg-slate-800 hover:bg-rose-600/30 border border-slate-700 hover:border-rose-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-app-window text-lg text-rose-400"></i>
+        <button onclick="addCanvasElement('hotspot', { bgColor: '#e11d48', actionType: 'popup', popupTitle: 'Detaylı Bilgi', popupText: 'Açılır pencere içeriğini sağdaki Eylemler sekmesinden düzenleyebilirsiniz.' })" class="w-full p-3 rounded-xl bg-white hover:bg-rose-50/60 border border-slate-200 hover:border-rose-500 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-app-window text-lg"></i>
+          </div>
           <div>
-            <div>Açılır Pencere (Popup) Noktası</div>
-            <div class="text-[10px] text-slate-400">Tıklanınca bilgi kartı açar</div>
+            <div class="text-slate-800 font-bold">Açılır Pencere (Popup) Noktası</div>
+            <div class="text-[10px] text-slate-500">Tıklanınca bilgi kartı açar</div>
           </div>
         </button>
       </div>
 
       <!-- SEKME E: YÜKLEMELER (GÖRÜNTÜ, VİDEO, SES, SLAYT) -->
-      <div id="leftPanel_uploads" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-3">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="ph ph-cloud-arrow-up text-emerald-400"></i> Medya & Yüklemeler</span>
+      <div id="leftPanel_uploads" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-3 bg-white text-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5"><i class="ph ph-cloud-arrow-up text-blue-600"></i> Medya & Yüklemeler</span>
+          <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-slate-700"><i class="ph ph-x text-sm"></i></button>
         </div>
-        <label class="w-full py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center justify-center gap-2 cursor-pointer shadow transition">
-          <i class="ph ph-image text-base"></i>
-          <span>Bilgisayardan Fotoğraf Yükle</span>
-          <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event)" class="hidden">
+        <!-- Sürükle Bırak Yükleme Alanı (FlipHTML5 Birebir) -->
+        <label class="w-full p-4 rounded-xl border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/40 hover:bg-blue-50/70 text-slate-700 font-semibold text-xs flex flex-col items-center justify-center gap-2 cursor-pointer transition text-center shadow-2xs">
+          <div class="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">
+            <i class="ph ph-cloud-arrow-up"></i>
+          </div>
+          <div>
+            <span class="text-blue-600 font-bold">Dosyaları Yükle</span> veya buraya sürükleyin
+            <div class="text-[10px] text-slate-500 font-normal mt-0.5">JPG, PNG, WebP, SVG, MP4, MP3</div>
+          </div>
+          <input type="file" accept="image/*,video/mp4,audio/mp3" onchange="handleCanvasImageUpload(event)" class="hidden">
         </label>
-        <label class="w-full py-2.5 px-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer transition">
-          <i class="ph ph-video-camera text-base"></i>
-          <span>MP4 Video Yükle</span>
-          <input type="file" accept="video/mp4,video/*" onchange="handleCanvasVideoUpload(event)" class="hidden">
-        </label>
-        <button onclick="addCanvasElement('audio')" class="w-full py-2 px-3 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/30 font-semibold text-xs flex items-center justify-center gap-2 transition">
-          <i class="ph ph-music-notes text-base"></i>
-          <span>Ses Oynatıcı Ekle</span>
-        </button>
-        <button onclick="addCanvasElement('slideshow')" class="w-full py-2 px-3 rounded-xl bg-amber-600/20 hover:bg-amber-600/35 text-amber-300 border border-amber-500/30 font-semibold text-xs flex items-center justify-center gap-2 transition">
-          <i class="ph ph-slideshow text-base"></i>
-          <span>Slayt Gösterisi (Galeri) Ekle</span>
-        </button>
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <label class="py-2 px-2.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition shadow-2xs">
+            <i class="ph ph-image text-blue-600"></i> Fotoğraf
+            <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event)" class="hidden">
+          </label>
+          <label class="py-2 px-2.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition shadow-2xs">
+            <i class="ph ph-video-camera text-purple-600"></i> Video
+            <input type="file" accept="video/mp4" onchange="handleCanvasVideoUpload(event)" class="hidden">
+          </label>
+        </div>
       </div>
 
       <!-- SEKME F: DAHA FAZLA (MULTİMEDYA & WİDGETLAR - FlipHTML5 V2 Birebir) -->
-      <div id="leftPanel_more" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-3 select-none">
-        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
-          <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="ph ph-dots-three-circle text-purple-400"></i> Daha Fazla Araç</span>
-          <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-white" title="Sol Paneli Kapat"><i class="ph ph-x text-sm"></i></button>
+      <div id="leftPanel_more" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-2.5 select-none bg-white text-slate-800">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5"><i class="ph ph-dots-three-circle text-blue-600"></i> Daha Fazla Araç</span>
+          <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-slate-700" title="Sol Paneli Kapat"><i class="ph ph-x text-sm"></i></button>
         </div>
-        <p class="text-[11px] text-slate-400 leading-relaxed">Derginize YouTube videosu, arka plan müziği, canlı QR kod veya harici widget ekleyin.</p>
+        <p class="text-[11px] text-slate-500 leading-relaxed">Derginize YouTube videosu, arka plan müziği, canlı QR kod veya harici widget ekleyin.</p>
 
         <!-- Video Ekle -->
-        <button onclick="openInteractiveMediaModal('video')" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-purple-600/30 border border-slate-700/80 hover:border-purple-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-video-camera text-xl text-purple-400"></i>
+        <button onclick="openInteractiveMediaModal('video')" class="w-full p-2.5 rounded-xl bg-white hover:bg-purple-50/60 border border-slate-200 hover:border-purple-400 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-video-camera text-lg"></i>
+          </div>
           <div>
-            <div class="text-white font-bold">Video Ekle</div>
-            <div class="text-[10px] text-slate-400">YouTube, Vimeo veya yerel MP4</div>
+            <div class="text-slate-800 font-bold">Video Ekle</div>
+            <div class="text-[10px] text-slate-500">YouTube, Vimeo veya yerel MP4</div>
           </div>
         </button>
 
         <!-- Ses Çalar -->
-        <button onclick="openInteractiveMediaModal('audio')" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-emerald-600/30 border border-slate-700/80 hover:border-emerald-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-music-notes text-xl text-emerald-400"></i>
+        <button onclick="openInteractiveMediaModal('audio')" class="w-full p-2.5 rounded-xl bg-white hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-400 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-music-notes text-lg"></i>
+          </div>
           <div>
-            <div class="text-white font-bold">Ses & Müzik Çalar</div>
-            <div class="text-[10px] text-slate-400">Butonla çalan ses veya fon müziği</div>
+            <div class="text-slate-800 font-bold">Ses & Müzik Çalar</div>
+            <div class="text-[10px] text-slate-500">Butonla çalan ses veya fon müziği</div>
           </div>
         </button>
 
         <!-- QR Kod Üretici -->
-        <button onclick="addCanvasElement('qr', { qrUrl: 'https://dergimiz.com.tr' })" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-blue-600/30 border border-slate-700/80 hover:border-blue-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-qr-code text-xl text-blue-400"></i>
+        <button onclick="addCanvasElement('qr', { qrUrl: 'https://dergimiz.com.tr' })" class="w-full p-2.5 rounded-xl bg-white hover:bg-blue-50/60 border border-slate-200 hover:border-blue-400 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-qr-code text-lg"></i>
+          </div>
           <div>
-            <div class="text-white font-bold">QR Kod Oluşturucu</div>
-            <div class="text-[10px] text-slate-400">Canlı linki QR koda dönüştür</div>
+            <div class="text-slate-800 font-bold">QR Kod Oluşturucu</div>
+            <div class="text-[10px] text-slate-500">Canlı linki QR koda dönüştür</div>
           </div>
         </button>
 
         <!-- HTML / İframe -->
-        <button onclick="openInteractiveMediaModal('html')" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-amber-600/30 border border-slate-700/80 hover:border-amber-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-code text-xl text-amber-400"></i>
+        <button onclick="openInteractiveMediaModal('html')" class="w-full p-2.5 rounded-xl bg-white hover:bg-amber-50/60 border border-slate-200 hover:border-amber-400 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-code text-lg"></i>
+          </div>
           <div>
-            <div class="text-white font-bold">HTML / İframe Gömme</div>
-            <div class="text-[10px] text-slate-400">Harici web kodu veya widget</div>
+            <div class="text-slate-800 font-bold">HTML / İframe Gömme</div>
+            <div class="text-[10px] text-slate-500">Harici web kodu veya widget</div>
           </div>
         </button>
 
         <!-- Geri Bildirim & Form Alanı -->
-        <button onclick="openStudentSubmissionsModal()" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-rose-600/30 border border-slate-700/80 hover:border-rose-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
-          <i class="ph ph-chat-text text-xl text-rose-400"></i>
+        <button onclick="openStudentSubmissionsModal()" class="w-full p-2.5 rounded-xl bg-white hover:bg-rose-50/60 border border-slate-200 hover:border-rose-400 text-left text-xs font-semibold text-slate-800 flex items-center gap-2.5 transition shadow-2xs">
+          <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+            <i class="ph ph-chat-text text-lg"></i>
+          </div>
           <div>
-            <div class="text-white font-bold">Geri Bildirim / Form</div>
-            <div class="text-[10px] text-slate-400">Öğrenci katkı ve anket havuzu</div>
+            <div class="text-slate-800 font-bold">Geri Bildirim / Form</div>
+            <div class="text-[10px] text-slate-500">Öğrenci katkı ve anket havuzu</div>
           </div>
         </button>
       </div>
     </aside>
 
     <!-- 3. ORTA ALAN: DERGİ TUVALİ (TAMAMEN TEMİZ ÇALIŞMA EKRANI — ÜSTTE HİÇBİR PANEL YOK) -->
-    <main id="mainCanvasWorkspace" class="flex-1 bg-[#e5e7eb] text-slate-900 flex flex-col items-center justify-center p-2 md:p-4 overflow-auto relative">
+    <main id="mainCanvasWorkspace" class="flex-1 bg-[#f0f2f5] text-slate-900 flex flex-col items-center justify-center p-2 md:p-4 overflow-auto relative">
 
       <!-- FLIPHTML5 BİREBİR YÜZEN HIZLI BİÇİMLENDİRME ÇUBUĞU (FLOATING CONTEXT BAR) -->
       <div id="floatingContextBar" class="fixed hidden z-50 bg-white/95 text-slate-800 backdrop-blur-md border border-slate-200/90 shadow-2xl rounded-2xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-100 select-none pointer-events-auto">
@@ -769,7 +704,7 @@
       <!-- DERGİ GÖRÜNÜM ALANI (ORTA TUVAL & YAN GEÇİŞ OKLARI) -->
       <div class="my-auto flex items-center justify-center w-full py-1 relative">
         <!-- Sol Geçiş Oku -->
-        <button onclick="prevPage()" id="btnPrev" class="w-9 h-20 rounded-xl bg-slate-800/40 hover:bg-slate-900/80 text-white shadow-lg transition mr-2 md:mr-4 disabled:opacity-20 disabled:pointer-events-none flex flex-col items-center justify-center gap-1 backdrop-blur-sm" title="Önceki Sayfa">
+        <button onclick="prevPage()" id="btnPrev" class="w-8 h-16 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-slate-950 border border-slate-200 shadow-md transition mr-2 md:mr-4 disabled:opacity-20 disabled:pointer-events-none flex flex-col items-center justify-center gap-1" title="Önceki Sayfa">
           <i class="ph ph-caret-left text-xl"></i>
         </button>
 
@@ -781,22 +716,22 @@
         </div>
 
         <!-- Sağ Geçiş Oku -->
-        <button onclick="nextPage()" id="btnNext" class="w-9 h-20 rounded-xl bg-slate-800/40 hover:bg-slate-900/80 text-white shadow-lg transition ml-2 md:ml-4 disabled:opacity-20 disabled:pointer-events-none flex flex-col items-center justify-center gap-1 backdrop-blur-sm" title="Sonraki Sayfa">
+        <button onclick="nextPage()" id="btnNext" class="w-8 h-16 rounded-xl bg-white/90 hover:bg-white text-slate-700 hover:text-slate-950 border border-slate-200 shadow-md transition ml-2 md:ml-4 disabled:opacity-20 disabled:pointer-events-none flex flex-col items-center justify-center gap-1" title="Sonraki Sayfa">
           <i class="ph ph-caret-right text-xl"></i>
         </button>
       </div>
 
       <!-- Alt İnce Navigasyon Barı -->
-      <div class="flex items-center gap-3 bg-slate-950/90 text-slate-100 px-3.5 py-1.5 rounded-2xl border border-slate-800 shadow-lg mt-1 backdrop-blur-md">
-        <button onclick="goToPage(0)" class="text-[11px] text-slate-400 hover:text-white flex items-center gap-1 transition">
+      <div class="flex items-center gap-3 bg-white text-slate-700 px-3.5 py-1.5 rounded-full border border-slate-200 shadow-sm mt-1 select-none">
+        <button onclick="goToPage(0)" class="text-[11px] text-slate-500 hover:text-slate-900 flex items-center gap-1 transition font-medium">
           <i class="ph ph-skip-back"></i> Kapak
         </button>
-        <div class="h-3 w-px bg-slate-800"></div>
-        <div id="pageIndicatorText" class="text-[11px] font-bold text-slate-200 min-w-[95px] text-center font-display">
+        <div class="h-3 w-px bg-slate-200"></div>
+        <div id="pageIndicatorText" class="text-[11px] font-bold text-slate-800 min-w-[95px] text-center font-mono">
           Sayfa 1 / 6
         </div>
-        <div class="h-3 w-px bg-slate-800"></div>
-        <button onclick="openModal('tocModal')" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 transition">
+        <div class="h-3 w-px bg-slate-200"></div>
+        <button onclick="openModal('tocModal')" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 transition">
           <i class="ph ph-list-bullets text-xs"></i> İçindekiler
         </button>
       </div>
@@ -853,37 +788,37 @@
       </div>
     </div>
 
-    <!-- KATMANLAR (LAYERS) AÇILIR PANELİ -->
-    <div id="layersPopover" class="fixed right-[340px] top-[140px] w-60 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl p-3 z-50 hidden select-none">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
-        <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="ph ph-stack text-blue-400"></i> Sayfa Katmanları</span>
-        <button onclick="toggleLayersPopover()" class="text-slate-400 hover:text-white"><i class="ph ph-x text-sm"></i></button>
+    <!-- KATMANLAR (LAYERS) AÇILIR PANELİ (FlipHTML5 Birebir Beyaz) -->
+    <div id="layersPopover" class="fixed right-[330px] top-[140px] w-64 bg-white border border-slate-200 rounded-2xl shadow-2xl p-3 z-50 hidden select-none text-slate-800">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-2">
+        <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5"><i class="ph ph-stack text-blue-600"></i> Sayfa Katmanları</span>
+        <button onclick="toggleLayersPopover()" class="text-slate-400 hover:text-slate-700"><i class="ph ph-x text-sm"></i></button>
       </div>
       <div id="layersListContainer" class="space-y-1.5 max-h-60 overflow-y-auto text-xs">
         <!-- JS ile doldurulur -->
       </div>
     </div>
 
-    <!-- 5. SAĞ PANEL: BAĞLAMA DUYARLI DENETÇİ & YAN PANELE TAŞINAN HIZLI ARAÇLAR -->
-    <aside id="rightSidebar" class="w-80 md:w-[340px] bg-slate-950 border-l border-slate-800 flex flex-col z-20 shrink-0 transition-all duration-300 select-text">
+    <!-- 5. SAĞ PANEL: FLIPHTML5 V2 BİREBİR BEYAZ DENETÇİ (AYARLAR & EYLEMLER - 320px) -->
+    <aside id="rightSidebar" class="w-80 md:w-[320px] bg-white border-l border-slate-200 flex flex-col z-20 shrink-0 transition-all duration-200 select-text shadow-sm text-slate-800">
 
       <!-- Üst Sekmeler: Ayarlar | Eylemler + Sağ Paneli Kapat Butonu -->
-      <div class="border-b border-slate-800 bg-slate-900/90 px-2 pt-2 flex items-center justify-between gap-1">
-        <div class="flex items-center gap-1 flex-1">
-          <button id="rightTabBtn_settings" onclick="switchRightInspectorTab('settings')" class="flex-1 pb-2 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition text-center">
+      <div class="border-b border-slate-200 bg-white px-3 pt-2.5 flex items-center justify-between gap-2 select-none">
+        <div class="flex items-center gap-4 flex-1">
+          <button id="rightTabBtn_settings" onclick="switchRightInspectorTab('settings')" class="pb-2 text-xs font-bold border-b-2 border-blue-600 text-blue-600 transition text-center">
             Ayarlar
           </button>
-          <button id="rightTabBtn_actions" onclick="switchRightInspectorTab('actions')" class="flex-1 pb-2 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white transition text-center">
+          <button id="rightTabBtn_actions" onclick="switchRightInspectorTab('actions')" class="pb-2 text-xs font-semibold border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition text-center">
             Eylemler
           </button>
         </div>
-        <button onclick="toggleRightSidebarCollapse()" class="mb-1.5 p-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 transition" title="Sağ Paneli Kapat">
+        <button onclick="toggleRightSidebarCollapse()" class="mb-1 p-1 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition" title="Sağ Paneli Kapat">
           <i class="ph ph-x text-xs"></i>
         </button>
       </div>
 
       <!-- Sayfa Rozeti & Durum Satırı -->
-      <div class="px-3 py-1.5 border-b border-slate-800 flex items-center justify-between bg-slate-950 text-[11px]">
+      <div class="px-3.5 py-1.5 border-b border-slate-200 flex items-center justify-between bg-slate-50 text-[11px]">
         <div class="flex items-center gap-1.5">
           <span id="editingPageBadge" class="bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-semibold">
             Sayfa 1
@@ -965,9 +900,9 @@
                 <i class="ph ph-sparkle"></i> AI
               </button>
               <button type="button" onclick="applyTextFormat('bold')" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 font-bold text-xs text-white" title="Kalın (B)">B</button>
-              <button type="button" onclick="cycleTextAlign()" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 flex items-center justify-center" title="Hizalamayı Değiştir"><i class="ph ph-text-align-left text-xs"></i></button>
-              <button type="button" onclick="cycleTextCase()" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 font-bold text-[11px]" title="Büyük/Küçük Harf (Aa)">Aa</button>
-              <button type="button" onclick="duplicateSelectedCanvasElement()" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 text-slate-200 flex items-center justify-center" title="Seçili Öğeyi Çoğalt"><i class="ph ph-copy text-xs"></i></button>
+              <button type="button" onclick="cycleTextAlign()" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 text-slate-800 flex items-center justify-center" title="Hizalamayı Değiştir"><i class="ph ph-text-align-left text-xs"></i></button>
+              <button type="button" onclick="cycleTextCase()" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 text-slate-800 font-bold text-[11px]" title="Büyük/Küçük Harf (Aa)">Aa</button>
+              <button type="button" onclick="duplicateSelectedCanvasElement()" class="w-6 h-6 rounded bg-slate-900 hover:bg-slate-800 text-slate-800 flex items-center justify-center" title="Seçili Öğeyi Çoğalt"><i class="ph ph-copy text-xs"></i></button>
               <button type="button" onclick="deleteSelectedCanvasElement()" class="w-6 h-6 rounded bg-rose-500/15 hover:bg-rose-600 text-rose-300 hover:text-white flex items-center justify-center" title="Seçili Öğeyi Sil"><i class="ph ph-trash text-xs"></i></button>
             </div>
             <select id="rtBgColor" onchange="applyTextStyle('bgColor', this.value)" class="bg-slate-900 border border-amber-500/40 rounded-lg px-1.5 py-1 text-[10px] text-amber-200 font-semibold cursor-pointer max-w-[115px]">
@@ -1023,17 +958,17 @@
       </div>
 
       <!-- Sayfa İşlemleri Alt Bar (Öne, Arkaya, Kopyala, Sil) -->
-      <div id="pageActionFooter" class="p-2.5 border-t border-slate-800 bg-slate-950 flex items-center justify-between gap-1.5">
-        <button onclick="moveCurrentPage(-1)" class="flex-1 py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-semibold border border-slate-800 flex items-center justify-center gap-1 transition" title="Öne Taşı">
+      <div id="pageActionFooter" class="p-2.5 border-t border-slate-200 bg-slate-50 flex items-center justify-between gap-1.5">
+        <button onclick="moveCurrentPage(-1)" class="flex-1 py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 flex items-center justify-center gap-1 transition shadow-2xs" title="Öne Taşı">
           <i class="ph ph-arrow-up"></i> Öne
         </button>
-        <button onclick="moveCurrentPage(1)" class="flex-1 py-1.5 px-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-[11px] font-semibold border border-slate-800 flex items-center justify-center gap-1 transition" title="Arkaya Taşı">
+        <button onclick="moveCurrentPage(1)" class="flex-1 py-1.5 px-2 rounded-lg bg-white hover:bg-slate-100 text-slate-700 text-[11px] font-semibold border border-slate-200 flex items-center justify-center gap-1 transition shadow-2xs" title="Arkaya Taşı">
           <i class="ph ph-arrow-down"></i> Arkaya
         </button>
-        <button onclick="duplicatePage(selectedEditIndex)" class="py-1.5 px-2.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 text-[11px] font-semibold flex items-center justify-center gap-1 transition" title="Sayfayı Çoğalt">
+        <button onclick="duplicatePage(selectedEditIndex)" class="py-1.5 px-2.5 rounded-lg bg-white hover:bg-blue-50 text-blue-600 border border-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow-2xs" title="Sayfayı Çoğalt">
           <i class="ph ph-copy"></i> Çoğalt
         </button>
-        <button onclick="deleteCurrentPage()" id="btnDeletePage" class="py-1.5 px-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[11px] font-semibold flex items-center justify-center gap-1 transition" title="Bu Sayfayı Sil">
+        <button onclick="deleteCurrentPage()" id="btnDeletePage" class="py-1.5 px-2.5 rounded-lg bg-white hover:bg-rose-50 text-rose-600 border border-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition shadow-2xs" title="Bu Sayfayı Sil">
           <i class="ph ph-trash"></i>
         </button>
       </div>
@@ -1155,7 +1090,7 @@
 
         <!-- Şablon 8: K3 Arka Kapak İçi -->
         <button onclick="addNewPage('k3')" class="flex flex-col text-left p-3.5 rounded-2xl bg-slate-800/70 hover:bg-indigo-600/20 border border-slate-700 hover:border-indigo-500 transition group">
-          <div class="w-9 h-9 rounded-xl bg-slate-700 text-slate-300 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
+          <div class="w-9 h-9 rounded-xl bg-slate-700 text-slate-700 flex items-center justify-center mb-2.5 group-hover:scale-110 transition">
             <i class="ph ph-users-four text-xl"></i>
           </div>
           <h4 class="font-bold text-white text-xs mb-1">K3 • Arka Kapak İçi</h4>
@@ -1229,19 +1164,19 @@
       </div>
       <div class="p-5 space-y-3.5">
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Sayı Başlığı</label>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Sayı Başlığı</label>
           <input type="text" id="newIssueTitle" placeholder="Örn: Sayı #3 • Aralık 2026" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Ay ve Yıl Bilgisi</label>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Ay ve Yıl Bilgisi</label>
           <input type="text" id="newIssueMonth" placeholder="Örn: Aralık 2026" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">Kısa Tanıtım / Dosya Konusu</label>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-700 mb-1">Kısa Tanıtım / Dosya Konusu</label>
           <textarea id="newIssueDesc" rows="2" placeholder="Bu sayının ana temasını kısaca özetleyin..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"></textarea>
         </div>
         <div class="pt-2 flex justify-end gap-2">
-          <button onclick="closeModal('newIssueModal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium">İptal</button>
+          <button onclick="closeModal('newIssueModal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-700 text-xs font-medium">İptal</button>
           <button onclick="createNewIssueSubmit()" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition">Sayıyı Oluştur</button>
         </div>
       </div>
@@ -1261,15 +1196,15 @@
       </div>
       <div class="p-5 space-y-3.5">
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Okul / Dergi Üst Başlığı</label>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Okul / Dergi Üst Başlığı</label>
           <input type="text" id="inputSchoolName" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-300 mb-1">Sayı ve Ay Bilgisi (Sayfa Altbilgisi İçin)</label>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Sayı ve Ay Bilgisi (Sayfa Altbilgisi İçin)</label>
           <input type="text" id="inputIssueInfo" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
         </div>
         <div class="pt-2 flex justify-end gap-2">
-          <button onclick="closeModal('magSettingsModal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-medium">İptal</button>
+          <button onclick="closeModal('magSettingsModal')" class="px-4 py-2 rounded-xl bg-slate-800 text-slate-700 text-xs font-medium">İptal</button>
           <button onclick="saveMagSettings()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Kaydet ve Uygula</button>
         </div>
       </div>
@@ -1324,18 +1259,18 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
-            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">Okul Adı (Resmi)</label>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-700 mb-1">Okul Adı (Resmi)</label>
             <input type="text" id="newMagSchoolName" placeholder="Örn: Atatürk Fen Lisesi" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
           </div>
           <div>
-            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">Dergi Adı</label>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-700 mb-1">Dergi Adı</label>
             <input type="text" id="newMagName" placeholder="Örn: Meşale E-Dergisi" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-2.5">
           <div>
-            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">Yayın Periyodu</label>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-700 mb-1">Yayın Periyodu</label>
             <select id="newMagPeriod" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white">
               <option value="Aylık">Aylık</option>
               <option value="2 Aylık">2 Aylık</option>
@@ -1344,7 +1279,7 @@
             </select>
           </div>
           <div>
-            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">Tema Vurgu Rengi</label>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-700 mb-1">Tema Vurgu Rengi</label>
             <select id="newMagColor" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white">
               <option value="#4f46e5">🟣 İndigo</option>
               <option value="#d97706">🟡 Kehribar</option>
@@ -1356,19 +1291,19 @@
         </div>
 
         <div>
-          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-300 mb-1">Kısa Açıklama / Slogan</label>
+          <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-700 mb-1">Kısa Açıklama / Slogan</label>
           <input type="text" id="newMagDesc" placeholder="Örn: Bilim, Sanat ve Edebiyat Işığında..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500">
         </div>
 
         <div class="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center gap-2.5">
           <input type="checkbox" id="newMagFirstIssueCheck" checked class="w-4 h-4 rounded text-indigo-600 cursor-pointer shrink-0">
-          <label for="newMagFirstIssueCheck" class="text-[11px] text-slate-200 cursor-pointer leading-snug">
+          <label for="newMagFirstIssueCheck" class="text-[11px] text-slate-800 cursor-pointer leading-snug">
             <strong>1. Sayıyı Otomatik Oluştur</strong> (Hazır sayfalarla başlasın)
           </label>
         </div>
 
         <div class="pt-1 flex justify-end gap-2">
-          <button onclick="closeModal('newMagazineModal')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">İptal</button>
+          <button onclick="closeModal('newMagazineModal')" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-700 text-xs font-medium">İptal</button>
           <button onclick="createNewMagazineSubmit()" class="px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold transition flex items-center gap-1.5 shadow">
             <i class="ph ph-check-circle text-sm"></i>
             <span>Dergiyi ve Okulu Kaydet</span>
@@ -1414,7 +1349,7 @@
               <h4 class="text-xs font-extrabold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
                 <i class="ph ph-bounding-box text-base text-amber-400"></i> 📐 Temiz & Boş İskelet Şablonları (Sıfırdan İçerik Diz)
               </h4>
-              <p class="text-[11px] text-slate-300 mt-0.5">İçinde sahte metin veya resim olmayan, sadece hizalı metin ve fotoğraf kutularından oluşan temiz iskeletler.</p>
+              <p class="text-[11px] text-slate-700 mt-0.5">İçinde sahte metin veya resim olmayan, sadece hizalı metin ve fotoğraf kutularından oluşan temiz iskeletler.</p>
             </div>
             <span class="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-bold text-[10px]">5 İskelet</span>
           </div>
@@ -1564,7 +1499,7 @@
             <div class="grid grid-cols-2 gap-2 text-[11px]">
               <div>
                 <label class="block text-slate-400 font-semibold mb-1">Görsel Stili:</label>
-                <select id="aiGenStyleSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                <select id="aiGenStyleSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-800">
                   <option value="photo">Fotogerçekçi Dergi Fotoğrafı</option>
                   <option value="illustration">Modern Editoryal İllüstrasyon</option>
                   <option value="watercolor">Suluboya Edebi Resim</option>
@@ -1574,7 +1509,7 @@
               </div>
               <div>
                 <label class="block text-slate-400 font-semibold mb-1">En/Boy Oranı:</label>
-                <select id="aiGenRatioSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-200">
+                <select id="aiGenRatioSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-slate-800">
                   <option value="1:1">Kare (1:1 - Galeri & Izgara)</option>
                   <option value="portrait">Dikey (9:16 - Dergi Kapağı)</option>
                   <option value="16:9">Yatay (16:9 - Çift Sayfa Manşet)</option>
@@ -1589,7 +1524,7 @@
 
           <!-- B. Seçili Görsele Uygulanacak Hızlı AI Araçları (9 Büyük Yetenek) -->
           <div class="space-y-2">
-            <span class="font-bold text-slate-200 block text-xs">Seçili Fotoğraf Üzerinde Tek Tıkla AI İşlemleri:</span>
+            <span class="font-bold text-slate-800 block text-xs">Seçili Fotoğraf Üzerinde Tek Tıkla AI İşlemleri:</span>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
               <button onclick="runAiBackgroundRemoval()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-left transition flex flex-col gap-1">
                 <span class="font-bold text-sky-300 flex items-center gap-1"><i class="ph ph-scissors"></i> 2. Arka Planı Kaldır</span>
@@ -1621,11 +1556,11 @@
             <div class="pt-2 border-t border-slate-800">
               <span class="text-[11px] font-bold text-slate-400 block mb-1.5">8. Sanat & Edebi İllüstrasyon Filtreleri:</span>
               <div class="flex flex-wrap gap-1.5">
-                <button onclick="applyAiStyleFilter('sketch')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">✏️ Karakalem</button>
-                <button onclick="applyAiStyleFilter('watercolor')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🎨 Suluboya</button>
-                <button onclick="applyAiStyleFilter('vintage1923')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🏛️ 1923 Sepya Arşiv</button>
-                <button onclick="applyAiStyleFilter('popart')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">💥 Pop-Art Çizgi</button>
-                <button onclick="applyAiStyleFilter('dramaticBw')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-200 border border-slate-700">📷 Dramatik S&B</button>
+                <button onclick="applyAiStyleFilter('sketch')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-800 border border-slate-700">✏️ Karakalem</button>
+                <button onclick="applyAiStyleFilter('watercolor')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-800 border border-slate-700">🎨 Suluboya</button>
+                <button onclick="applyAiStyleFilter('vintage1923')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-800 border border-slate-700">🏛️ 1923 Sepya Arşiv</button>
+                <button onclick="applyAiStyleFilter('popart')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-800 border border-slate-700">💥 Pop-Art Çizgi</button>
+                <button onclick="applyAiStyleFilter('dramaticBw')" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-[10.5px] font-semibold text-slate-800 border border-slate-700">📷 Dramatik S&B</button>
               </div>
             </div>
           </div>
@@ -1668,7 +1603,7 @@
 
           <!-- B. Seçili Metne Özel Editoryal Araçlar -->
           <div class="space-y-2">
-            <span class="font-bold text-slate-200 block text-xs">Seçili Metin İçin Editoryal & Redaksiyon Araçları:</span>
+            <span class="font-bold text-slate-800 block text-xs">Seçili Metin İçin Editoryal & Redaksiyon Araçları:</span>
             <div class="grid grid-cols-2 gap-2">
               <button onclick="runAiTdkProofread()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-emerald-600/25 border border-slate-700 hover:border-emerald-500 text-left transition flex items-center gap-2">
                 <span class="text-xl">🔍</span>
@@ -1704,16 +1639,16 @@
             <div class="pt-2 border-t border-slate-800">
               <span class="text-[11px] font-bold text-slate-400 block mb-1.5">Metnin Üslubunu / Tonunu Dönüştür:</span>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                <button onclick="runAiTransformTone('resmi')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🏛️ Resmi Protokol</button>
-                <button onclick="runAiTransformTone('genclik')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">⚡ Dinamik Gençlik</button>
-                <button onclick="runAiTransformTone('edebi')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-purple-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">✒️ Edebi & Şiirsel</button>
-                <button onclick="runAiTransformTone('populer-bilim')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-[10.5px] font-semibold text-slate-200 border border-slate-700">🔬 Popüler Bilim</button>
+                <button onclick="runAiTransformTone('resmi')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-indigo-600 text-[10.5px] font-semibold text-slate-800 border border-slate-700">🏛️ Resmi Protokol</button>
+                <button onclick="runAiTransformTone('genclik')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-amber-600 text-[10.5px] font-semibold text-slate-800 border border-slate-700">⚡ Dinamik Gençlik</button>
+                <button onclick="runAiTransformTone('edebi')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-purple-600 text-[10.5px] font-semibold text-slate-800 border border-slate-700">✒️ Edebi & Şiirsel</button>
+                <button onclick="runAiTransformTone('populer-bilim')" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-emerald-600 text-[10.5px] font-semibold text-slate-800 border border-slate-700">🔬 Popüler Bilim</button>
               </div>
             </div>
 
             <!-- Metin Çıktı Kutusu -->
             <div class="pt-2">
-              <textarea id="aiOutputBox" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Üretilen dergi metni burada belirecek..."></textarea>
+              <textarea id="aiOutputBox" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-800 focus:outline-none focus:border-indigo-500" placeholder="Üretilen dergi metni burada belirecek..."></textarea>
               <div class="flex justify-end gap-2 pt-1.5">
                 <button onclick="insertAiOutputToCanvas()" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 transition">
                   <i class="ph ph-plus-circle"></i> Seçili Kutuya / Sayfaya Aktar
@@ -1753,19 +1688,19 @@
                 <div class="text-[9px] text-slate-500">Kesim Alanı Korumalı</div>
               </div>
             </div>
-            <div id="preflightFeedbackText" class="text-[11px] text-slate-300 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 leading-relaxed">
+            <div id="preflightFeedbackText" class="text-[11px] text-slate-700 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 leading-relaxed">
               Sayfa dizgisi ve tipografik hiyerarşi dengeli görünüyor.
             </div>
           </div>
 
           <!-- B. Çok Sütunlu Metin Akışı -->
           <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-            <span class="font-bold text-slate-200 block text-xs">Çok Sütunlu Metin Akışına Böl (Multi-Column):</span>
+            <span class="font-bold text-slate-800 block text-xs">Çok Sütunlu Metin Akışına Böl (Multi-Column):</span>
             <div class="flex gap-2">
-              <button onclick="runAiMultiColumnSplit(2)" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition">
+              <button onclick="runAiMultiColumnSplit(2)" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-800 transition">
                 📰 2 Eşit Sütuna Böl
               </button>
-              <button onclick="runAiMultiColumnSplit(3)" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 transition">
+              <button onclick="runAiMultiColumnSplit(3)" class="flex-1 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-800 transition">
                 📰 3 Eşit Sütuna Böl
               </button>
             </div>
@@ -1773,8 +1708,8 @@
 
           <!-- C. Dinamik Üst/Alt Bilgiler ve Sayfa Numaraları -->
           <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
-            <span class="font-bold text-slate-200 block text-xs">Dinamik Üst/Alt Bilgiler & Sayfa Numaraları (Folio):</span>
-            <button onclick="applyRunningHeadersAndFolio()" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-xs font-bold text-slate-200 transition flex items-center justify-center gap-1.5">
+            <span class="font-bold text-slate-800 block text-xs">Dinamik Üst/Alt Bilgiler & Sayfa Numaraları (Folio):</span>
+            <button onclick="applyRunningHeadersAndFolio()" class="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-indigo-600/30 border border-slate-700 hover:border-indigo-400 text-xs font-bold text-slate-800 transition flex items-center justify-center gap-1.5">
               <i class="ph ph-number-square-four"></i> Bu Sayfaya Otomatik Üstbilgi & Folio Sayfa Numarası Giydir
             </button>
           </div>
@@ -1820,7 +1755,7 @@
 
     <!-- SEÇİLİ NESNE BİLGİLENDİRME ÇUBUĞU -->
     <div id="aiLivePreviewTargetInfo" class="px-3 py-1.5 bg-slate-950 border-b border-slate-800/80 flex items-center justify-between text-[11px] shrink-0">
-      <div class="flex items-center gap-1.5 min-w-0 text-slate-300">
+      <div class="flex items-center gap-1.5 min-w-0 text-slate-700">
         <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
         <span class="truncate">Tuvalde Seçili: <strong id="aiActiveObjDisplay" class="text-amber-300 font-semibold font-mono">Metin Kutusu</strong></span>
       </div>
@@ -1837,7 +1772,7 @@
         </div>
       </div>
       <div class="flex items-center gap-1 shrink-0">
-        <button onclick="revertAiLivePreview()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold flex items-center gap-1 border border-slate-700 transition" title="Orijinal haline geri döndür">
+        <button onclick="revertAiLivePreview()" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-800 text-[10px] font-bold flex items-center gap-1 border border-slate-700 transition" title="Orijinal haline geri döndür">
           <i class="ph ph-arrow-counter-clockwise"></i> Geri Al
         </button>
         <button onclick="commitAiLivePreview()" class="px-2.5 py-1 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 text-[10px] font-extrabold flex items-center gap-1 shadow-md transition" title="Bu değişikliği onayla">
@@ -1854,7 +1789,7 @@
           <button id="btnPromptLibTab_text" onclick="switchPromptLibraryTab('text')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow">
             📝 Metin (100)
           </button>
-          <button id="btnPromptLibTab_image" onclick="switchPromptLibraryTab('image')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">
+          <button id="btnPromptLibTab_image" onclick="switchPromptLibraryTab('image')" class="px-2.5 py-1 rounded-lg text-xs font-bold transition text-slate-700 hover:text-white">
             🎨 Görsel (100)
           </button>
         </div>
@@ -1882,7 +1817,7 @@
       <span class="flex items-center gap-1 text-amber-300/90 truncate">
         <i class="ph ph-sparkle"></i> "Önizle" tuvalde anında gösterir
       </span>
-      <span id="promptLibCountBadge" class="text-slate-300 font-mono text-[10px] shrink-0 font-bold">100 Komut</span>
+      <span id="promptLibCountBadge" class="text-slate-700 font-mono text-[10px] shrink-0 font-bold">100 Komut</span>
     </div>
   </div>
 
@@ -1913,7 +1848,7 @@
           <i class="ph ph-x text-xl"></i>
         </button>
       </div>
-      <div id="actionPopupBody" class="p-5 text-sm text-slate-200 leading-relaxed max-h-[75vh] overflow-y-auto">
+      <div id="actionPopupBody" class="p-5 text-sm text-slate-800 leading-relaxed max-h-[75vh] overflow-y-auto">
       </div>
     </div>
   </div>
@@ -1955,11 +1890,11 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261029_02_flip"></script>
-  <script src="/js/fabric-engine.js?v=20261029_02_flip"></script>
-  <script src="/js/smart-layouts.js?v=20261029_02_flip"></script>
-  <script src="/js/pro-extensions.js?v=20261029_02_flip"></script>
-  <script src="/js/interactive-pro.js?v=20261029_02_flip"></script>
-  <script src="/js/flip-ui-engine.js?v=20261029_02_flip"></script>
+  <script src="/js/studio.js?v=20261029_07_flip"></script>
+  <script src="/js/fabric-engine.js?v=20261029_07_flip"></script>
+  <script src="/js/smart-layouts.js?v=20261029_07_flip"></script>
+  <script src="/js/pro-extensions.js?v=20261029_07_flip"></script>
+  <script src="/js/interactive-pro.js?v=20261029_07_flip"></script>
+  <script src="/js/flip-ui-engine.js?v=20261029_07_flip"></script>
 </body>
 </html>

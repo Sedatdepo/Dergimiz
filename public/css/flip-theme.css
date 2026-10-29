@@ -1,0 +1,325 @@
+/* ==========================================================================
+   FLIPHTML5 V2 BİREBİR AÇIK TEMA & TASARIM SİSTEMİ (LIGHT STUDIO THEME)
+   Arka planlar: #ffffff, #f0f2f5, #f8fafc
+   Kenarlıklar: #e5e7eb, #d1d5db
+   Metinler: #111827, #1f2937, #4b5563
+   Vurgu: #0284c7 (FlipHTML5 Mavi)
+   ========================================================================== */
+
+/* Genel Gövde */
+body.flip-v2-theme {
+  background-color: #f0f2f5 !important;
+  color: #111827 !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Üst Menü Çubuğu (Header) */
+#topToolbar {
+  background-color: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  color: #111827 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+#topToolbar select,
+#topToolbar input {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+/* Sol Dikey Şerit (76px) */
+#leftIconRail {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  width: 76px !important;
+}
+
+#leftIconRail .rail-btn {
+  width: 64px !important;
+  height: 60px !important;
+  border-radius: 10px !important;
+  color: #4b5563 !important;
+  background-color: transparent !important;
+  transition: all 0.15s ease !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+}
+
+#leftIconRail .rail-btn:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+}
+
+#leftIconRail .rail-btn.active {
+  background-color: #eff6ff !important;
+  color: #0284c7 !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+#leftIconRail .rail-btn i {
+  font-size: 20px !important;
+}
+
+/* Sol Açılır Çekmece (310px) */
+#leftSidebar {
+  background-color: #ffffff !important;
+  border-right: 1px solid #e5e7eb !important;
+  color: #1f2937 !important;
+  width: 310px !important;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
+}
+
+#leftSidebar * {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Çekmece İçi Kartlar ve Butonlar */
+.flip-drawer-card {
+  background-color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 10px;
+  transition: all 0.15s ease;
+}
+
+.flip-drawer-card:hover {
+  border-color: #0284c7;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);
+}
+
+.flip-btn-primary {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.flip-btn-primary:hover {
+  background-color: #0369a1 !important;
+}
+
+.flip-btn-outline {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #1f2937 !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.15s ease !important;
+}
+
+.flip-btn-outline:hover {
+  border-color: #0284c7 !important;
+  color: #0284c7 !important;
+  background-color: #eff6ff !important;
+}
+
+/* Sayfa Minyatür Kartları (FlipHTML5 Birebir) */
+.page-thumb-card {
+  background-color: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  padding: 8px !important;
+  transition: all 0.15s ease !important;
+  position: relative !important;
+}
+
+.page-thumb-card:hover,
+.page-thumb-card.active {
+  border-color: #0284c7 !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2) !important;
+  background-color: #ffffff !important;
+}
+
+.page-badge-pill {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  background-color: #6b7280;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Orta Tuval Alanı */
+#mainCanvasWorkspace {
+  background-color: #f0f2f5 !important;
+}
+
+.magazine-spread {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Tuval Üstü Yüzen Format Çubuğu (Floating Context Toolbar) */
+#floatingContextBar {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  border-radius: 12px !important;
+  padding: 4px 8px !important;
+  color: #1f2937 !important;
+  z-index: 50 !important;
+}
+
+#floatingContextBar select,
+#floatingContextBar input[type="number"],
+#floatingContextBar button {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #1f2937 !important;
+}
+
+#floatingContextBar button:hover {
+  background-color: #f3f4f6 !important;
+}
+
+/* Sağ Denetçi Paneli (Ayarlar & Eylemler) */
+#rightSidebar {
+  background-color: #ffffff !important;
+  border-left: 1px solid #e5e7eb !important;
+  color: #1f2937 !important;
+  width: 320px !important;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.03);
+}
+
+#rightSidebar .border-slate-800 {
+  border-color: #e5e7eb !important;
+}
+
+#rightSidebar .bg-slate-900,
+#rightSidebar .bg-slate-950 {
+  background-color: #f9fafb !important;
+  border-color: #e5e7eb !important;
+  color: #1f2937 !important;
+}
+
+#rightSidebar input,
+#rightSidebar select,
+#rightSidebar textarea {
+  background-color: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #111827 !important;
+}
+
+#rightSidebar input:focus,
+#rightSidebar select:focus,
+#rightSidebar textarea:focus {
+  border-color: #0284c7 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* Sağ Sekmeler (Ayarlar & Eylemler) */
+#rightTabBtn_settings.active,
+#rightTabBtn_settings[class*="border-blue-500"] {
+  color: #0284c7 !important;
+  border-bottom: 2px solid #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+#rightTabBtn_actions.active,
+#rightTabBtn_actions[class*="border-blue-500"] {
+  color: #0284c7 !important;
+  border-bottom: 2px solid #0284c7 !important;
+  font-weight: 700 !important;
+}
+
+/* Tuval Sağ Kenarındaki Yüzen Hızlı Bar */
+#centerRightStrip {
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  border-radius: 12px !important;
+  color: #4b5563 !important;
+}
+
+#centerRightStrip button {
+  background-color: transparent !important;
+  color: #4b5563 !important;
+  border-radius: 8px !important;
+}
+
+#centerRightStrip button:hover {
+  background-color: #f3f4f6 !important;
+  color: #0284c7 !important;
+}
+
+/* Yanıp Sönen Hatırlatıcı (Hotspot Wave Effect) */
+@keyframes hotspotRipple {
+  0% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(2, 132, 199, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(2, 132, 199, 0);
+  }
+}
+
+.hotspot-wave {
+  animation: hotspotRipple 1.6s infinite !important;
+}
+
+/* ==========================================================================
+   FLIPHTML5 MODAL & POPUP PURE WHITE STYLING
+   ========================================================================== */
+.flip-v2-theme [id$="Modal"] > div > div.bg-slate-900,
+.flip-v2-theme [id$="Modal"] .bg-slate-900 {
+  background-color: #ffffff !important;
+  color: #1f2937 !important;
+  border-color: #e5e7eb !important;
+}
+
+.flip-v2-theme [id$="Modal"] .bg-slate-950,
+.flip-v2-theme [id$="Modal"] .bg-slate-950\/60,
+.flip-v2-theme [id$="Modal"] .bg-slate-950\/80,
+.flip-v2-theme [id$="Modal"] .bg-slate-950\/90 {
+  background-color: #f8fafc !important;
+  border-color: #e5e7eb !important;
+  color: #0f172a !important;
+}
+
+.flip-v2-theme [id$="Modal"] h2,
+.flip-v2-theme [id$="Modal"] h3,
+.flip-v2-theme [id$="Modal"] h4,
+.flip-v2-theme [id$="Modal"] .text-white {
+  color: #0f172a !important;
+}
+
+.flip-v2-theme [id$="Modal"] p,
+.flip-v2-theme [id$="Modal"] .text-slate-400,
+.flip-v2-theme [id$="Modal"] .text-slate-300 {
+  color: #4b5563 !important;
+}
+
+.flip-v2-theme [id$="Modal"] input,
+.flip-v2-theme [id$="Modal"] select,
+.flip-v2-theme [id$="Modal"] textarea {
+  background-color: #ffffff !important;
+  border-color: #d1d5db !important;
+  color: #111827 !important;
+}
+
+.flip-v2-theme [id$="Modal"] .bg-slate-800,
+.flip-v2-theme [id$="Modal"] .bg-slate-800\/70,
+.flip-v2-theme [id$="Modal"] .bg-slate-800\/90 {
+  background-color: #f3f4f6 !important;
+  border-color: #e5e7eb !important;
+  color: #1f2937 !important;
+}
+
+.flip-v2-theme [id$="Modal"] .bg-slate-800:hover {
+  background-color: #e5e7eb !important;
+}
+

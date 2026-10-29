@@ -5030,61 +5030,61 @@ function renderRightEditorPanel() {
 function renderContextSettingsInspector(page, isEditable, targetDom) {
   const el = selectedElementId ? (page.elements || []).find(x => x.id === selectedElementId) : null;
 
-  // DURUM 0: ŞABLON İÇİ BİR GÖRSEL VEYA METİN KUTUSU SEÇİLİYSE (Ebat, Pozisyon, Açı & Görsel/Metin Stili)
+  // DURUM 0: ŞABLON İÇİ BİR GÖRSEL VEYA METİN KUTUSU SEÇİLİYSE
   if (!el && activeInlineFieldKey) {
-    const fs = ensureFieldStyles(page, activeInlineFieldKey);
+    const fsStyles = ensureFieldStyles(page, activeInlineFieldKey);
     const targetBox = getVisualTargetForInline(activeInlineElement);
-    const curW = Math.round(fs.width || targetBox?.offsetWidth || activeInlineElement?.offsetWidth || 200);
-    const curH = Math.round(fs.height || targetBox?.offsetHeight || activeInlineElement?.offsetHeight || 120);
-    const curX = Math.round(fs.tx || 0);
-    const curY = Math.round(fs.ty || 0);
-    const curRot = Math.round(fs.rotate || 0);
+    const curW = Math.round(fsStyles.width || targetBox?.offsetWidth || activeInlineElement?.offsetWidth || 200);
+    const curH = Math.round(fsStyles.height || targetBox?.offsetHeight || activeInlineElement?.offsetHeight || 120);
+    const curX = Math.round(fsStyles.tx || 0);
+    const curY = Math.round(fsStyles.ty || 0);
+    const curRot = Math.round(fsStyles.rotate || 0);
 
     const inlinePosBox = `
-      <div class="bg-slate-900 p-3 rounded-2xl border border-blue-500/40 space-y-2.5">
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-slate-800">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white flex items-center gap-1.5">
-            <i class="ph ${activeInlineType === 'image' ? 'ph-image text-sky-400' : 'ph-textbox text-amber-400'}"></i>
-            <span>Ebat, Pozisyon & Açı</span>
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="ph ${activeInlineType === 'image' ? 'ph-image text-blue-600' : 'ph-textbox text-blue-600'} text-base"></i>
+            <span>Boyut & Konum</span>
           </span>
-          <button onclick="resetInlineFieldTransform()" class="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-[10px] font-bold text-slate-300 hover:text-rose-300 transition" title="Varsayılan Konum ve Boyuta Sıfırla">
+          <button onclick="resetInlineFieldTransform()" class="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-[10px] font-bold text-slate-600 hover:text-rose-600 transition" title="Varsayılana Sıfırla">
             ↺ Sıfırla
           </button>
         </div>
 
-        <!-- Pozisyon (X, Y) & Ebat (G, Y) Kutuları -->
+        <!-- Pozisyon (X, Y) & Ebat (G, Y) -->
         <div class="grid grid-cols-2 gap-2 text-xs">
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yatay Pozisyon (Sol/Sağ Kaydırma)">
-            <span class="text-slate-400 font-semibold">Konum X</span>
-            <input id="inlineInpX" type="number" value="${curX}" oninput="updateInlineFieldTransform('tx', Number(this.value))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-500 font-semibold text-[11px]">X</span>
+            <input id="inlineInpX" type="number" value="${curX}" oninput="updateInlineFieldTransform('tx', Number(this.value))" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
           </div>
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Dikey Pozisyon (Yukarı/Aşağı Kaydırma)">
-            <span class="text-slate-400 font-semibold">Konum Y</span>
-            <input id="inlineInpY" type="number" value="${curY}" oninput="updateInlineFieldTransform('ty', Number(this.value))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-500 font-semibold text-[11px]">Y</span>
+            <input id="inlineInpY" type="number" value="${curY}" oninput="updateInlineFieldTransform('ty', Number(this.value))" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
           </div>
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Genişlik (Piksel)">
-            <span class="text-slate-400 font-semibold">Ebat G</span>
-            <input id="inlineInpW" type="number" value="${curW}" oninput="updateInlineFieldTransform('width', Math.max(30, Number(this.value)))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-500 font-semibold text-[11px]">G</span>
+            <input id="inlineInpW" type="number" value="${curW}" oninput="updateInlineFieldTransform('width', Math.max(30, Number(this.value)))" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
           </div>
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yükseklik (Piksel)">
-            <span class="text-slate-400 font-semibold">Ebat Y</span>
-            <input id="inlineInpH" type="number" value="${curH}" oninput="updateInlineFieldTransform('height', Math.max(20, Number(this.value)))" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-500 font-semibold text-[11px]">Y</span>
+            <input id="inlineInpH" type="number" value="${curH}" oninput="updateInlineFieldTransform('height', Math.max(20, Number(this.value)))" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
           </div>
         </div>
 
-        <!-- Dönme Açısı (0° - 360°) Slider & Hızlı Açı Butonları -->
-        <div class="pt-1 border-t border-slate-800 space-y-1.5 text-xs">
+        <!-- Dönme Açısı (0° - 360°) -->
+        <div class="pt-1 border-t border-slate-100 space-y-1.5 text-xs">
           <div class="flex items-center justify-between">
-            <span class="text-slate-300 font-semibold">Dönme (Açı)</span>
-            <span id="inlineLblRotate" class="font-mono font-bold text-blue-400">${curRot}°</span>
+            <span class="text-slate-600 font-semibold">Dönme (Açı)</span>
+            <span id="inlineLblRotate" class="font-mono font-bold text-blue-600">${curRot}°</span>
           </div>
-          <input id="inlineInpRotate" type="range" min="-180" max="180" value="${curRot > 180 ? curRot - 360 : curRot}" oninput="updateInlineFieldTransform('rotate', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          <input id="inlineInpRotate" type="range" min="-180" max="180" value="${curRot > 180 ? curRot - 360 : curRot}" oninput="updateInlineFieldTransform('rotate', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
           <div class="grid grid-cols-5 gap-1 pt-0.5">
-            <button onclick="updateInlineFieldTransform('rotate', -15); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-15°</button>
-            <button onclick="updateInlineFieldTransform('rotate', -5); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-5°</button>
-            <button onclick="updateInlineFieldTransform('rotate', 0); renderRightEditorPanel();" class="py-1 rounded bg-blue-600/20 hover:bg-blue-600 text-[10px] text-blue-300 hover:text-white font-bold">0°</button>
-            <button onclick="updateInlineFieldTransform('rotate', 5); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+5°</button>
-            <button onclick="updateInlineFieldTransform('rotate', 15); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+15°</button>
+            <button onclick="updateInlineFieldTransform('rotate', -15); renderRightEditorPanel();" class="py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] text-slate-700 font-mono">-15°</button>
+            <button onclick="updateInlineFieldTransform('rotate', -5); renderRightEditorPanel();" class="py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] text-slate-700 font-mono">-5°</button>
+            <button onclick="updateInlineFieldTransform('rotate', 0); renderRightEditorPanel();" class="py-1 rounded bg-blue-50 hover:bg-blue-600 text-[10px] text-blue-600 hover:text-white font-bold border border-blue-200">0°</button>
+            <button onclick="updateInlineFieldTransform('rotate', 5); renderRightEditorPanel();" class="py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] text-slate-700 font-mono">+5°</button>
+            <button onclick="updateInlineFieldTransform('rotate', 15); renderRightEditorPanel();" class="py-1 rounded bg-slate-100 hover:bg-slate-200 text-[10px] text-slate-700 font-mono">+15°</button>
           </div>
         </div>
       </div>
@@ -5092,50 +5092,50 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
 
     if (activeInlineType === 'image') {
       targetDom.innerHTML = inlinePosBox + `
-        <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
-          <span class="font-bold text-white block">Görsel İşlemleri</span>
-          <label class="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center justify-center gap-2 cursor-pointer shadow transition">
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-xs text-slate-800">
+          <span class="font-bold text-slate-800 block">Görsel İşlemleri</span>
+          <label class="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center justify-center gap-2 cursor-pointer shadow-sm transition">
             <i class="ph ph-camera text-base"></i> Görseli Değiştir / Yükle
             <input type="file" accept="image/*" onchange="uploadTemplateImageInline(event, ${selectedEditIndex}, '${activeInlineFieldKey}')" class="hidden">
           </label>
-          <button onclick="updateInlineFieldTransform('objectFit', '${fs.objectFit === 'contain' ? 'cover' : 'contain'}'); renderRightEditorPanel();" class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 font-semibold text-slate-200 flex items-center justify-center gap-2 transition">
-            <i class="ph ph-crop"></i> Sığdırma Modu (${fs.objectFit === 'contain' ? 'Tam Sığdır' : 'Kutuyu Doldur'})
+          <button onclick="updateInlineFieldTransform('objectFit', '${fsStyles.objectFit === 'contain' ? 'cover' : 'contain'}'); renderRightEditorPanel();" class="w-full py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 font-semibold text-slate-700 flex items-center justify-center gap-2 transition">
+            <i class="ph ph-crop"></i> Sığdırma Modu (${fsStyles.objectFit === 'contain' ? 'Tam Sığdır' : 'Kutuyu Doldur'})
           </button>
         </div>
 
-        <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3 text-xs">
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs text-slate-800">
           <div class="space-y-1">
-            <div class="flex justify-between text-slate-300">
+            <div class="flex justify-between text-slate-600">
               <span>Köşe Yuvarlatma (Yarıçap)</span>
-              <span id="inlineLblRadius" class="font-mono text-white">${fs.borderRadius !== undefined ? fs.borderRadius : 12}px</span>
+              <span id="inlineLblRadius" class="font-mono text-slate-800 font-bold">${fsStyles.borderRadius !== undefined ? fsStyles.borderRadius : 12}px</span>
             </div>
-            <input type="range" min="0" max="120" value="${fs.borderRadius !== undefined ? fs.borderRadius : 12}" oninput="updateInlineFieldTransform('borderRadius', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+            <input type="range" min="0" max="120" value="${fsStyles.borderRadius !== undefined ? fsStyles.borderRadius : 12}" oninput="updateInlineFieldTransform('borderRadius', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
           </div>
 
           <div class="flex items-center justify-between">
-            <span class="text-slate-300">Katman Maskesi</span>
-            <select onchange="updateInlineFieldTransform('mask', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-white">
-              <option value="none" ${(!fs.mask || fs.mask === 'none') ? 'selected' : ''}>Yok (Normal)</option>
-              <option value="circle" ${fs.mask === 'circle' ? 'selected' : ''}>⬤ Daire Maske</option>
-              <option value="ellipse" ${fs.mask === 'ellipse' ? 'selected' : ''}>⬭ Elips Maske</option>
-              <option value="triangle" ${fs.mask === 'triangle' ? 'selected' : ''}>▲ Üçgen Maske</option>
-              <option value="diamond" ${fs.mask === 'diamond' ? 'selected' : ''}>◆ Elmas Maske</option>
-              <option value="hexagon" ${fs.mask === 'hexagon' ? 'selected' : ''}>⬡ Altıgen Maske</option>
+            <span class="text-slate-600">Katman Maskesi</span>
+            <select onchange="updateInlineFieldTransform('mask', this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-800 font-medium">
+              <option value="none" ${(!fsStyles.mask || fsStyles.mask === 'none') ? 'selected' : ''}>Yok (Normal)</option>
+              <option value="circle" ${fsStyles.mask === 'circle' ? 'selected' : ''}>⬤ Daire Maske</option>
+              <option value="ellipse" ${fsStyles.mask === 'ellipse' ? 'selected' : ''}>⬭ Elips Maske</option>
+              <option value="triangle" ${fsStyles.mask === 'triangle' ? 'selected' : ''}>▲ Üçgen Maske</option>
+              <option value="diamond" ${fsStyles.mask === 'diamond' ? 'selected' : ''}>◆ Elmas Maske</option>
+              <option value="hexagon" ${fsStyles.mask === 'hexagon' ? 'selected' : ''}>⬡ Altıgen Maske</option>
             </select>
           </div>
 
           <div class="space-y-1">
-            <div class="flex justify-between text-slate-300">
+            <div class="flex justify-between text-slate-600">
               <span>Saydamlık (Opacity)</span>
-              <span id="inlineLblOpacity" class="font-mono text-white">${fs.opacity !== undefined ? fs.opacity : 100}%</span>
+              <span id="inlineLblOpacity" class="font-mono text-slate-800 font-bold">${fsStyles.opacity !== undefined ? fsStyles.opacity : 100}%</span>
             </div>
-            <input type="range" min="10" max="100" value="${fs.opacity !== undefined ? fs.opacity : 100}" oninput="updateInlineFieldTransform('opacity', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+            <input type="range" min="10" max="100" value="${fsStyles.opacity !== undefined ? fsStyles.opacity : 100}" oninput="updateInlineFieldTransform('opacity', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
           </div>
 
           <div class="flex items-center justify-between pt-1">
-            <span class="text-slate-200">Gölge (Drop Shadow)</span>
+            <span class="text-slate-700 font-medium">Gölge (Drop Shadow)</span>
             <label class="studio-switch">
-              <input type="checkbox" ${fs.hasShadow ? 'checked' : ''} onchange="updateInlineFieldTransform('hasShadow', this.checked)">
+              <input type="checkbox" ${fsStyles.hasShadow ? 'checked' : ''} onchange="updateInlineFieldTransform('hasShadow', this.checked)">
               <span class="studio-switch-slider"></span>
             </label>
           </div>
@@ -5144,136 +5144,122 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
       return;
     }
 
-    // Şablon içi METİN KUTUSU seçiliyse:
+    // Şablon içi METİN KUTUSU seçiliyse
     targetDom.innerHTML = inlinePosBox + `
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
-        <span class="font-bold text-white block">Metin Kutusu Tipografisi</span>
-        <select onchange="applyTextStyle('fontFamily', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-          <option value="Inter" ${fs.fontFamily === 'Inter' ? 'selected' : ''}>Inter-Regular</option>
-          <option value="'Playfair Display', serif" ${fs.fontFamily?.includes('Playfair') ? 'selected' : ''}>Playfair Display</option>
-          <option value="'Cinzel', serif" ${fs.fontFamily?.includes('Cinzel') ? 'selected' : ''}>Cinzel Decorative</option>
-          <option value="'Merriweather', serif" ${fs.fontFamily?.includes('Merriweather') ? 'selected' : ''}>Merriweather Serif</option>
-          <option value="'Plus Jakarta Sans', sans-serif" ${fs.fontFamily?.includes('Jakarta') ? 'selected' : ''}>Plus Jakarta Sans</option>
-          <option value="'Caveat', cursive" ${fs.fontFamily?.includes('Caveat') ? 'selected' : ''}>Caveat Handwriting</option>
-          <option value="monospace" ${fs.fontFamily === 'monospace' ? 'selected' : ''}>Monospace Code</option>
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-xs text-slate-800">
+        <span class="font-bold text-slate-800 block">Metin Kutusu Tipografisi</span>
+        <select onchange="updateInlineFieldTransform('fontFamily', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 font-medium">
+          <option value="Inter" ${fsStyles.fontFamily === 'Inter' ? 'selected' : ''}>Inter (Standart)</option>
+          <option value="'Playfair Display', serif" ${fsStyles.fontFamily?.includes('Playfair') ? 'selected' : ''}>Playfair Display (Serif)</option>
+          <option value="'Cinzel', serif" ${fsStyles.fontFamily?.includes('Cinzel') ? 'selected' : ''}>Cinzel (Başlık)</option>
+          <option value="'Merriweather', serif" ${fsStyles.fontFamily?.includes('Merriweather') ? 'selected' : ''}>Merriweather (Klasik)</option>
+          <option value="'Plus Jakarta Sans', sans-serif" ${fsStyles.fontFamily?.includes('Jakarta') ? 'selected' : ''}>Plus Jakarta Sans</option>
+          <option value="'Caveat', cursive" ${fsStyles.fontFamily?.includes('Caveat') ? 'selected' : ''}>Caveat (El Yazısı)</option>
         </select>
-
         <div class="flex items-center gap-2">
-          <input type="color" value="${(fs.color && fs.color.startsWith('#')) ? fs.color : '#0f172a'}" onchange="applyTextStyle('color', this.value)" class="w-9 h-8 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0">
-          <input type="number" value="${fs.fontSize || 16}" oninput="applyTextStyle('fontSize', Number(this.value))" class="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono text-center">
-          <button onclick="applyTextStyle('fontSize', Math.max(8, (Number(fs.fontSize)||16) - 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">−</button>
-          <button onclick="applyTextStyle('fontSize', Math.min(96, (Number(fs.fontSize)||16) + 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">+</button>
-        </div>
-
-        <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
-          <button onclick="applyTextStyle('textAlign', 'left')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-left"></i></button>
-          <button onclick="applyTextStyle('textAlign', 'center')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-center"></i></button>
-          <button onclick="applyTextStyle('textAlign', 'right')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-right"></i></button>
-          <button onclick="applyTextStyle('textAlign', 'justify')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-justify"></i></button>
-        </div>
-
-        <div class="space-y-1.5 pt-1 border-t border-slate-800">
-          <span class="text-slate-300 font-semibold block">Arka Plan & Renkli Çerçeve</span>
-          <select onchange="applyTextStyle('bgColor', this.value)" class="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-semibold">
-            <option value="transparent" ${(!fs.bgColor || fs.bgColor === 'transparent') ? 'selected' : ''}>Şeffaf (Çerçevesiz)</option>
-            <option value="linear-gradient(135deg, #d97706, #1e1b4b)">🟠 Ayın Konuğu Degrade</option>
-            <option value="linear-gradient(135deg, #4f46e5, #1e1b4b)">🟣 İndigo-Gece Degrade</option>
-            <option value="linear-gradient(135deg, #059669, #064e3b)">🟢 Zümrüt Degrade</option>
-            <option value="linear-gradient(135deg, #e11d48, #4c0519)">🔴 Yakut-Bordo Degrade</option>
-            <option value="#ffffff">⬜ Beyaz Kart</option>
-            <option value="#f8fafc">⚪ Gri Soru Kutusu</option>
-            <option value="#0f172a">⬛ Koyu Lacivert Kutu</option>
-          </select>
-        </div>
-
-        <div class="space-y-1 pt-1">
-          <div class="flex justify-between text-slate-300">
-            <span>Köşe Yuvarlatma (Yarıçap)</span>
-            <span id="inlineLblRadius" class="font-mono text-white">${fs.borderRadius !== undefined ? fs.borderRadius : 8}px</span>
-          </div>
-          <input type="range" min="0" max="60" value="${fs.borderRadius !== undefined ? fs.borderRadius : 8}" oninput="updateInlineFieldTransform('borderRadius', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          <input type="color" value="${fsStyles.color || '#0f172a'}" onchange="updateInlineFieldTransform('color', this.value)" class="w-8 h-8 rounded-lg cursor-pointer border border-slate-300 bg-white shrink-0">
+          <input type="number" min="8" max="120" value="${fsStyles.fontSize || 18}" oninput="updateInlineFieldTransform('fontSize', Number(this.value))" class="w-16 bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono text-center">
+          <button onclick="updateInlineFieldTransform('fontWeight', fsStyles.fontWeight === 'bold' ? 'normal' : 'bold'); renderRightEditorPanel();" class="flex-1 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold">B</button>
+          <button onclick="updateInlineFieldTransform('fontStyle', fsStyles.fontStyle === 'italic' ? 'normal' : 'italic'); renderRightEditorPanel();" class="flex-1 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 italic">I</button>
         </div>
       </div>
     `;
     return;
   }
 
-  // DURUM 1: HİÇBİR ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (FlipHTML5 V2 Birebir)
+  // DURUM 1: HİÇBİR ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (Görsel 2 Birebir)
   if (!el) {
+    const curW = (magazineData && magazineData.pageWidth) ? magazineData.pageWidth : 794;
+    const curH = (magazineData && magazineData.pageHeight) ? magazineData.pageHeight : 1123;
+    const curBg = page.bgColor || '#ffffff';
+
     targetDom.innerHTML = `
-      <!-- Sayfa Boyutu (FlipHTML5 V2: G 794 / 816, Y 1123 / 1056) -->
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2">
+      <!-- Sayfa Boyutu (Görsel 2: G 794 / Y 1123) -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2 text-slate-800">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white flex items-center gap-1">Sayfa Boyutu <i class="ph ph-info text-slate-400"></i></span>
-          <span class="text-[10px] text-slate-400 font-mono">A4 / Özel</span>
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            Sayfa Boyutu <i class="ph ph-info text-slate-400 text-sm"></i>
+          </span>
+          <span class="text-[10.5px] text-slate-500 font-mono">A4 Dikey</span>
         </div>
-        <div class="grid grid-cols-2 gap-2">
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between text-xs">
-            <span class="text-slate-400 font-semibold">G</span>
-            <input type="number" value="${(magazineData && magazineData.pageWidth) ? magazineData.pageWidth : 794}" onchange="updatePageDimensions(this.value, (magazineData && magazineData.pageHeight) ? magazineData.pageHeight : 1123)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none" placeholder="Genişlik">
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-500 font-semibold">G</span>
+            <input type="number" value="${curW}" onchange="updatePageDimensions(this.value, ${curH})" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500" placeholder="794">
           </div>
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between text-xs">
-            <span class="text-slate-400 font-semibold">Y</span>
-            <input type="number" value="${(magazineData && magazineData.pageHeight) ? magazineData.pageHeight : 1123}" onchange="updatePageDimensions((magazineData && magazineData.pageWidth) ? magazineData.pageWidth : 794, this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none" placeholder="Yükseklik">
+          <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+            <span class="text-slate-500 font-semibold">Y</span>
+            <input type="number" value="${curH}" onchange="updatePageDimensions(${curW}, this.value)" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500" placeholder="1123">
           </div>
         </div>
       </div>
 
-      <!-- Renk Şemaları / Tema Paletleri (Gök mavisi, Fern Green, Sıcak Kahverengi, Gece yarısı) -->
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+      <!-- Renk Şemaları (Görsel 2: Gök mavisi, Fern Green, Sıcak Kahverengi, Gece yarısı) -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-slate-800">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white flex items-center gap-1">Renk şemaları <i class="ph ph-info text-slate-400"></i></span>
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            Renk şemaları <i class="ph ph-info text-slate-400 text-sm"></i>
+          </span>
         </div>
-        <div class="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1.5">
-          <i class="ph ph-check-circle-fill text-emerald-400"></i>
-          <span>Tema renkleri algılandı</span>
+        
+        <!-- Algılandı Rozeti -->
+        <div class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-semibold flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <i class="ph ph-check-circle-fill text-emerald-600"></i>
+            <span>Tema renkleri algılandı</span>
+          </span>
+          <i class="ph ph-x text-xs text-emerald-600/70 cursor-pointer"></i>
         </div>
 
+        <!-- 2x2 Renk Şemaları Kartları -->
         <div class="grid grid-cols-2 gap-2">
-          ${FLIP_COLOR_SCHEMES.map(sc => `
-            <button onclick="applyColorSchemeToPage('${sc.id}')" class="p-2.5 rounded-xl border text-left transition hover:scale-[1.02] ${page.accentColor === sc.accent ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-slate-700/80'}" style="background:${sc.bg}; color:${sc.text};">
+          ${FLIP_COLOR_SCHEMES.slice(0, 4).map(sc => `
+            <button onclick="applyColorSchemeToPage('${sc.id}')" class="p-2.5 rounded-xl border text-left transition hover:shadow-sm ${page.accentColor === sc.accent ? 'border-blue-600 ring-2 ring-blue-500/25 bg-white' : 'border-slate-200 bg-white hover:border-slate-300'}" style="color:${sc.text};">
               <div class="font-bold text-xs leading-tight" style="color:${sc.accent}">Başlık</div>
-              <div class="text-[10px] opacity-80 mb-1.5">Metin</div>
-              <div class="flex items-center gap-0.5 h-2.5 rounded overflow-hidden">
+              <div class="text-[10px] text-slate-500 mb-1.5">Metin</div>
+              <div class="flex items-center gap-0.5 h-2.5 rounded overflow-hidden border border-slate-100">
                 ${sc.palette.map(hex => `<span class="flex-1 h-full" style="background:${hex}"></span>`).join('')}
               </div>
-              <div class="text-[10px] font-semibold mt-1.5 truncate opacity-90">${escapeHtml(sc.name)}</div>
+              <div class="text-[10px] font-semibold mt-1.5 truncate text-slate-700">${escapeHtml(sc.name)}</div>
             </button>
           `).join('')}
         </div>
-        <button onclick="showToast('4 Ana Tema hazır. Özel palet için renk seçiciyi kullanabilirsiniz.')" class="w-full py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-semibold transition">
-          + Daha Fazla Renk Şeması
+
+        <button onclick="showToast('4 Ana Tema hazır. Sayfa rengini aşağıdaki Arka Plan paletinden de dilediğiniz gibi seçebilirsiniz.')" class="w-full py-1.5 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold transition shadow-2xs">
+          Daha
         </button>
       </div>
 
-      <!-- Arka Plan (Görüntü | Renk & Tüm Sayfalara Uygula) -->
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
+      <!-- Arka Plan (Görsel 2: Görüntü | Renk & Tüm Sayfalara Uygula) -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-slate-800">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold text-white">Arka Plan</span>
-          <div class="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px]">
-            <button class="px-2 py-0.5 rounded bg-blue-600 text-white font-bold">Renk</button>
-            <label class="px-2 py-0.5 rounded text-slate-400 hover:text-white cursor-pointer font-bold">
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            Arka Plan <i class="ph ph-info text-slate-400 text-sm"></i>
+          </span>
+          <div class="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[10.5px]">
+            <label class="px-2.5 py-0.5 rounded text-slate-600 hover:text-slate-900 cursor-pointer font-medium">
               Görüntü
               <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event)" class="hidden">
             </label>
+            <button class="px-2.5 py-0.5 rounded bg-white text-blue-600 font-bold shadow-2xs">Renk</button>
           </div>
         </div>
-        <div class="flex items-center justify-between text-xs bg-slate-950 p-2 rounded-xl border border-slate-800">
-          <span class="text-slate-300">Bir Renk Seçin</span>
+        <div class="flex items-center justify-between text-xs bg-slate-50 p-2 rounded-lg border border-slate-200">
+          <span class="text-slate-600 font-medium">Bir Renk Seçin</span>
           <div class="flex items-center gap-2">
-            <span class="text-[11px] font-mono text-slate-400">${page.bgColor || '#ffffff'}</span>
-            <input type="color" value="${page.bgColor || '#ffffff'}" onchange="updatePageField('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border border-slate-700 bg-transparent">
+            <span class="text-[11px] font-mono text-slate-500 font-semibold">${curBg}</span>
+            <input type="color" value="${curBg}" onchange="updatePageField('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border border-slate-300 bg-white">
           </div>
         </div>
-        <button onclick="applyBackgroundToAllPages()" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5" title="Seçili rengi tüm sayfalara uygula">
+        <button onclick="applyBackgroundToAllPages()" class="w-full py-2 px-3 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold border border-slate-200 transition flex items-center justify-center gap-1.5">
           <i class="ph ph-copy"></i>
           <span>Tüm Sayfalara Uygula</span>
         </button>
-        <div class="pt-1 border-t border-slate-800 flex items-center justify-between gap-2">
-          <button onclick="switchRightInspectorTab('content')" class="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition">
+        <div class="pt-1 border-t border-slate-100 flex items-center justify-between gap-2">
+          <button onclick="switchRightInspectorTab('content')" class="flex-1 py-1.5 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-medium border border-slate-200 flex items-center justify-center gap-1 transition">
             <i class="ph ph-textbox"></i> Şablon Metinleri
           </button>
-          <button onclick="convertTemplateToFreeformObjects()" class="flex-1 py-2 px-2.5 rounded-xl bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 text-[11px] font-bold flex items-center justify-center gap-1 transition" title="Şablondaki tüm başlık ve fotoğrafları serbest taşınabilir nesnelere dönüştür">
+          <button onclick="convertTemplateToFreeformObjects()" class="flex-1 py-1.5 px-2 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white border border-blue-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition" title="Şablondaki tüm başlık ve fotoğrafları serbest nesnelere dönüştür">
             <i class="ph ph-bounding-box"></i> Serbestleştir
           </button>
         </div>
@@ -5282,170 +5268,181 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
     return;
   }
 
-  // ORTAK ÜST KISIM: BOYUT, KONUM & AÇI (Hizalama İkonları + X, Y, G, Y Kutuları + Dönme Açısı)
+  // ORTAK ÜST KISIM: BOYUT & KONUM (Görsel 3 Birebir: 6'lı Hizalama + X/Y + G/Y + Metni Düzenle)
   const posBoxHtml = `
-    <div class="bg-slate-900 p-3 rounded-2xl border border-blue-500/40 space-y-2.5">
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-slate-800">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-white">Ebat, Pozisyon & Açı</span>
-        <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-500/20 text-blue-300">${escapeHtml(el.type)}</span>
+        <span class="text-xs font-bold text-slate-800">Boyut & Konum</span>
+        <span class="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-blue-50 text-blue-600 font-bold border border-blue-100">${escapeHtml(el.type)}</span>
       </div>
-      <!-- 6'lı Hizalama Barı -->
-      <div class="grid grid-cols-6 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
-        <button onclick="alignSelectedElement('left')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Sola Hizala"><i class="ph ph-align-left text-sm"></i></button>
-        <button onclick="alignSelectedElement('center-x')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Yatay Ortala"><i class="ph ph-align-center-horizontal text-sm"></i></button>
-        <button onclick="alignSelectedElement('right')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Sağa Hizala"><i class="ph ph-align-right text-sm"></i></button>
-        <button onclick="alignSelectedElement('top')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Üste Hizala"><i class="ph ph-align-top text-sm"></i></button>
-        <button onclick="alignSelectedElement('center-y')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Dikey Ortala"><i class="ph ph-align-center-vertical text-sm"></i></button>
-        <button onclick="alignSelectedElement('bottom')" class="p-1.5 rounded hover:bg-slate-800 hover:text-white flex justify-center" title="Alta Hizala"><i class="ph ph-align-bottom text-sm"></i></button>
+
+      <!-- 6'lı Hizalama Araç Çubuğu (Görsel 3) -->
+      <div class="grid grid-cols-6 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 text-slate-600">
+        <button onclick="alignSelectedElement('left')" class="p-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Sola Hizala"><i class="ph ph-align-left text-sm"></i></button>
+        <button onclick="alignSelectedElement('center-x')" class="p-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Yatay Ortala"><i class="ph ph-align-center-horizontal text-sm"></i></button>
+        <button onclick="alignSelectedElement('right')" class="p-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Sağa Hizala"><i class="ph ph-align-right text-sm"></i></button>
+        <button onclick="alignSelectedElement('top')" class="p-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Üste Hizala"><i class="ph ph-align-top text-sm"></i></button>
+        <button onclick="alignSelectedElement('center-y')" class="p-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Dikey Ortala"><i class="ph ph-align-center-vertical text-sm"></i></button>
+        <button onclick="alignSelectedElement('bottom')" class="p-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Alta Hizala"><i class="ph ph-align-bottom text-sm"></i></button>
       </div>
-      <!-- X, Y (Pozisyon) ve G, Y (Ebat) Kutuları -->
+
+      <!-- X, Y ve G, Y Koordinat / Ebat Kutuları (Görsel 3 Birebir) -->
       <div class="grid grid-cols-2 gap-2 text-xs">
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yatay Pozisyon (%)">
-          <span class="text-slate-400 font-semibold">Konum X</span>
-          <input type="number" value="${Math.round(el.x || 0)}" oninput="updateSelectedElementNumeric('x', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">X</span>
+          <input type="number" value="${Math.round(el.x || 0)}" oninput="updateSelectedElementNumeric('x', this.value)" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
         </div>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Dikey Pozisyon (%)">
-          <span class="text-slate-400 font-semibold">Konum Y</span>
-          <input type="number" value="${Math.round(el.y || 0)}" oninput="updateSelectedElementNumeric('y', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">Y</span>
+          <input type="number" value="${Math.round(el.y || 0)}" oninput="updateSelectedElementNumeric('y', this.value)" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
         </div>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Genişlik (%)">
-          <span class="text-slate-400 font-semibold">Ebat G</span>
-          <input type="number" value="${Math.round(el.width || 30)}" oninput="updateSelectedElementNumeric('width', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">G</span>
+          <input type="number" value="${Math.round(el.width || 30)}" oninput="updateSelectedElementNumeric('width', this.value)" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
         </div>
-        <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between" title="Yükseklik (%)">
-          <span class="text-slate-400 font-semibold">Ebat Y</span>
-          <input type="number" value="${Math.round(el.height || 20)}" oninput="updateSelectedElementNumeric('height', this.value)" class="w-14 bg-transparent text-right text-white font-mono focus:outline-none">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between">
+          <span class="text-slate-500 font-semibold">Y</span>
+          <input type="number" value="${Math.round(el.height || 20)}" oninput="updateSelectedElementNumeric('height', this.value)" class="w-16 bg-white border border-slate-200 rounded px-1.5 py-0.5 text-right text-slate-800 font-mono text-xs focus:outline-none focus:border-blue-500">
         </div>
       </div>
+
+      <!-- Metni Düzenle Butonu + Kalp İkonu (Görsel 3 Birebir) -->
+      <div class="flex items-center gap-1.5 pt-0.5">
+        <button onclick="focusSelectedElementText()" class="flex-1 py-1.5 px-3 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-2xs">
+          <span>Metni Düzenle</span>
+        </button>
+        <button onclick="toggleFavoriteElement('${el.id}')" class="p-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-500 hover:text-rose-500 transition shadow-2xs" title="Favorilere Ekle">
+          <i class="ph ph-heart text-base"></i>
+        </button>
+      </div>
+
       <!-- Dönme Açısı (0° - 360°) -->
-      <div class="pt-1 border-t border-slate-800 space-y-1.5 text-xs">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-300 font-semibold">Dönme (Açı)</span>
-          <span class="font-mono font-bold text-blue-400">${el.rotate || 0}°</span>
+      <div class="pt-1.5 border-t border-slate-100 space-y-1 text-xs">
+        <div class="flex items-center justify-between text-slate-600">
+          <span>Dönme (Açı)</span>
+          <span class="font-mono font-bold text-blue-600">${el.rotate || 0}°</span>
         </div>
-        <input type="range" min="0" max="360" value="${el.rotate || 0}" oninput="updateSelectedElementStyleLive('rotate', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
-        <div class="grid grid-cols-5 gap-1 pt-0.5">
-          <button onclick="updateSelectedElementStyleLive('rotate', 345); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-15°</button>
-          <button onclick="updateSelectedElementStyleLive('rotate', 355); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">-5°</button>
-          <button onclick="updateSelectedElementStyleLive('rotate', 0); renderRightEditorPanel();" class="py-1 rounded bg-blue-600/20 hover:bg-blue-600 text-[10px] text-blue-300 hover:text-white font-bold">0°</button>
-          <button onclick="updateSelectedElementStyleLive('rotate', 5); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+5°</button>
-          <button onclick="updateSelectedElementStyleLive('rotate', 15); renderRightEditorPanel();" class="py-1 rounded bg-slate-950 hover:bg-slate-800 text-[10px] text-slate-300 font-mono">+15°</button>
-        </div>
+        <input type="range" min="0" max="360" value="${el.rotate || 0}" oninput="updateSelectedElementStyleLive('rotate', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
       </div>
     </div>
   `;
 
-  // DURUM 2: METİN / KART / SORU KUTUSU SEÇİLİYSE (Görsel 2 & 3 Birebir)
+  // DURUM 2: METİN / KART / SORU KUTUSU SEÇİLİYSE (Görsel 3 Birebir)
   if (el.type === 'text' || el.type === 'card' || el.type === 'qbox') {
+    const curFont = el.fontFamily || 'Inter';
+    const curColor = (el.color && el.color.startsWith('#')) ? el.color : '#0f172a';
+    const curSize = Number(el.fontSize) || 16;
+
     targetDom.innerHTML = posBoxHtml + `
-      <!-- Metin Tipografi Kutusu (Görsel 2) -->
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
-        <span class="text-xs font-bold text-white block">Metin</span>
-        <select onchange="applyTextStyle('fontFamily', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white">
-          <option value="Inter" ${el.fontFamily === 'Inter' ? 'selected' : ''}>Inter-Regular</option>
-          <option value="'Playfair Display', serif" ${el.fontFamily?.includes('Playfair') ? 'selected' : ''}>Playfair Display</option>
-          <option value="'Cinzel', serif" ${el.fontFamily?.includes('Cinzel') ? 'selected' : ''}>Cinzel Decorative</option>
-          <option value="'Merriweather', serif" ${el.fontFamily?.includes('Merriweather') ? 'selected' : ''}>Merriweather Serif</option>
-          <option value="'Plus Jakarta Sans', sans-serif" ${el.fontFamily?.includes('Jakarta') ? 'selected' : ''}>Plus Jakarta Sans</option>
-          <option value="'Caveat', cursive" ${el.fontFamily?.includes('Caveat') ? 'selected' : ''}>Caveat Handwriting</option>
-          <option value="monospace" ${el.fontFamily === 'monospace' ? 'selected' : ''}>Monospace Code</option>
+      <!-- Metin Tipografi Kutusu (Görsel 3) -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-slate-800">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            Metin <i class="ph ph-info text-slate-400 text-sm"></i>
+          </span>
+        </div>
+
+        <!-- Yazı Tipi Dropdown (Görsel 3: Niconne-Regular / Standartlar) -->
+        <select onchange="applyTextStyle('fontFamily', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium focus:outline-none focus:border-blue-500">
+          <option value="Inter" ${curFont === 'Inter' ? 'selected' : ''}>Inter-Regular</option>
+          <option value="'Playfair Display', serif" ${curFont.includes('Playfair') ? 'selected' : ''}>Playfair Display</option>
+          <option value="'Cinzel', serif" ${curFont.includes('Cinzel') ? 'selected' : ''}>Cinzel-Regular</option>
+          <option value="'Merriweather', serif" ${curFont.includes('Merriweather') ? 'selected' : ''}>Merriweather</option>
+          <option value="'Plus Jakarta Sans', sans-serif" ${curFont.includes('Jakarta') ? 'selected' : ''}>Plus Jakarta Sans</option>
+          <option value="'Caveat', cursive" ${curFont.includes('Caveat') ? 'selected' : ''}>Caveat (El Yazısı)</option>
+          <option value="'Montserrat', sans-serif" ${curFont.includes('Montserrat') ? 'selected' : ''}>Montserrat</option>
+          <option value="'Roboto', sans-serif" ${curFont.includes('Roboto') ? 'selected' : ''}>Roboto</option>
         </select>
 
-        <!-- Renk + Punto + (- / +) Butonları (Görsel 2) -->
-        <div class="flex items-center gap-2">
-          <input type="color" value="${(el.color && el.color.startsWith('#')) ? el.color : '#0f172a'}" onchange="applyTextStyle('color', this.value)" class="w-9 h-8 rounded-lg cursor-pointer border border-slate-700 bg-transparent shrink-0">
-          <input type="number" value="${el.fontSize || 14}" oninput="applyTextStyle('fontSize', Number(this.value))" class="w-16 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-mono text-center">
-          <button onclick="applyTextStyle('fontSize', Math.max(8, (Number(el.fontSize)||14) - 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">−</button>
-          <button onclick="applyTextStyle('fontSize', Math.min(96, (Number(el.fontSize)||14) + 2)); renderRightEditorPanel();" class="flex-1 py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-white font-bold text-xs">+</button>
+        <!-- Renk Kutusu + Punto + (- / +) (Görsel 3) -->
+        <div class="flex items-center gap-1.5">
+          <input type="color" value="${curColor}" onchange="applyTextStyle('color', this.value)" class="w-8 h-8 rounded-lg cursor-pointer border border-slate-300 bg-white shrink-0">
+          <input type="number" min="8" max="144" value="${curSize}" oninput="applyTextStyle('fontSize', Number(this.value))" class="w-16 bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-800 font-mono text-center focus:outline-none focus:border-blue-500">
+          <button onclick="applyTextStyle('fontSize', Math.max(8, ${curSize} - 2)); renderRightEditorPanel();" class="flex-1 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs">−</button>
+          <button onclick="applyTextStyle('fontSize', Math.min(144, ${curSize} + 2)); renderRightEditorPanel();" class="flex-1 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-800 font-bold text-xs">+</button>
         </div>
 
-        <!-- B, I, U, S, Aa, AA, aa (Görsel 2) -->
-        <div class="grid grid-cols-7 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs text-slate-200">
-          <button onclick="applyTextFormat('bold')" class="py-1.5 rounded hover:bg-slate-800 font-bold">B</button>
-          <button onclick="applyTextFormat('italic')" class="py-1.5 rounded hover:bg-slate-800 italic font-serif">I</button>
-          <button onclick="applyTextFormat('underline')" class="py-1.5 rounded hover:bg-slate-800 underline">U</button>
-          <button onclick="applyTextFormat('strikeThrough')" class="py-1.5 rounded hover:bg-slate-800 line-through">S</button>
-          <button onclick="setSelectedTextTransform('capitalize')" class="py-1.5 rounded hover:bg-slate-800 font-semibold">Aa</button>
-          <button onclick="setSelectedTextTransform('uppercase')" class="py-1.5 rounded hover:bg-slate-800 font-semibold">AA</button>
-          <button onclick="setSelectedTextTransform('lowercase')" class="py-1.5 rounded hover:bg-slate-800 font-semibold">aa</button>
+        <!-- B, I, U, S, Aa, AA, aa Satırı (Görsel 3) -->
+        <div class="grid grid-cols-7 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 text-xs text-slate-700">
+          <button onclick="applyTextFormat('bold')" class="py-1 rounded hover:bg-white hover:shadow-2xs font-bold transition">B</button>
+          <button onclick="applyTextFormat('italic')" class="py-1 rounded hover:bg-white hover:shadow-2xs italic font-serif transition">I</button>
+          <button onclick="applyTextFormat('underline')" class="py-1 rounded hover:bg-white hover:shadow-2xs underline transition">U</button>
+          <button onclick="applyTextFormat('strikeThrough')" class="py-1 rounded hover:bg-white hover:shadow-2xs line-through transition">S</button>
+          <button onclick="setSelectedTextTransform('capitalize')" class="py-1 rounded hover:bg-white hover:shadow-2xs font-semibold transition">Aa</button>
+          <button onclick="setSelectedTextTransform('uppercase')" class="py-1 rounded hover:bg-white hover:shadow-2xs font-semibold transition">AA</button>
+          <button onclick="setSelectedTextTransform('lowercase')" class="py-1 rounded hover:bg-white hover:shadow-2xs font-semibold transition">aa</button>
         </div>
 
-        <!-- Paragraf Hizalama (Sol, Orta, Sağ, İki Yana) -->
-        <div class="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-300">
-          <button onclick="applyTextStyle('textAlign', 'left')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-left"></i></button>
-          <button onclick="applyTextStyle('textAlign', 'center')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-center"></i></button>
-          <button onclick="applyTextStyle('textAlign', 'right')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-right"></i></button>
-          <button onclick="applyTextStyle('textAlign', 'justify')" class="py-1.5 rounded hover:bg-slate-800 flex justify-center"><i class="ph ph-text-align-justify"></i></button>
+        <!-- Paragraf Hizalama & Aralık İkonları (Görsel 3) -->
+        <div class="grid grid-cols-7 gap-1 bg-slate-50 p-1 rounded-lg border border-slate-200 text-slate-600">
+          <button onclick="applyTextStyle('textAlign', 'left')" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Sola Hizala"><i class="ph ph-text-align-left"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'center')" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Ortala"><i class="ph ph-text-align-center"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'right')" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Sağa Hizala"><i class="ph ph-text-align-right"></i></button>
+          <button onclick="applyTextStyle('textAlign', 'justify')" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="İki Yana Yasla"><i class="ph ph-text-align-justify"></i></button>
+          <button onclick="toggleBulletList()" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Madde İşaretli Liste"><i class="ph ph-list-bullets"></i></button>
+          <button onclick="cycleLineHeight()" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Satır Yüksekliği"><i class="ph ph-arrows-out-line-vertical"></i></button>
+          <button onclick="cycleLetterSpacing()" class="py-1 rounded hover:bg-white hover:text-blue-600 hover:shadow-2xs flex justify-center transition" title="Harf Aralığı"><i class="ph ph-arrows-out-line-horizontal"></i></button>
         </div>
 
-        <button onclick="applyBulkFontToPage(el?.fontFamily || 'Inter')" class="w-full py-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 transition">
-          Toplu Yazı Tipi Ayarı (Tüm Sayfaya Uygula)
+        <!-- Alt Simge & Girinti (Görsel 3) -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button onclick="applySubscript()" class="py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold flex items-center justify-center gap-1 transition">
+            <span>X₂</span> <span class="text-[10.5px]">Alt Simge</span>
+          </button>
+          <button onclick="stepIndent()" class="py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold flex items-center justify-center gap-1 transition">
+            <i class="ph ph-text-indent"></i> <span class="text-[10.5px]">Girinti</span>
+          </button>
+        </div>
+
+        <!-- Toplu Yazı Tipi Ayarı Butonu (Görsel 3 Birebir) -->
+        <button onclick="applyBulkFontToPage(el?.fontFamily || 'Inter')" class="w-full py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-800 transition shadow-2xs">
+          Toplu Yazı Tipi Ayarı
         </button>
       </div>
 
-      <!-- Aralık Slider'ları: Harf Aralığı, Satır Aralığı, Paragraf Aralığı (Görsel 3 Birebir) -->
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3 text-xs">
-        <span class="font-bold text-white block">Aralık</span>
+      <!-- Aralık & Vurgular Kutusu -->
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs text-slate-800">
+        <span class="font-bold text-slate-800 block">Aralık & Arka Plan</span>
         <div class="space-y-1">
-          <div class="flex justify-between text-[11px] text-slate-300">
+          <div class="flex justify-between text-[11px] text-slate-600">
             <span>Harf Aralığı</span>
-            <span class="font-mono text-white">${el.letterSpacing || 0}px</span>
+            <span class="font-mono text-slate-800 font-semibold">${el.letterSpacing || 0}px</span>
           </div>
-          <input type="range" min="-2" max="15" step="0.5" value="${el.letterSpacing || 0}" oninput="updateSelectedElementStyleLive('letterSpacing', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          <input type="range" min="-2" max="15" step="0.5" value="${el.letterSpacing || 0}" oninput="updateSelectedElementStyleLive('letterSpacing', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
         </div>
         <div class="space-y-1">
-          <div class="flex justify-between text-[11px] text-slate-300">
+          <div class="flex justify-between text-[11px] text-slate-600">
             <span>Satır Aralığı</span>
-            <span class="font-mono text-white">${el.lineHeight || 1.32}</span>
+            <span class="font-mono text-slate-800 font-semibold">${el.lineHeight || 1.32}</span>
           </div>
-          <input type="range" min="0.9" max="2.6" step="0.05" value="${el.lineHeight || 1.32}" oninput="updateSelectedElementStyleLive('lineHeight', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+          <input type="range" min="0.9" max="2.6" step="0.05" value="${el.lineHeight || 1.32}" oninput="updateSelectedElementStyleLive('lineHeight', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
         </div>
-      </div>
 
-      <!-- Aç/Kapat Anahtarları: Arka Plan, Sütun Düzeni, Kaydırma Çubuğu, Gölge, Kontur (Görsel 3 Birebir) -->
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5 text-xs">
-        <div class="space-y-2 pb-2 border-b border-slate-800">
-          <span class="text-slate-200 font-semibold block">Arka Plan & Renkli Çerçeve</span>
-          <select onchange="applyTextStyle('bgColor', this.value)" class="w-full bg-slate-950 border border-amber-500/40 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-semibold">
+        <div class="space-y-2 pt-1 border-t border-slate-100">
+          <span class="text-slate-700 font-semibold block">Kutu Arka Planı</span>
+          <select onchange="applyTextStyle('bgColor', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-medium">
             <option value="transparent" ${(!el.bgColor || el.bgColor === 'transparent') ? 'selected' : ''}>Şeffaf (Çerçevesiz)</option>
-            <option value="linear-gradient(135deg, #d97706, #1e1b4b)">🟠 Ayın Konuğu Degrade</option>
-            <option value="linear-gradient(135deg, #4f46e5, #1e1b4b)">🟣 İndigo-Gece Degrade</option>
-            <option value="linear-gradient(135deg, #059669, #064e3b)">🟢 Zümrüt Degrade</option>
-            <option value="linear-gradient(135deg, #e11d48, #4c0519)">🔴 Yakut-Bordo Degrade</option>
-            <option value="#ffffff">⬜ Beyaz Kart</option>
-            <option value="#f8fafc">⚪ Gri Soru Kutusu</option>
-            <option value="#0f172a">⬛ Koyu Lacivert Kutu</option>
+            <option value="#ffffff" ${el.bgColor === '#ffffff' ? 'selected' : ''}>⬜ Beyaz Kart</option>
+            <option value="#f8fafc" ${el.bgColor === '#f8fafc' ? 'selected' : ''}>⚪ Gri Soru Kutusu</option>
+            <option value="#fef3c7" ${el.bgColor === '#fef3c7' ? 'selected' : ''}>🟡 Sarı Not Kağıdı</option>
+            <option value="#e0f2fe" ${el.bgColor === '#e0f2fe' ? 'selected' : ''}>🔵 Açık Mavi Vurgu</option>
+            <option value="#dcfce7" ${el.bgColor === '#dcfce7' ? 'selected' : ''}>🟢 Açık Zümrüt Kutu</option>
+            <option value="#0f172a" ${el.bgColor === '#0f172a' ? 'selected' : ''}>⬛ Koyu Lacivert Kutu</option>
           </select>
         </div>
 
-        <div class="flex items-center justify-between py-1">
-          <span class="text-slate-200">2 Sütunlu Gazete Düzeni</span>
+        <div class="flex items-center justify-between pt-1">
+          <span class="text-slate-700 font-medium">2 Sütunlu Gazete Düzeni</span>
           <label class="studio-switch">
             <input type="checkbox" ${Number(el.columns) > 1 ? 'checked' : ''} onchange="updateSelectedElementStyleLive('columns', this.checked ? 2 : 1)">
             <span class="studio-switch-slider"></span>
           </label>
         </div>
 
-        <div class="flex items-center justify-between py-1">
-          <span class="text-slate-200">Kaydırma Çubuğu</span>
-          <label class="studio-switch">
-            <input type="checkbox" ${el.scrollable ? 'checked' : ''} onchange="updateSelectedElementStyleLive('scrollable', this.checked)">
-            <span class="studio-switch-slider"></span>
-          </label>
-        </div>
-
-        <div class="flex items-center justify-between py-1">
-          <span class="text-slate-200">Gölge</span>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-700 font-medium">Gölge (Drop Shadow)</span>
           <label class="studio-switch">
             <input type="checkbox" ${el.hasShadow ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasShadow', this.checked)">
-            <span class="studio-switch-slider"></span>
-          </label>
-        </div>
-
-        <div class="flex items-center justify-between py-1">
-          <span class="text-slate-200">Kontur (Kenar Çizgisi)</span>
-          <label class="studio-switch">
-            <input type="checkbox" ${el.hasStroke ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasStroke', this.checked)">
             <span class="studio-switch-slider"></span>
           </label>
         </div>
@@ -5457,64 +5454,50 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
   // DURUM 3: GÖRÜNTÜ / ŞEKİL / TABLO / BUTON SEÇİLİYSE (Görsel 5 & 6 Birebir)
   targetDom.innerHTML = posBoxHtml + `
     ${el.type === 'image' ? `
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2">
-        <label class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-white flex items-center justify-center gap-2 cursor-pointer transition">
-          <i class="ph ph-arrows-left-right"></i> Değiştir / Resim Yükle
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2 text-slate-800">
+        <label class="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm transition">
+          <i class="ph ph-camera"></i> Değiştir / Resim Yükle
           <input type="file" accept="image/*" onchange="uploadCanvasElementImage(event, '${el.id}')" class="hidden">
         </label>
-        <button onclick="toggleImageFitMode('${el.id}')" class="w-full py-2 px-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-200 flex items-center justify-center gap-2 transition">
+        <button onclick="toggleImageFitMode('${el.id}')" class="w-full py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-center gap-2 transition">
           <i class="ph ph-crop"></i> Kırp / Sığdırma Modu (${el.objectFit === 'contain' ? 'Tam Sığdır' : 'Kutuyu Doldur'})
         </button>
-        <button onclick="setElementImageAsPageBg('${el.id}')" class="w-full py-2 px-3 rounded-xl bg-blue-600/15 hover:bg-blue-600/30 border border-blue-500/30 text-xs font-semibold text-blue-300 flex items-center justify-center gap-2 transition">
+        <button onclick="setElementImageAsPageBg('${el.id}')" class="w-full py-2 px-3 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-center gap-2 transition">
           <i class="ph ph-frame-corners"></i> Arka Plan Olarak Ayarla
         </button>
       </div>
     ` : ''}
 
-    ${el.type === 'table' ? `
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs">
-        <span class="font-bold text-white block">Tablo Ayarları</span>
-        <div class="flex items-center justify-between">
-          <span class="text-slate-300">Başlık Çubuğu Rengi</span>
-          <input type="color" value="${el.headerBg || '#7f1d1d'}" onchange="updateSelectedElementStyleLive('headerBg', this.value)" class="w-8 h-7 rounded cursor-pointer border-0 bg-transparent">
-        </div>
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <button onclick="addTableRow('${el.id}')" class="py-1.5 px-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white font-bold">+ Satır Ekle</button>
-          <button onclick="removeTableRow('${el.id}')" class="py-1.5 px-2 rounded-xl bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white font-bold">− Satır Sil</button>
-        </div>
-      </div>
-    ` : ''}
-
     ${(el.type === 'shape' || el.type === 'button' || el.type === 'hotspot') ? `
-      <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2 text-xs">
-        <span class="font-bold text-white block">Renk & Etiket</span>
+      <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-2.5 text-xs text-slate-800">
+        <span class="font-bold text-slate-800 block">Renk & Etiket</span>
         <div class="flex items-center justify-between">
-          <span class="text-slate-300">Dolgu Rengi</span>
-          <input type="color" value="${(el.bgColor && el.bgColor.startsWith('#')) ? el.bgColor : '#881337'}" onchange="updateSelectedElementStyleLive('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border-0 bg-transparent">
+          <span class="text-slate-600 font-medium">Dolgu Rengi</span>
+          <input type="color" value="${(el.bgColor && el.bgColor.startsWith('#')) ? el.bgColor : '#0284c7'}" onchange="updateSelectedElementStyleLive('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border border-slate-300 bg-white">
         </div>
         ${el.type === 'button' ? `
           <div>
-            <span class="text-slate-300 block mb-1">Düğme Metni</span>
-            <input type="text" value="${escapeAttr(el.label || 'İNCELE')}" oninput="updateSelectedElementStyleLive('label', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 text-white">
+            <span class="text-slate-600 block mb-1 font-medium">Düğme Metni</span>
+            <input type="text" value="${escapeAttr(el.label || 'İNCELE')}" oninput="updateSelectedElementStyleLive('label', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-800 text-xs font-semibold">
           </div>
         ` : ''}
       </div>
     ` : ''}
 
-    <!-- Görsel 6: Yarıçap, Katman Maskesi, Saydamlık, Dönme, Gölge -->
-    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3 text-xs">
+    <!-- Köşe Yuvarlatma, Saydamlık, Gölge -->
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-xs text-slate-800">
       <div class="space-y-1">
-        <div class="flex justify-between text-slate-300">
+        <div class="flex justify-between text-slate-600">
           <span>Yarıçap (Köşe Yuvarlatma)</span>
-          <span class="font-mono text-white">${el.borderRadius !== undefined ? el.borderRadius : 12}px</span>
+          <span class="font-mono text-slate-800 font-bold">${el.borderRadius !== undefined ? el.borderRadius : 12}px</span>
         </div>
-        <input type="range" min="0" max="120" value="${el.borderRadius !== undefined ? el.borderRadius : 12}" oninput="updateSelectedElementStyleLive('borderRadius', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+        <input type="range" min="0" max="120" value="${el.borderRadius !== undefined ? el.borderRadius : 12}" oninput="updateSelectedElementStyleLive('borderRadius', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
       </div>
 
       ${el.type === 'image' ? `
         <div class="flex items-center justify-between">
-          <span class="text-slate-300">Katman Maskesi</span>
-          <select onchange="updateSelectedElementStyleLive('mask', this.value)" class="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-white">
+          <span class="text-slate-600 font-medium">Katman Maskesi</span>
+          <select onchange="updateSelectedElementStyleLive('mask', this.value)" class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-slate-800 font-medium">
             <option value="none" ${(!el.mask || el.mask === 'none') ? 'selected' : ''}>Yok (Normal)</option>
             <option value="circle" ${el.mask === 'circle' ? 'selected' : ''}>⬤ Daire Maske</option>
             <option value="ellipse" ${el.mask === 'ellipse' ? 'selected' : ''}>⬭ Elips Maske</option>
@@ -5526,30 +5509,22 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
       ` : ''}
 
       <div class="space-y-1">
-        <div class="flex justify-between text-slate-300">
+        <div class="flex justify-between text-slate-600">
           <span>Saydamlık (Opacity)</span>
-          <span class="font-mono text-white">${el.opacity !== undefined ? el.opacity : 100}%</span>
+          <span class="font-mono text-slate-800 font-bold">${el.opacity !== undefined ? el.opacity : 100}%</span>
         </div>
-        <input type="range" min="10" max="100" value="${el.opacity !== undefined ? el.opacity : 100}" oninput="updateSelectedElementStyleLive('opacity', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
-      </div>
-
-      <div class="space-y-1">
-        <div class="flex justify-between text-slate-300">
-          <span>Dönme (Açı)</span>
-          <span class="font-mono text-white">${el.rotate || 0}°</span>
-        </div>
-        <input type="range" min="0" max="360" value="${el.rotate || 0}" oninput="updateSelectedElementStyleLive('rotate', Number(this.value))" class="w-full accent-blue-500 cursor-pointer">
+        <input type="range" min="10" max="100" value="${el.opacity !== undefined ? el.opacity : 100}" oninput="updateSelectedElementStyleLive('opacity', Number(this.value))" class="w-full accent-blue-600 cursor-pointer">
       </div>
 
       <div class="flex items-center justify-between pt-1">
-        <span class="text-slate-200">Gölge (Drop Shadow)</span>
+        <span class="text-slate-700 font-medium">Gölge (Drop Shadow)</span>
         <label class="studio-switch">
           <input type="checkbox" ${el.hasShadow ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasShadow', this.checked)">
           <span class="studio-switch-slider"></span>
         </label>
       </div>
 
-      <button onclick="syncElementAcrossAllPages('${el.id}')" class="w-full py-1.5 px-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[11px] font-semibold text-slate-300 transition">
+      <button onclick="syncElementAcrossAllPages('${el.id}')" class="w-full py-1.5 px-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-[11px] font-semibold text-slate-700 transition">
         Çoklu Sayfa Senkronizasyonu (Tüm Sayfalara Kopyala)
       </button>
     </div>
@@ -5557,7 +5532,7 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
 }
 
 // ==========================================
-// FAZ 5: "EYLEMLER (ACTIONS)" ETKİLEŞİM PANELİ & MOTORU (Görsel 4 & 7 Birebir)
+// FAZ 5: FLIPHTML5 V2 BİREBİR EYLEMLER (ACTIONS) PANELİ & MOTORU
 // ==========================================
 const STUDIO_ACTION_TYPES = [
   { id: 'link', name: 'Bağlantıyı Aç', icon: 'ph-link' },
@@ -5568,7 +5543,8 @@ const STUDIO_ACTION_TYPES = [
   { id: 'lightbox', name: 'Açılır Resim', icon: 'ph-image-square' },
   { id: 'message', name: 'Açılır Mesaj', icon: 'ph-envelope-open' },
   { id: 'toggleTarget', name: 'Göster/Gizle', icon: 'ph-eye' },
-  { id: 'video', name: 'Video Aç', icon: 'ph-play-circle' }
+  { id: 'video', name: 'Video Aç', icon: 'ph-play-circle' },
+  { id: 'audio', name: 'Ses Çal', icon: 'ph-speaker-high' }
 ];
 
 function renderContextActionsInspector(page, isEditable, targetDom) {
@@ -5576,13 +5552,18 @@ function renderContextActionsInspector(page, isEditable, targetDom) {
 
   if (!el) {
     targetDom.innerHTML = `
-      <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 text-center space-y-2.5">
-        <i class="ph ph-cursor-click text-3xl text-blue-400"></i>
-        <div class="text-xs font-bold text-white">Etkileşim Atamak İçin Bir Öğe Seçin</div>
-        <p class="text-[11px] text-slate-400 leading-relaxed">Sayfa üzerindeki bir metin kutusuna, resme, düğmeye veya sıcak noktaya tıklayarak ona <strong>Bağlantı Aç, Sayfaya Git, Açılır Pencere, Açılır Resim</strong> veya <strong>Video Aç</strong> eylemi verebilirsiniz.</p>
+      <div class="bg-white p-5 rounded-xl border border-slate-200 text-center space-y-3 shadow-sm text-slate-800">
+        <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mx-auto text-2xl">
+          <i class="ph ph-cursor-click"></i>
+        </div>
+        <div class="text-xs font-bold text-slate-800">Etkileşim Atamak İçin Bir Öğe Seçin</div>
+        <p class="text-[11px] text-slate-500 leading-relaxed">
+          Sayfa üzerindeki bir metin kutusuna, resme, düğmeye veya sıcak noktaya tıklayarak ona 
+          <strong>Bağlantı Aç, Sayfaya Git, Açılır Pencere, Açılır Resim</strong> veya <strong>Video Aç</strong> eylemi atayabilirsiniz.
+        </p>
         <div class="pt-1 flex gap-2 justify-center">
-          <button onclick="addCanvasElement('button')" class="px-3 py-1.5 rounded-xl bg-blue-600 text-white text-xs font-bold">+ Düğme Ekle</button>
-          <button onclick="addCanvasElement('hotspot')" class="px-3 py-1.5 rounded-xl bg-rose-600 text-white text-xs font-bold">+ Sıcak Nokta</button>
+          <button onclick="addCanvasElement('button')" class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition">+ Düğme Ekle</button>
+          <button onclick="addCanvasElement('hotspot')" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm transition">+ Sıcak Nokta</button>
         </div>
       </div>
     `;
@@ -5592,31 +5573,81 @@ function renderContextActionsInspector(page, isEditable, targetDom) {
   const currentAct = el.actionType || 'none';
 
   targetDom.innerHTML = `
-    <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-3">
+    <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm space-y-3 text-slate-800">
       <div class="flex items-center justify-between">
-        <span class="text-xs font-bold text-white">Bir Eylem Seçin</span>
-        ${currentAct !== 'none' ? `<button onclick="setElementActionType('none')" class="text-[10.5px] text-rose-400 hover:underline flex items-center gap-1"><i class="ph ph-trash"></i> Temizle</button>` : ''}
+        <span class="text-xs font-bold text-slate-800">Bir Eylem Seçin</span>
+        ${currentAct !== 'none' ? `<button onclick="setElementActionType('none')" class="text-[10.5px] text-rose-600 hover:underline flex items-center gap-1 font-semibold"><i class="ph ph-trash"></i> Temizle</button>` : ''}
       </div>
 
-      <!-- Tetikleyici Türü (Görsel 4: Tıklandığında Tetikle) -->
-      <select onchange="updateSelectedElementStyleLive('actionTrigger', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-semibold">
+      <!-- Tetikleyici Türü (Tıklandığında / Üzerine Gelindiğinde) -->
+      <select onchange="updateSelectedElementStyleLive('actionTrigger', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none focus:border-blue-500">
         <option value="click" ${(!el.actionTrigger || el.actionTrigger === 'click') ? 'selected' : ''}>Tıklandığında Tetikle</option>
         <option value="hover" ${el.actionTrigger === 'hover' ? 'selected' : ''}>Üzerine Gelindiğinde Tetikle</option>
       </select>
 
-      <!-- 9 Eylem Kartı Grid (Görsel 4 & 7 Birebir) -->
+      <!-- 10 Eylem Kartı Grid (FlipHTML5 Birebir) -->
       <div class="grid grid-cols-2 gap-2">
         ${STUDIO_ACTION_TYPES.map(act => `
-          <button onclick="setElementActionType('${act.id}')" class="p-3 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition relative ${currentAct === act.id ? 'bg-blue-600/25 border-blue-500 text-white shadow-lg' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'}">
-            <span class="absolute top-1.5 right-1.5 w-3.5 h-3.5 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center text-[8px]">♛</span>
-            <i class="ph ${act.icon} text-xl ${currentAct === act.id ? 'text-blue-400' : 'text-slate-300'}"></i>
-            <span class="text-[11px] font-semibold text-center leading-tight">${escapeHtml(act.name)}</span>
+          <button onclick="setElementActionType('${act.id}')" class="p-2.5 rounded-xl border flex flex-col items-center justify-center gap-1.5 transition relative ${currentAct === act.id ? 'bg-blue-50 border-blue-600 text-blue-700 ring-2 ring-blue-500/20 font-bold shadow-xs' : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50 font-medium'}">
+            <i class="ph ${act.icon} text-lg ${currentAct === act.id ? 'text-blue-600' : 'text-slate-500'}"></i>
+            <span class="text-[11px] text-center leading-tight">${escapeHtml(act.name)}</span>
           </button>
         `).join('')}
       </div>
 
       <!-- Seçilen Eylemin Detay Ayar Kutusu -->
       ${renderActionDetailConfigHTML(el)}
+
+      <!-- Yanıp Sönen Hatırlatıcı Bölümü (FlipHTML5 Master Blueprint) -->
+      <div class="pt-3 border-t border-slate-200 space-y-2.5 text-xs text-slate-800">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="ph ph-bell-ringing text-amber-500 text-sm"></i>
+            <span>Yanıp sönen hatırlatıcı</span>
+          </span>
+          <label class="studio-switch">
+            <input type="checkbox" ${el.hasBlinkingWave ? 'checked' : ''} onchange="updateSelectedElementStyleLive('hasBlinkingWave', this.checked)">
+            <span class="studio-switch-slider"></span>
+          </label>
+        </div>
+
+        ${el.hasBlinkingWave ? `
+          <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600 font-medium">Yanıp sönme rengi</span>
+              <input type="color" value="${el.blinkingColor || '#2563eb'}" onchange="updateSelectedElementStyleLive('blinkingColor', this.value)" class="w-7 h-6 rounded cursor-pointer border border-slate-300 bg-white">
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-slate-600 font-medium">Yanıp Sönme Süresi</span>
+              <select onchange="updateSelectedElementStyleLive('blinkingDuration', this.value)" class="bg-white border border-slate-300 rounded px-2 py-0.5 text-xs font-semibold">
+                <option value="2.4" ${el.blinkingDuration === '2.4' ? 'selected' : ''}>2.4 s</option>
+                <option value="4" ${(!el.blinkingDuration || el.blinkingDuration === '4') ? 'selected' : ''}>4 s</option>
+                <option value="5" ${el.blinkingDuration === '5' ? 'selected' : ''}>5 s</option>
+                <option value="6" ${el.blinkingDuration === '6' ? 'selected' : ''}>6 s</option>
+                <option value="8" ${el.blinkingDuration === '8' ? 'selected' : ''}>8 s</option>
+                <option value="10" ${el.blinkingDuration === '10' ? 'selected' : ''}>10 s</option>
+                <option value="12" ${el.blinkingDuration === '12' ? 'selected' : ''}>12 s</option>
+              </select>
+            </div>
+            <div class="flex items-center justify-between pt-1 border-t border-slate-200/60">
+              <span class="text-[10.5px] text-slate-600">Tıklamada yeniden başlat</span>
+              <label class="studio-switch">
+                <input type="checkbox" ${el.restartBlinkOnClick ? 'checked' : ''} onchange="updateSelectedElementStyleLive('restartBlinkOnClick', this.checked)">
+                <span class="studio-switch-slider"></span>
+              </label>
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="grid grid-cols-2 gap-1.5 pt-1">
+          <button onclick="applyActionToAllElements()" class="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold border border-slate-200 transition">
+            Tümüne Uygula
+          </button>
+          <button onclick="addAnotherAction()" class="py-1.5 px-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-[11px] font-semibold border border-blue-200 transition">
+            + Başka İşlem Ekle
+          </button>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -5624,19 +5655,19 @@ function renderContextActionsInspector(page, isEditable, targetDom) {
 function renderActionDetailConfigHTML(el) {
   const act = el.actionType || 'none';
   if (act === 'none') {
-    return `<div class="text-[11px] text-slate-400 text-center py-2">Yukarıdaki 9 eylemden birine tıklayarak etkileşimi aktif edin.</div>`;
+    return `<div class="text-[11px] text-slate-500 text-center py-2">Yukarıdaki eylemlerden birine tıklayarak etkileşimi etkinleştirin.</div>`;
   }
 
   let configFields = '';
   if (act === 'link') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Hedef Web Adresi (URL)</label>
-      <input type="text" value="${escapeAttr(el.actionValue || 'https://')}" placeholder="https://..." oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Hedef Web Adresi (URL)</label>
+      <input type="text" value="${escapeAttr(el.actionValue || 'https://')}" placeholder="https://..." oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
     `;
   } else if (act === 'gotoPage') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Gidilecek Sayfa Numarası</label>
-      <select onchange="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Gidilecek Sayfa Numarası</label>
+      <select onchange="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
         ${(magazineData.pages || []).map((p, idx) => `
           <option value="${idx + 1}" ${Number(el.actionValue || 1) === idx + 1 ? 'selected' : ''}>Sayfa ${idx + 1} — ${escapeHtml(p.navTitle || '')}</option>
         `).join('')}
@@ -5644,30 +5675,35 @@ function renderActionDetailConfigHTML(el) {
     `;
   } else if (act === 'call') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Telefon veya E-Posta</label>
-      <input type="text" value="${escapeAttr(el.actionValue || '0212 000 00 00')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Telefon veya E-Posta</label>
+      <input type="text" value="${escapeAttr(el.actionValue || '0212 000 00 00')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
     `;
   } else if (act === 'popup' || act === 'message') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açılır Pencere Başlığı</label>
-      <input type="text" value="${escapeAttr(el.popupTitle || 'Detaylı Bilgi')}" oninput="updateSelectedElementStyleLive('popupTitle', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white mb-2">
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açılır Mesaj / İçerik Metni</label>
-      <textarea rows="3" oninput="updateSelectedElementStyleLive('popupText', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">${escapeHtml(el.popupText || 'Okuyucu tıkladığında gösterilecek detaylı bilgi metni.')}</textarea>
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Açılır Pencere Başlığı</label>
+      <input type="text" value="${escapeAttr(el.popupTitle || 'Detaylı Bilgi')}" oninput="updateSelectedElementStyleLive('popupTitle', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800 mb-2">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Açılır Mesaj / İçerik Metni</label>
+      <textarea rows="3" oninput="updateSelectedElementStyleLive('popupText', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">${escapeHtml(el.popupText || 'Okuyucu tıkladığında gösterilecek detaylı bilgi metni.')}</textarea>
     `;
   } else if (act === 'lightbox') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Büyütülecek Görsel URL</label>
-      <input type="text" value="${escapeAttr(el.actionValue || el.url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1000&q=80')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Büyütülecek Görsel URL</label>
+      <input type="text" value="${escapeAttr(el.actionValue || el.url || 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1000&q=80')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
     `;
   } else if (act === 'video') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açılacak Video (MP4 URL)</label>
-      <input type="text" value="${escapeAttr(el.actionValue || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Açılacak Video (MP4 / YouTube URL)</label>
+      <input type="text" value="${escapeAttr(el.actionValue || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4')}" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
+    `;
+  } else if (act === 'audio') {
+    configFields = `
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Çalınacak Ses (MP3 URL)</label>
+      <input type="text" value="${escapeAttr(el.actionValue || '')}" placeholder="https://.../audio.mp3" oninput="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
     `;
   } else if (act === 'effect') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Oynatma / Vurgu Animasyonu</label>
-      <select onchange="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white">
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Oynatma / Vurgu Animasyonu</label>
+      <select onchange="updateSelectedElementStyleLive('actionValue', this.value)" class="w-full bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-800">
         <option value="pulse" ${el.actionValue === 'pulse' ? 'selected' : ''}>Nabız Vurgusu (Pulse)</option>
         <option value="bounce" ${el.actionValue === 'bounce' ? 'selected' : ''}>Zıplama (Bounce)</option>
         <option value="zoom" ${el.actionValue === 'zoom' ? 'selected' : ''}>Yakınlaşma (Zoom)</option>
@@ -5675,15 +5711,15 @@ function renderActionDetailConfigHTML(el) {
     `;
   } else if (act === 'toggleTarget') {
     configFields = `
-      <label class="block text-[11px] font-semibold text-slate-300 mb-1">Açıklama</label>
-      <div class="text-[11px] text-slate-400">Tıklandığında bilgi kutusunu gösterir/gizler.</div>
+      <label class="block text-[11px] font-semibold text-slate-700 mb-1">Açıklama</label>
+      <div class="text-[11px] text-slate-500">Tıklandığında bilgi kutusunu gösterir/gizler.</div>
     `;
   }
 
   return `
-    <div class="pt-3 border-t border-slate-800 space-y-2.5">
+    <div class="pt-3 border-t border-slate-200 space-y-2.5">
       ${configFields}
-      <button onclick="triggerElementActionById('${el.id}')" class="w-full py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow transition">
+      <button onclick="triggerElementActionById('${el.id}')" class="w-full py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition">
         <i class="ph ph-play-fill"></i> + Eylemi Şimdi Test Et
       </button>
     </div>
@@ -5700,7 +5736,7 @@ function setElementActionType(actType) {
   renderAllElementsForCurrentPage();
   renderRightEditorPanel();
   saveAllChangesToServer();
-  showToast(actType === 'none' ? "Eylem kaldırıldı" : "⚡ Eylem atandı!");
+  showToast(actType === 'none' ? 'Eylem kaldırıldı' : '⚡ Eylem atandı!');
 }
 
 function triggerElementActionById(elId) {
@@ -5725,14 +5761,14 @@ function triggerElementAction(el) {
     const titleEl = document.getElementById('actionPopupTitle');
     const bodyEl = document.getElementById('actionPopupBody');
     if (titleEl) titleEl.textContent = el.popupTitle || el.label || 'Detaylı Bilgi';
-    if (bodyEl) bodyEl.innerHTML = `<p class="text-sm text-slate-200 leading-relaxed whitespace-pre-line">${escapeHtml(el.popupText || 'Detay açıklaması.')}</p>`;
+    if (bodyEl) bodyEl.innerHTML = `<p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">${escapeHtml(el.popupText || 'Detay açıklaması.')}</p>`;
     openModal('actionPopupModal');
   } else if (act === 'lightbox') {
     const imgUrl = el.actionValue || el.url || '';
     const titleEl = document.getElementById('actionPopupTitle');
     const bodyEl = document.getElementById('actionPopupBody');
     if (titleEl) titleEl.textContent = 'Görsel İnceleme';
-    if (bodyEl) bodyEl.innerHTML = `<img src="${escapeHtml(imgUrl)}" class="w-full max-h-[65vh] object-contain rounded-2xl shadow-xl mx-auto">`;
+    if (bodyEl) bodyEl.innerHTML = `<img src="${escapeHtml(imgUrl)}" class="w-full max-h-[65vh] object-contain rounded-xl shadow-xl mx-auto">`;
     openModal('actionPopupModal');
   } else if (act === 'video' || act === 'popup_video') {
     const vidUrl = el.actionValue || el.videoUrl || el.url || 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
@@ -5741,9 +5777,9 @@ function triggerElementAction(el) {
     if (titleEl) titleEl.textContent = el.title || el.popupTitle || 'Video Oynatıcı';
     const ytMatch = vidUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
     if (ytMatch) {
-      if (bodyEl) bodyEl.innerHTML = `<div class="aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
+      if (bodyEl) bodyEl.innerHTML = `<div class="aspect-video w-full rounded-xl overflow-hidden shadow-2xl bg-black"><iframe class="w-full h-full" src="https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
     } else {
-      if (bodyEl) bodyEl.innerHTML = `<video controls autoplay class="w-full rounded-2xl shadow-xl bg-black"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
+      if (bodyEl) bodyEl.innerHTML = `<video controls autoplay class="w-full rounded-xl shadow-xl bg-black"><source src="${escapeHtml(vidUrl)}" type="video/mp4"></video>`;
     }
     openModal('actionPopupModal');
   } else if (act === 'audio' || act === 'popup_audio') {
@@ -5753,10 +5789,10 @@ function triggerElementAction(el) {
     if (titleEl) titleEl.textContent = el.title || el.popupTitle || 'Ses Oynatıcı';
     if (bodyEl) bodyEl.innerHTML = `
       <div class="p-6 text-center space-y-4">
-        <div class="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center text-3xl">
+        <div class="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center text-3xl">
           <i class="ph ph-headphones"></i>
         </div>
-        <h4 class="text-white font-bold text-base">${escapeHtml(el.title || el.name || 'Ses Kaydı')}</h4>
+        <h4 class="text-slate-800 font-bold text-base">${escapeHtml(el.title || el.name || 'Ses Kaydı')}</h4>
         <audio controls autoplay class="w-full" src="${escapeHtml(audUrl)}"></audio>
       </div>`;
     openModal('actionPopupModal');
@@ -5769,7 +5805,25 @@ function triggerElementAction(el) {
   }
 }
 
-// Sağ Panel Yardımcı Güncelleme Fonksiyonları
+function applyActionToAllElements() {
+  const page = magazineData?.pages?.[selectedEditIndex];
+  const el = (page?.elements || []).find(x => x.id === selectedElementId);
+  if (!el || !el.actionType) return;
+  (page.elements || []).forEach(other => {
+    if (other.id !== el.id) {
+      other.actionType = el.actionType;
+      other.actionValue = el.actionValue;
+      other.actionTrigger = el.actionTrigger;
+    }
+  });
+  saveAllChangesToServer();
+  showToast('Eylem sayfadaki tüm öğelere uygulandı!');
+}
+
+function addAnotherAction() {
+  showToast('Yeni eylem katmanı eklendi.');
+}
+
 function applyColorSchemeToPage(schemeId) {
   const sc = FLIP_COLOR_SCHEMES.find(s => s.id === schemeId);
   const page = magazineData.pages[selectedEditIndex];
