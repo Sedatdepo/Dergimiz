@@ -4815,6 +4815,11 @@ function renderRightEditorPanel() {
     renderContextActionsInspector(page, isEditable, actionsContainer);
   }
 
+  // Sabit üst şeridi bağlama göre güncelle
+  if (typeof window.updateTopContextBar === "function") {
+    window.updateTopContextBar();
+  }
+
   const assignWrapper = document.getElementById('assignEditorWrapper');
   const selectEditor = document.getElementById('selectAssignedEditor');
   if (currentUser.role === 'admin') {

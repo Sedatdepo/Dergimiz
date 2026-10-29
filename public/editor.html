@@ -188,6 +188,11 @@
     </div>
   </header>
 
+  <!-- SABİT BAĞLAMSAL ÜST ARAÇ ŞERİDİ (TOP CONTEXTUAL TOOLBAR - NESNEYE GÖRE DEĞİŞKEN & SABİT) -->
+  <div id="topContextBar" class="h-10 bg-white border-b border-slate-200 px-3 md:px-4 flex items-center justify-between z-30 shrink-0 select-none shadow-2xs text-xs overflow-x-auto scrollbar-none">
+    <!-- JS (updateTopContextBar) ile seçili nesneye göre sabit ve dinamik olarak doldurulur -->
+  </div>
+
   <!-- ANA ÇALIŞMA ALANI (SOL İKON RAYI + SOL ÇEKMECE + ORTA TUVAL + SAĞ İNCE SÜTUN + SAĞ DENETÇİ PANELİ) -->
   <div class="flex-1 flex overflow-hidden relative">
 
@@ -691,9 +696,7 @@
     <main id="mainCanvasWorkspace" class="flex-1 bg-[#f0f2f5] text-slate-900 flex flex-col items-center justify-center p-2 md:p-4 overflow-auto relative">
 
       <!-- FLIPHTML5 BİREBİR YÜZEN HIZLI BİÇİMLENDİRME ÇUBUĞU (FLOATING CONTEXT BAR) -->
-      <div id="floatingContextBar" class="fixed hidden z-50 bg-white/95 text-slate-800 backdrop-blur-md border border-slate-200/90 shadow-2xl rounded-2xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-100 select-none pointer-events-auto">
-        <!-- JS ile doldurulur -->
-      </div>
+      <!-- Floating bar üst şeride taşındı (#topContextBar) -->
 
       <!-- Geriye dönük uyumluluk için gizli tutucular -->
       <div id="floatingContextToolbar" class="hidden"></div>
