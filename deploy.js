@@ -15,6 +15,11 @@ const config = {
 console.log('🚀 Dergimiz Platformu Dağıtımı Başlatılıyor...');
 
 const conn = new Client();
+
+conn.on('keyboard-interactive', (name, instructions, instructionsLang, prompts, finish) => {
+  finish([config.password]);
+});
+
 conn.on('ready', async () => {
   console.log('📶 VDS bağlantısı sağlandı.');
 
