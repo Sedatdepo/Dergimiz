@@ -1263,7 +1263,7 @@ function switchLeftTab(tabName) {
   }
 
   activeLeftTab = tabName;
-  const tabs = ['pages', 'templates', 'elements', 'links', 'uploads'];
+  const tabs = ['pages', 'templates', 'elements', 'links', 'more', 'uploads'];
   tabs.forEach(t => {
     const btn = document.getElementById(`railBtn_${t}`);
     const panel = document.getElementById(`leftPanel_${t}`);
@@ -5198,28 +5198,28 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
     return;
   }
 
-  // DURUM 1: HİÇBİR ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (Görsel 1 Birebir)
+  // DURUM 1: HİÇBİR ÖĞE SEÇİLİ DEĞİLSE -> SAYFA BOYUTU, RENK ŞEMALARI & ARKA PLAN (FlipHTML5 V2 Birebir)
   if (!el) {
     targetDom.innerHTML = `
-      <!-- Sayfa Boyutu (Görsel 1: G 794, Y 1123) -->
+      <!-- Sayfa Boyutu (FlipHTML5 V2: G 794 / 816, Y 1123 / 1056) -->
       <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-white flex items-center gap-1">Sayfa Boyutu <i class="ph ph-info text-slate-400"></i></span>
-          <span class="text-[10px] text-slate-400">A4 Dergi</span>
+          <span class="text-[10px] text-slate-400 font-mono">A4 / Özel</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between text-xs">
             <span class="text-slate-400 font-semibold">G</span>
-            <span class="text-white font-mono">794</span>
+            <input type="number" value="${(magazineData && magazineData.pageWidth) ? magazineData.pageWidth : 794}" onchange="updatePageDimensions(this.value, (magazineData && magazineData.pageHeight) ? magazineData.pageHeight : 1123)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none" placeholder="Genişlik">
           </div>
-          <div class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs">
+          <div class="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 flex items-center justify-between text-xs">
             <span class="text-slate-400 font-semibold">Y</span>
-            <span class="text-white font-mono">1123</span>
+            <input type="number" value="${(magazineData && magazineData.pageHeight) ? magazineData.pageHeight : 1123}" onchange="updatePageDimensions((magazineData && magazineData.pageWidth) ? magazineData.pageWidth : 794, this.value)" class="w-16 bg-transparent text-right text-white font-mono focus:outline-none" placeholder="Yükseklik">
           </div>
         </div>
       </div>
 
-      <!-- Renk Şemaları / Tema Paletleri (Görsel 1 Birebir: Gök mavisi, Fern Green, Sıcak Kahverengi, Gece yarısı) -->
+      <!-- Renk Şemaları / Tema Paletleri (Gök mavisi, Fern Green, Sıcak Kahverengi, Gece yarısı) -->
       <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold text-white flex items-center gap-1">Renk şemaları <i class="ph ph-info text-slate-400"></i></span>
@@ -5241,15 +5241,34 @@ function renderContextSettingsInspector(page, isEditable, targetDom) {
             </button>
           `).join('')}
         </div>
+        <button onclick="showToast('4 Ana Tema hazır. Özel palet için renk seçiciyi kullanabilirsiniz.')" class="w-full py-1.5 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-semibold transition">
+          + Daha Fazla Renk Şeması
+        </button>
       </div>
 
-      <!-- Arka Plan (Görsel 1: Görüntü | Renk) -->
+      <!-- Arka Plan (Görüntü | Renk & Tüm Sayfalara Uygula) -->
       <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 space-y-2.5">
-        <span class="text-xs font-bold text-white block">Arka Plan</span>
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-slate-300">Bir Renk Seçin</span>
-          <input type="color" value="${page.bgColor || '#ffffff'}" onchange="updatePageField('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border border-slate-700 bg-transparent">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold text-white">Arka Plan</span>
+          <div class="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px]">
+            <button class="px-2 py-0.5 rounded bg-blue-600 text-white font-bold">Renk</button>
+            <label class="px-2 py-0.5 rounded text-slate-400 hover:text-white cursor-pointer font-bold">
+              Görüntü
+              <input type="file" accept="image/*" onchange="handleCanvasImageUpload(event)" class="hidden">
+            </label>
+          </div>
         </div>
+        <div class="flex items-center justify-between text-xs bg-slate-950 p-2 rounded-xl border border-slate-800">
+          <span class="text-slate-300">Bir Renk Seçin</span>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-mono text-slate-400">${page.bgColor || '#ffffff'}</span>
+            <input type="color" value="${page.bgColor || '#ffffff'}" onchange="updatePageField('bgColor', this.value)" class="w-8 h-7 rounded cursor-pointer border border-slate-700 bg-transparent">
+          </div>
+        </div>
+        <button onclick="applyBackgroundToAllPages()" class="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition flex items-center justify-center gap-1.5" title="Seçili rengi tüm sayfalara uygula">
+          <i class="ph ph-copy"></i>
+          <span>Tüm Sayfalara Uygula</span>
+        </button>
         <div class="pt-1 border-t border-slate-800 flex items-center justify-between gap-2">
           <button onclick="switchRightInspectorTab('content')" class="flex-1 py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-semibold flex items-center justify-center gap-1 transition">
             <i class="ph ph-textbox"></i> Şablon Metinleri
@@ -5765,6 +5784,26 @@ function applyColorSchemeToPage(schemeId) {
   renderAll();
   saveAllChangesToServer();
   showToast(`🎨 "${sc.name}" renk şeması sayfaya uygulandı!`);
+}
+
+function applyBackgroundToAllPages() {
+  const page = magazineData?.pages?.[selectedEditIndex];
+  if (!page || !magazineData?.pages) return;
+  const col = page.bgColor || '#ffffff';
+  magazineData.pages.forEach(p => {
+    p.bgColor = col;
+  });
+  renderAll();
+  saveAllChangesToServer();
+  showToast("Arka plan rengi tüm sayfalara uygulandı! ✨");
+}
+
+function updatePageDimensions(width, height) {
+  if (!magazineData) return;
+  magazineData.pageWidth = Number(width) || 794;
+  magazineData.pageHeight = Number(height) || 1123;
+  renderAll();
+  showToast(`Sayfa boyutu ${magazineData.pageWidth}x${magazineData.pageHeight} olarak ayarlandı`);
 }
 
 function alignSelectedElement(dir) {
@@ -6824,6 +6863,8 @@ window.handleInlineImageMouseDown = handleInlineImageMouseDown;
 window.handleInlineTextMouseDown = handleInlineTextMouseDown;
 window.updateInlineFieldTransform = updateInlineFieldTransform;
 window.resetInlineFieldTransform = resetInlineFieldTransform;
+window.applyBackgroundToAllPages = applyBackgroundToAllPages;
+window.updatePageDimensions = updatePageDimensions;
 
 
 

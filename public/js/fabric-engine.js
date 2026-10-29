@@ -402,6 +402,7 @@ function attachFabricCanvasEvents(fCanvas, page, pageIndex) {
     });
     updateActiveSelectionBadge(fCanvas);
     renderRightEditorPanel();
+    if (typeof updateFloatingContextBar === 'function') updateFloatingContextBar(fCanvas);
     if (typeof renderLayersPopover === 'function') renderLayersPopover();
   });
 
@@ -416,13 +417,25 @@ function attachFabricCanvasEvents(fCanvas, page, pageIndex) {
     });
     updateActiveSelectionBadge(fCanvas);
     renderRightEditorPanel();
+    if (typeof updateFloatingContextBar === 'function') updateFloatingContextBar(fCanvas);
     if (typeof renderLayersPopover === 'function') renderLayersPopover();
   });
 
   fCanvas.on('selection:cleared', () => {
     updateActiveSelectionBadge(fCanvas);
     renderRightEditorPanel();
+    if (typeof hideFloatingContextBar === 'function') hideFloatingContextBar();
     if (typeof renderLayersPopover === 'function') renderLayersPopover();
+  });
+
+  fCanvas.on('object:moving', () => {
+    if (typeof updateFloatingContextBar === 'function') updateFloatingContextBar(fCanvas);
+  });
+  fCanvas.on('object:scaling', () => {
+    if (typeof updateFloatingContextBar === 'function') updateFloatingContextBar(fCanvas);
+  });
+  fCanvas.on('object:rotating', () => {
+    if (typeof updateFloatingContextBar === 'function') updateFloatingContextBar(fCanvas);
   });
 
   fCanvas.on('object:modified', (e) => {

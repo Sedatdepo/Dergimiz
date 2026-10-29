@@ -261,7 +261,7 @@
           <i class="ph ph-link text-xl"></i>
           <span>Bağlantı</span>
         </button>
-        <button id="railBtn_more" onclick="toggleMorePopupMenu(event)" class="rail-btn relative" title="Daha Fazla: Görüntü, Metin, Video, Ses, Slayt Gösterisi">
+        <button id="railBtn_more" onclick="switchLeftTab('more')" class="rail-btn relative" title="Daha Fazla: Video, Ses, QR Kod, HTML & Formlar">
           <i class="ph ph-dots-three-circle text-xl"></i>
           <span>Daha Fazla</span>
         </button>
@@ -327,22 +327,28 @@
 
       <!-- SEKME A: SAYFA MİNYATÜRLERİ & YÖNETİMİ (Görsel 1 & 10) -->
       <div id="leftPanel_pages" class="flex-1 flex flex-col overflow-hidden">
-        <!-- Üst "+ Bembeyaz Boş Sayfa", "+ Yeni İki Sayfa", "+ Tek Sayfa" ve "Daralt" Butonları -->
+        <!-- Üst FlipHTML5 Standart "+ Yeni Sayfa Ekle", "+ İki Sayfa", "+ Tek Sayfa" Butonları -->
         <div class="p-2 border-b border-slate-800 flex flex-col gap-1.5 bg-slate-950/50">
-          <button onclick="addBlankPage()" class="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-1.5 transition shadow" title="Tertemiz Bembeyaz Sayfa Ekle (Sıfırdan Tasarla)">
-            <i class="ph ph-file-plus text-base"></i>
-            <span>+ Bembeyaz Boş Sayfa Aç</span>
-          </button>
           <div class="flex items-center gap-1">
-            <button onclick="addSpreadPages()" class="flex-1 py-1 px-2 rounded-xl bg-slate-800 hover:bg-blue-600 text-white border border-slate-700 hover:border-blue-500 font-bold text-[10.5px] flex items-center justify-center gap-1 transition shadow">
-              <i class="ph ph-plus text-xs"></i>
+            <button onclick="toggleAddPageMenu(event)" class="flex-1 py-1.5 px-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs flex items-center justify-between transition shadow" title="Yeni Sayfa Ekle (İki Sayfa / Tek Sayfa / PDF)">
+              <span class="flex items-center gap-1.5"><i class="ph ph-plus-circle text-base"></i> + Yeni Sayfa Ekle</span>
+              <i class="ph ph-caret-down text-xs"></i>
+            </button>
+            <button onclick="toggleLeftDrawerCollapse()" class="p-1.5 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs transition" title="Sol Paneli Kapat">
+              <i class="ph ph-caret-double-left text-xs"></i>
+            </button>
+          </div>
+          <div class="flex items-center gap-1">
+            <button onclick="addSpreadPages()" class="flex-1 py-1 px-2 rounded-xl bg-slate-800 hover:bg-blue-600 text-white border border-slate-700 hover:border-blue-500 font-bold text-[10.5px] flex items-center justify-center gap-1 transition shadow" title="Çift Sayfa Ekle">
+              <i class="ph ph-book-open text-xs text-blue-400"></i>
               <span>+ İki Sayfa</span>
+            </button>
+            <button onclick="addBlankPage()" class="flex-1 py-1 px-2 rounded-xl bg-slate-800 hover:bg-emerald-600 text-white border border-slate-700 hover:border-emerald-500 font-bold text-[10.5px] flex items-center justify-center gap-1 transition shadow" title="Tek Sayfa Ekle">
+              <i class="ph ph-file-plus text-xs text-emerald-400"></i>
+              <span>+ Tek Sayfa</span>
             </button>
             <button onclick="openModal('addPageModal')" id="btnAddPageBtn" class="p-1 rounded-xl bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white border border-slate-700 text-xs transition" title="Şablondan Ekle">
               <i class="ph ph-layout text-sm"></i>
-            </button>
-            <button onclick="toggleLeftDrawerCollapse()" class="p-1 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-slate-700 text-xs transition" title="Sol Paneli Kapat">
-              <i class="ph ph-caret-double-left text-xs"></i>
             </button>
           </div>
         </div>
@@ -690,10 +696,69 @@
           <span>Slayt Gösterisi (Galeri) Ekle</span>
         </button>
       </div>
+
+      <!-- SEKME F: DAHA FAZLA (MULTİMEDYA & WİDGETLAR - FlipHTML5 V2 Birebir) -->
+      <div id="leftPanel_more" class="flex-1 flex flex-col overflow-hidden hidden p-3 space-y-3 select-none">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="ph ph-dots-three-circle text-purple-400"></i> Daha Fazla Araç</span>
+          <button onclick="toggleLeftDrawerCollapse()" class="text-slate-400 hover:text-white" title="Sol Paneli Kapat"><i class="ph ph-x text-sm"></i></button>
+        </div>
+        <p class="text-[11px] text-slate-400 leading-relaxed">Derginize YouTube videosu, arka plan müziği, canlı QR kod veya harici widget ekleyin.</p>
+
+        <!-- Video Ekle -->
+        <button onclick="openInteractiveMediaModal('video')" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-purple-600/30 border border-slate-700/80 hover:border-purple-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
+          <i class="ph ph-video-camera text-xl text-purple-400"></i>
+          <div>
+            <div class="text-white font-bold">Video Ekle</div>
+            <div class="text-[10px] text-slate-400">YouTube, Vimeo veya yerel MP4</div>
+          </div>
+        </button>
+
+        <!-- Ses Çalar -->
+        <button onclick="openInteractiveMediaModal('audio')" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-emerald-600/30 border border-slate-700/80 hover:border-emerald-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
+          <i class="ph ph-music-notes text-xl text-emerald-400"></i>
+          <div>
+            <div class="text-white font-bold">Ses & Müzik Çalar</div>
+            <div class="text-[10px] text-slate-400">Butonla çalan ses veya fon müziği</div>
+          </div>
+        </button>
+
+        <!-- QR Kod Üretici -->
+        <button onclick="addCanvasElement('qr', { qrUrl: 'https://dergimiz.com.tr' })" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-blue-600/30 border border-slate-700/80 hover:border-blue-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
+          <i class="ph ph-qr-code text-xl text-blue-400"></i>
+          <div>
+            <div class="text-white font-bold">QR Kod Oluşturucu</div>
+            <div class="text-[10px] text-slate-400">Canlı linki QR koda dönüştür</div>
+          </div>
+        </button>
+
+        <!-- HTML / İframe -->
+        <button onclick="openInteractiveMediaModal('html')" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-amber-600/30 border border-slate-700/80 hover:border-amber-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
+          <i class="ph ph-code text-xl text-amber-400"></i>
+          <div>
+            <div class="text-white font-bold">HTML / İframe Gömme</div>
+            <div class="text-[10px] text-slate-400">Harici web kodu veya widget</div>
+          </div>
+        </button>
+
+        <!-- Geri Bildirim & Form Alanı -->
+        <button onclick="openStudentSubmissionsModal()" class="w-full p-2.5 rounded-xl bg-slate-800/90 hover:bg-rose-600/30 border border-slate-700/80 hover:border-rose-500 text-left text-xs font-semibold text-white flex items-center gap-2.5 transition">
+          <i class="ph ph-chat-text text-xl text-rose-400"></i>
+          <div>
+            <div class="text-white font-bold">Geri Bildirim / Form</div>
+            <div class="text-[10px] text-slate-400">Öğrenci katkı ve anket havuzu</div>
+          </div>
+        </button>
+      </div>
     </aside>
 
     <!-- 3. ORTA ALAN: DERGİ TUVALİ (TAMAMEN TEMİZ ÇALIŞMA EKRANI — ÜSTTE HİÇBİR PANEL YOK) -->
     <main id="mainCanvasWorkspace" class="flex-1 bg-[#e5e7eb] text-slate-900 flex flex-col items-center justify-center p-2 md:p-4 overflow-auto relative">
+
+      <!-- FLIPHTML5 BİREBİR YÜZEN HIZLI BİÇİMLENDİRME ÇUBUĞU (FLOATING CONTEXT BAR) -->
+      <div id="floatingContextBar" class="fixed hidden z-50 bg-white/95 text-slate-800 backdrop-blur-md border border-slate-200/90 shadow-2xl rounded-2xl px-2.5 py-1.5 flex items-center gap-1.5 transition-all duration-100 select-none pointer-events-auto">
+        <!-- JS ile doldurulur -->
+      </div>
 
       <!-- Geriye dönük uyumluluk için gizli tutucular -->
       <div id="floatingContextToolbar" class="hidden"></div>
@@ -1890,10 +1955,11 @@
     <span id="toastMessage">İşlem tamamlandı!</span>
   </div>
 
-  <script src="/js/studio.js?v=20261029_01_blankfix"></script>
-  <script src="/js/fabric-engine.js?v=20261029_01_blankfix"></script>
-  <script src="/js/smart-layouts.js?v=20261029_01_blankfix"></script>
-  <script src="/js/pro-extensions.js?v=20261029_01_blankfix"></script>
-  <script src="/js/interactive-pro.js?v=20261029_01_blankfix"></script>
+  <script src="/js/studio.js?v=20261029_02_flip"></script>
+  <script src="/js/fabric-engine.js?v=20261029_02_flip"></script>
+  <script src="/js/smart-layouts.js?v=20261029_02_flip"></script>
+  <script src="/js/pro-extensions.js?v=20261029_02_flip"></script>
+  <script src="/js/interactive-pro.js?v=20261029_02_flip"></script>
+  <script src="/js/flip-ui-engine.js?v=20261029_02_flip"></script>
 </body>
 </html>
